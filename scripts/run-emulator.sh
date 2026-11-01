@@ -1,10 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
 mkdir -p smoke-evidence
-printf 'no\n' | avdmanager create avd --force -n kizuku-ci --package 'system-images;android-37.0;google_apis;x86_64' --device pixel_7
-task_avd_dir="${ANDROID_AVD_HOME:-$HOME/.android/avd}"
-printf 'disk.dataPartition.size=6G\n' >>"$task_avd_dir/kizuku-ci.avd/config.ini"
-"$ANDROID_HOME/emulator/emulator" -avd kizuku-ci -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none -memory 2048 -partition-size 6144 >smoke-evidence/emulator.log 2>&1 &
+export ANDROID_USER_HOME="${RUNNER_TEMP:-/tmp}/kizuku-android"
+export ANDROID_AVD_HOME="$ANDROID_USER_HOME/avd"
+export ANDROID_SERIAL=emulator-5554
+mkdir -p "$ANDROID_AVD_HOME"
+printf 'no\n' | avdmanager create avd --force -n kizuku-ci --path "$ANDROID_AVD_HOME/kizuku-ci.avd" --package 'system-images;android-37.0;google_apis;x86_64' --device pixel_7
+avdmanager list avd >smoke-evidence/avds.txt
+test -f "$ANDROID_AVD_HOME/kizuku-ci.avd/config.ini"
+printf 'disk.dataPartition.size=6G\n' >>"$ANDROID_AVD_HOME/kizuku-ci.avd/config.ini"
+"$ANDROID_HOME/emulator/emulator" -port 5554 -avd kizuku-ci -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none -memory 2048 -partition-size 6144 >smoke-evidence/emulator.log 2>&1 &
 emulator_pid=$!
 cleanup() {
   set +e
