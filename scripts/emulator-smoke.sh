@@ -16,10 +16,11 @@ launch() {
 instrument() {
   local package=$1 argument=$2 value=$3
   adb shell am instrument -w -e "$argument" "$value" "$package.test/androidx.test.runner.AndroidJUnitRunner" | tee "smoke-evidence/$argument-$value.txt"
-  rg 'OK \([0-9]+ test' "smoke-evidence/$argument-$value.txt"
+  rg 'OK \(1 test\)' "smoke-evidence/$argument-$value.txt"
 }
 probe() { adb shell am force-stop "$client"; instrument "$client" stage "$1"; }
-adb shell am start -n "$manager/.MainActivity"
+adb shell dumpsys package "$manager" >smoke-evidence/manager-package.txt
+adb shell am start -W --user 0 -n "$manager/.MainActivity"
 launch
 instrument "$manager" action connected
 instrument "$manager" action stale
@@ -35,7 +36,7 @@ instrument "$manager" action stop
 launch
 instrument "$manager" action connected
 probe persisted
-adb shell content call --uri "content://$manager.core" --method save_grants --extra 's:grants:[]' 2>&1 | tee smoke-evidence/shell-write-denied.txt
+adb shell content call --uri "content://$manager.core" --method save_grants --extra 's:grants:[]' 2>&1 | tee smoke-evidence/shell-write-denied.txt || true
 rg 'Unknown controller method' smoke-evidence/shell-write-denied.txt
 probe persisted
 adb shell am start -n "$manager/.MainActivity"

@@ -9,7 +9,7 @@ printf 'no\n' | avdmanager create avd --force -n kizuku-ci --path "$ANDROID_AVD_
 avdmanager list avd >smoke-evidence/avds.txt
 test -f "$ANDROID_AVD_HOME/kizuku-ci.avd/config.ini"
 printf 'disk.dataPartition.size=6G\n' >>"$ANDROID_AVD_HOME/kizuku-ci.avd/config.ini"
-"$ANDROID_HOME/emulator/emulator" -port 5554 -avd kizuku-ci -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none -memory 2048 -partition-size 6144 >smoke-evidence/emulator.log 2>&1 &
+"$ANDROID_HOME/emulator/emulator" -port 5554 -avd kizuku-ci -no-window -gpu swiftshader -feature -Vulkan -no-snapshot -noaudio -no-boot-anim -camera-back none -memory 2048 -partition-size 6144 >smoke-evidence/emulator.log 2>&1 &
 emulator_pid=$!
 cleanup() {
   set +e
@@ -36,6 +36,16 @@ for attempt in $(seq 1 90); do
   sleep 2
 done
 if (( ready < 3 )); then echo 'Android framework services did not become stable'; exit 1; fi
+# The previous image restarted SurfaceFlinger/system_server during first boot and
+# left user 0 locked. An installed CE-only activity cannot resolve until unlock.
+adb shell am unlock-user 0
+for attempt in $(seq 1 60); do
+  user_state=$(adb shell am get-started-user-state 0 2>/dev/null | tr -d '\r' || true)
+  [[ "$user_state" == *RUNNING_UNLOCKED* ]] && break
+  sleep 2
+done
+adb shell am get-started-user-state 0 >smoke-evidence/user-state.txt
+grep -q RUNNING_UNLOCKED smoke-evidence/user-state.txt
 adb shell input keyevent 82
 adb shell settings put global window_animation_scale 0
 adb shell settings put global transition_animation_scale 0
