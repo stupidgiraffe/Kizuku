@@ -3,6 +3,22 @@
 Updated 2026-11-02 JST. Canonical Plane mainline #3:
 `68ff91b5-1e6c-4a37-b755-8d284b4fffb4`.
 
+## Current unreleased implementation
+
+Source `a2edcc8df75afa29361f095ee81960d447d502f5` adds on-device notification
+pairing, wireless/TCP startup, cancellation and compatible installed-app switches.
+All 21 policy/protocol tests, debug compilation and lint passed on `0aac097`.
+Its signed build also passed permanent-certificate, bundled-companion, notice and
+four-ABI pairing-library checks.
+
+Runtime gate 41338947735 did **not** exercise these features: changing the emulator
+TCP port closed the original ADB transport; an unbounded cleanup command then hung
+until job cancellation. `ba36cab` / `a2edcc8` bound ADB commands, reconnection probes
+and diagnostic cleanup, and tolerate the expected transport disconnect. Corrected
+signed/runtime gate: https://github.com/stupidgiraffe/Kizuku/actions/runs/41345959538
+Do not call pairing, switches or TCP runtime-verified until that gate proves them.
+Preview 2 remains unpublished. No physical phone was modified.
+
 ## Published checkpoint
 
 [0.1.0 Preview 1](https://github.com/stupidgiraffe/Kizuku/releases/tag/v0.1.0-preview.1)
