@@ -23,7 +23,7 @@ Compose manager, a same-signer legacy companion, and explicit native capabilitie
 Porter supplies security/lifecycle patterns; Nightzuku supplies the dual-wire
 reference. No complete fork is imported. The AxManager runtime remains Phase 2.
 
-`api/src/main/aidl/moe/shizuku/server/` contains four unchanged stock Shizuku-API
+`server/src/main/aidl/moe/shizuku/server/` contains four unchanged stock Shizuku-API
 AIDL files. `server/src/main/java/moe/shizuku/api/BinderContainer.java` is unchanged
 stock source. The exact revision is recorded in `NOTICE` and `upstreams.lock.json`.
 Gradle wrapper tooling was copied from the inspected Nightzuku checkout and pinned

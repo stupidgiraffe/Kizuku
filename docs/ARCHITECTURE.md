@@ -5,8 +5,10 @@ Kizuku is `io.github.stupidgiraffe.kizuku`. The legacy companion alone owns
 Shizuku AIDL contract, not a wholesale fork or branding replacement.
 
 * `core`: Android-free capability grants, certificate/UID identity, recovery policy.
-* `api`: native versioned Binder contract and unmodified upstream legacy AIDL.
-* `server`: `app_process` entry point, identity checks, native/legacy endpoints.
+* `api`: native versioned Binder contract and signing identity helpers.
+* `server`: `app_process` entry point, identity checks, native/legacy endpoints
+  and unmodified upstream legacy AIDL. Native SDK consumers never inherit a second
+  copy of the stock SDK classes.
 * `manager`: Compose UI and the single activation/lifecycle controller.
 * `compat`: bundled legacy permission/discovery companion, signed with the manager.
 * `test-client`: independent UID using the published Shizuku SDK and native API.
