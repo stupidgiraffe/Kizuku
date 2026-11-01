@@ -17,7 +17,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     env:
-      KIZUKU_KEYSTORE_PATH: ${{ runner.temp }}/kizuku.p12
       KIZUKU_STORE_PASSWORD: ${{ secrets.KIZUKU_STORE_PASSWORD }}
       KIZUKU_KEY_PASSWORD: ${{ secrets.KIZUKU_KEY_PASSWORD }}
     steps:
@@ -36,8 +35,9 @@ jobs:
           KIZUKU_KEYSTORE_BASE64: ${{ secrets.KIZUKU_KEYSTORE_BASE64 }}
         run: |
           umask 077
+          printf 'KIZUKU_KEYSTORE_PATH=%s/kizuku.p12\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
           test -n "$KIZUKU_KEYSTORE_BASE64"
-          printf '%s' "$KIZUKU_KEYSTORE_BASE64" | base64 --decode > "$KIZUKU_KEYSTORE_PATH"
+          printf '%s' "$KIZUKU_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/kizuku.p12"
       - name: Build and verify signed release and instrumentation
         run: |
           ./gradlew -PtestBuildType=release :core:test :manager:assembleRelease :test-client:assembleRelease :manager:assembleReleaseAndroidTest :test-client:assembleReleaseAndroidTest :manager:lintRelease :test-client:lintRelease :compat:lintRelease --stacktrace
