@@ -51,3 +51,19 @@ uninspected changes are not described as audited.
 - [AGP compatibility](https://developer.android.com/build/releases/about-agp): AGP 9.4.1 / Gradle 9.6.0 / JDK 21; SDK and target 37, minimum SDK 26.
 - [Compose setup](https://developer.android.com/develop/ui/compose/setup-compose-dependencies-and-compiler): built-in Kotlin and matching Compose compiler 2.2.10; BOM 2026.08.00.
 - Hidden package lookup uses long/int flag signatures and `getPackagesForUid`, avoiding changed installed-list return types. PermissionManager device-ID mutations are not implemented.
+
+## ADB activation follow-up (2026-11-02)
+
+Porter a288febb4e42 supplies the narrow key/pairing/native adapter; the host and
+authorization database remain Kizuku's. Native framing is bounded before allocation,
+startup output is limited, local endpoints are validated, and TLS pairing uses
+Android's public exporter on API31+. See docs/ADB_PLATFORM.md for exact Android 17
+permission and Settings lifecycle evidence. BoringSSL 20251124 and Bouncy Castle
+1.86 were verified against their primary Maven/source metadata.
+
+New uploaded `manager-release.apk` is Shevery 14.6.1 (com.hamondev.shevery), not
+the older 14.4 reference. Manifest/resources inspected locally after Render's
+resource-only decode timed out. The uploaded Shizuku 14.0.31-next digest matches
+rushiranpise/Shizuku-Next tag v14.0.31-next, c97dc7d23c94cee90748128160c4a3366983aa12.
+We reused its narrow queued-resolution/stale-port ideas, not its full engines; no
+decompiled implementation was used.

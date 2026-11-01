@@ -8,6 +8,7 @@ import android.text.BidiFormatter
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.SystemBarStyle
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -34,7 +35,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import io.github.stupidgiraffe.kizuku.core.Capability
@@ -47,7 +47,7 @@ private val Muted = Color(0xFFADB9D4)
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
+        enableEdgeToEdge(statusBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT), navigationBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT))
         window.decorView.filterTouchesWhenObscured = true
         if (Build.VERSION.SDK_INT >= 31) window.setHideOverlayWindows(true)
         setContent {
@@ -68,7 +68,7 @@ private enum class Destination(val title: String, val icon: ImageVector) {
     Settings("Settings", Icons.Outlined.Tune)
 }
 
-@Composable private fun CommandCenter(controller: ActivationController = viewModel()) {
+@Composable private fun CommandCenter(controller: ActivationController = ActivationController.get(LocalContext.current)) {
     val state by controller.state.collectAsStateWithLifecycle()
     val revision by CoreConnection.revision.collectAsStateWithLifecycle()
     var tab by rememberSaveable { mutableStateOf(Destination.Core) }
@@ -122,6 +122,7 @@ private enum class Destination(val title: String, val icon: ImageVector) {
 @Composable private fun CoreScreen(state: CoreState, controller: ActivationController) {
     val clipboard = LocalClipboardManager.current
     var showAdb by remember { mutableStateOf(false) }
+    var showAdbControls by remember { mutableStateOf(false) }
     Glass {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(if (state.status != null) Icons.Outlined.VerifiedUser else Icons.Outlined.PowerSettingsNew, null, tint = Cyan, modifier = Modifier.size(28.dp))
@@ -141,18 +142,24 @@ private enum class Destination(val title: String, val icon: ImageVector) {
     }
     Glass {
         Text("Activate Kizuku", style = MaterialTheme.typography.titleMedium)
+        Button(onClick = { showAdbControls = true }, enabled = !state.busy && state.status == null, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) { Text("Wireless ADB / TCP") }
         Button(onClick = { controller.startRoot() }, enabled = !state.busy && state.status == null, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) {
             if (state.busy) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
             else { Icon(Icons.Outlined.Bolt, null); Spacer(Modifier.width(8.dp)); Text("Start with root") }
         }
         OutlinedButton(onClick = { showAdb = true }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text("Start from a computer") }
-        Text("Wireless ADB pairing is the next activation milestone. This build supports root and a computer ADB command.", color = Muted, style = MaterialTheme.typography.bodySmall)
+        Text("Pair using the notification while Settings stays open. Previously paired devices can start over Wi-Fi; custom TCP ports are supported.", color = Muted, style = MaterialTheme.typography.bodySmall)
+        if (state.busy) OutlinedButton(onClick = controller::cancelActivation) { Text("Cancel activation") }
     }
     Glass {
         Text("Core diagnostics", style = MaterialTheme.typography.titleMedium)
         Text("${state.apps.count { it.getLong("granted") != 0L }} authorized · ${state.apps.count { it.getLong("requested") != 0L }} requesting access", color = Muted)
-        Text("Legacy Binder forwarding: foundation subset\nAxeron runtime: not installed", style = MaterialTheme.typography.bodySmall, color = Muted)
+        Text("Shizuku compatibility", style = MaterialTheme.typography.titleSmall)
+        Text("Android Binder access · ${if (state.status != null) "connected" else "inactive"}", style = MaterialTheme.typography.bodySmall, color = Muted)
+        Text("Persistent runtime", style = MaterialTheme.typography.titleSmall)
+        Text("Axeron-style shell and plugins require separate capabilities. Runtime execution is not enabled in this build.", style = MaterialTheme.typography.bodySmall, color = Muted)
     }
+    if (showAdbControls) AdbControls(controller) { showAdbControls = false }
     if (showAdb) AlertDialog(onDismissRequest = { showAdb = false }, title = { Text("Computer ADB activation") }, text = {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text("Connect a computer with USB debugging enabled, then run:")
@@ -167,8 +174,11 @@ private enum class Destination(val title: String, val icon: ImageVector) {
 @Composable private fun AppsScreen(state: CoreState, controller: ActivationController) {
     val context = LocalContext.current
     var approval by remember { mutableStateOf<Pair<Bundle, Long>?>(null) }
-    if (state.apps.isEmpty()) EmptySurface(Icons.Outlined.Apps, "No app has requested access", "Start the core, then connect a compatible client. Requests appear here with its signing identity and separate capabilities.")
-    state.apps.forEach { app ->
+    var search by remember { mutableStateOf("") }
+    OutlinedTextField(value = search, onValueChange = { search = it }, label = { Text("Search installed clients") }, leadingIcon = { Icon(Icons.Outlined.Search, null) }, singleLine = true, modifier = Modifier.fillMaxWidth())
+    Text(if (state.status == null) "Compatible installed apps · permissions can be saved before starting the core" else "Compatible installed apps · changes apply to the connected core", color = Muted, style = MaterialTheme.typography.bodySmall)
+    if (state.apps.isEmpty()) EmptySurface(Icons.Outlined.Apps, "No compatible apps installed", "Install an app using the Shizuku or Kizuku API. It appears here before making its first request.")
+    state.apps.filter { it.getString("package").orEmpty().contains(search, ignoreCase = true) || runCatching { context.packageManager.getApplicationLabel(context.packageManager.getApplicationInfo(it.getString("package").orEmpty(), 0)).toString().contains(search, ignoreCase = true) }.getOrDefault(false) }.forEach { app ->
         val pkg = app.getString("package").orEmpty()
         val label = remember(pkg) {
             val raw = runCatching { context.packageManager.getApplicationLabel(context.packageManager.getApplicationInfo(pkg, 0)).toString() }.getOrDefault(pkg)
@@ -187,6 +197,7 @@ private enum class Destination(val title: String, val icon: ImageVector) {
                     })
                 }
             }
+            if (app.getBoolean("saved_only")) Text("Saved for the next core start", color = Muted, style = MaterialTheme.typography.bodySmall)
             if (app.getLong("requested") != 0L) Text("Access requested — review a capability above.", color = Cyan, style = MaterialTheme.typography.bodySmall)
         }
     }
@@ -202,7 +213,7 @@ private enum class Destination(val title: String, val icon: ImageVector) {
         }, confirmButton = {
             Column {
                 listOf("Once" to 0, "This service session" to 1, "Remember this certificate" to 2).forEach { (label, lifetime) ->
-                    TextButton(onClick = { controller.decide(app, scope, lifetime); approval = null }) { Text(label) }
+                    TextButton(enabled = state.status != null || lifetime == 2, onClick = { controller.decide(app, scope, lifetime); approval = null }) { Text(label) }
                 }
             }
         }, dismissButton = { TextButton(onClick = { controller.decide(app, scope, null); approval = null }) { Text("Deny") } })
@@ -236,13 +247,13 @@ private enum class Destination(val title: String, val icon: ImageVector) {
         Text("Protection & recovery", style = MaterialTheme.typography.titleMedium)
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) { Text("Safe mode"); Text("Suspend all client capabilities", color = Muted, style = MaterialTheme.typography.bodySmall) }
-            Switch(checked = state.status?.getBoolean("safe_mode") ?: false, enabled = state.status != null, onCheckedChange = controller::safeMode)
+            Switch(checked = state.safeMode, onCheckedChange = controller::safeMode)
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) { Text("Root recovery"); Text("Up to five retries while the manager runs", color = Muted, style = MaterialTheme.typography.bodySmall) }
+            Column(Modifier.weight(1f)) { Text("Core recovery"); Text("Bounded retries for root or available Wireless ADB", color = Muted, style = MaterialTheme.typography.bodySmall) }
             Switch(checked = recover, onCheckedChange = { recover = it; controller.setRecovery(it) })
         }
-        Text("No telemetry. Authorization stays on your device. Development builds have no permanent release signing identity.", color = Muted, style = MaterialTheme.typography.bodySmall)
+        Text("No telemetry. Authorization stays on your device. Release builds use Kizuku’s permanent signing identity.", color = Muted, style = MaterialTheme.typography.bodySmall)
     }
     TextButton(onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/stupidgiraffe/Kizuku"))) }) { Text("Source & licenses") }
 }

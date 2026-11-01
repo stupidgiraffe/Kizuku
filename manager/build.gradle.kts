@@ -2,6 +2,7 @@ plugins { id("com.android.application"); id("org.jetbrains.kotlin.plugin.compose
 android {
     namespace = "io.github.stupidgiraffe.kizuku"
     compileSdk = 37
+    ndkVersion = "29.0.14206865"
     buildToolsVersion = "37.0.0"
     defaultConfig {
         applicationId = "io.github.stupidgiraffe.kizuku"
@@ -11,7 +12,8 @@ android {
         versionName = "0.1.0-preview.1"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
-    buildFeatures { compose = true; buildConfig = true }
+    buildFeatures { compose = true; buildConfig = true; prefab = true }
+    externalNativeBuild { cmake { path = file("src/main/cpp/CMakeLists.txt"); version = "3.31.6" } }
     buildTypes { release { isMinifyEnabled = false } }
     signingConfigs {
         create("kizukuRelease") {
@@ -28,6 +30,9 @@ android {
 }
 dependencies {
     implementation(project(":api"))
+    implementation("org.bouncycastle:bcpkix-jdk18on:1.86")
+    implementation("io.github.vvb2060.ndk:boringssl:20251124")
+    implementation("org.lsposed.hiddenapibypass:hiddenapibypass:6.1")
     implementation(project(":server"))
     implementation(platform("androidx.compose:compose-bom:2026.08.00"))
     implementation("androidx.compose.material3:material3")
@@ -58,7 +63,7 @@ androidComponents.onVariants { variant ->
     val title = kind.replaceFirstChar { it.uppercase() }
     val bundle = tasks.register<BundleCompanionTask>("bundle${title}Companion") {
         dependsOn(":compat:assemble${title}")
-        notices.from(rootProject.file("LICENSE"), rootProject.file("NOTICE"))
+        notices.from(rootProject.file("LICENSE"), rootProject.file("NOTICE"), rootProject.file("BORINGSSL-LICENSE.txt"), rootProject.file("BOUNCYCASTLE-LICENSE.txt"))
         apk.set(project(":compat").layout.buildDirectory.file("outputs/apk/${kind}/compat-${kind}.apk"))
         outputDirectory.set(layout.buildDirectory.dir("generated/companion/${kind}"))
     }

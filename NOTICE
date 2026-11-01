@@ -20,3 +20,11 @@ Runtime/build dependencies retain their own licenses, including AndroidX
 (Apache-2.0), Kotlin (Apache-2.0), Rikka Hidden API and Refine (Apache-2.0), and Shizuku SDK
 (Apache-2.0; test-client only). JUnit (EPL-1.0) is test-only.
 A component-level notice pass is required before any new vendored dependency.
+
+ADB key storage, pairing client and JNI SPAKE2/AEAD adapter are adapted from
+d4rken-org/porter revision a288febb4e42b7acb6544cc1b50c89899a22ec4d
+(Apache-2.0), originating in stock Shizuku. Adaptations: Kizuku namespace, public
+TLS exporter on API31+, bounded local-device transport, code/key log removal,
+correct DEVICE_GUID type, explicit cancellation, fail-closed key persistence.
+Native BoringSSL prefab 20251124: see BORINGSSL-LICENSE.txt. Bouncy Castle 1.86:
+see BOUNCYCASTLE-LICENSE.txt. These licenses are bundled with the application.
