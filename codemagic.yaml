@@ -1,0 +1,19 @@
+workflows:
+  kizuku-debug-manual:
+    name: Kizuku manual Android build
+    max_build_duration: 30
+    instance_type: linux_x2
+    environment:
+      java: 21
+    scripts:
+      - name: Android SDK
+        script: sdkmanager 'platforms;android-37.0' 'build-tools;37.0.0'
+      - name: Verify and build development APKs
+        script: ./gradlew :core:test :manager:assembleDebug :test-client:assembleDebug :manager:lintDebug
+    artifacts:
+      - manager/build/outputs/apk/debug/*.apk
+      - compat/build/outputs/apk/debug/*.apk
+      - test-client/build/outputs/apk/debug/*.apk
+      - '**/build/reports/**'
+# Manual only. This is not a signed production-release workflow.
+# Add a permanent Kizuku-specific APIVault identity before enabling release builds.

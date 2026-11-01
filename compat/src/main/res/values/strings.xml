@@ -1,0 +1,1 @@
+<resources><string name="permission_description">Compatibility permission discovery for Kizuku. Actual privileged access requires a separate certificate-bound grant inside Kizuku.</string></resources>

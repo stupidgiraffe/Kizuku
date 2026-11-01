@@ -1,0 +1,81 @@
+name: Android
+on:
+  push:
+    branches: [main, 'foundation/**', 'feat/**', 'fix/**']
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      smoke:
+        description: Run cross-UID privileged Binder acceptance on an emulator
+        type: boolean
+        default: false
+permissions:
+  contents: read
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools platforms;android-37.0 build-tools;37.0.0'
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Compile, test and lint
+        run: ./gradlew :core:test :manager:assembleDebug :test-client:assembleDebug :manager:assembleDebugAndroidTest :test-client:assembleDebugAndroidTest :manager:lintDebug :test-client:lintDebug :compat:lintDebug --stacktrace
+      - name: APK checksums
+        run: sha256sum manager/build/outputs/apk/debug/*.apk test-client/build/outputs/apk/debug/*.apk compat/build/outputs/apk/debug/*.apk > APK-SHA256SUMS.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kizuku-debug-${{ github.sha }}
+          path: |
+            manager/build/outputs/apk/debug/*.apk
+            test-client/build/outputs/apk/debug/*.apk
+            compat/build/outputs/apk/debug/*.apk
+            manager/build/outputs/apk/androidTest/debug/*.apk
+            test-client/build/outputs/apk/androidTest/debug/*.apk
+            APK-SHA256SUMS.txt
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: verification-${{ github.sha }}
+          path: |
+            **/build/reports/
+            **/build/test-results/
+  smoke:
+    if: github.event_name == 'workflow_dispatch' && inputs.smoke
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v4
+        with:
+          name: kizuku-debug-${{ github.sha }}
+          path: artifacts
+      - name: Enable emulator acceleration
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: '37.0'
+          target: google_apis
+          arch: x86_64
+          profile: pixel_7
+          disable-animations: true
+          script: scripts/emulator-smoke.sh artifacts
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: emulator-evidence-${{ github.sha }}
+          path: smoke-evidence/

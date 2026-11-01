@@ -1,0 +1,18 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <queries><package android:name="io.github.stupidgiraffe.kizuku" /></queries>
+    <permission-group android:name="moe.shizuku.manager.permission-group.API" android:label="Kizuku compatibility" />
+    <permission android:name="moe.shizuku.manager.permission.API_V23" android:protectionLevel="dangerous"
+        android:permissionGroup="moe.shizuku.manager.permission-group.API" android:label="Legacy privileged Binder access" android:description="@string/permission_description" />
+    <application android:label="Kizuku · Shizuku compatibility" android:allowBackup="false" android:supportsRtl="true">
+        <activity android:name=".OpenKizukuActivity" android:exported="true" android:theme="@android:style/Theme.Material.NoActionBar">
+            <intent-filter>
+                <action android:name="moe.shizuku.manager.intent.action.REQUEST_PERMISSION" />
+                <action android:name="moe.shizuku.privileged.api.intent.action.REQUEST_PERMISSION" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+        <receiver android:name=".BinderRequestReceiver" android:exported="true">
+            <intent-filter><action android:name="rikka.shizuku.intent.action.REQUEST_BINDER" /></intent-filter>
+        </receiver>
+    </application>
+</manifest>

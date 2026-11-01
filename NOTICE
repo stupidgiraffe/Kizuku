@@ -1,0 +1,22 @@
+Kizuku
+Copyright 2026 Kizuku contributors
+Licensed under the Apache License, Version 2.0. See LICENSE.
+
+This product includes source from RikkaApps/Shizuku-API,
+https://github.com/RikkaApps/Shizuku-API, revision a27f6e4151ba7b39965ca47edb2bf0aeed7102e5.
+Copyright RikkaApps and Shizuku contributors; Apache-2.0.
+Copied unchanged: four moe.shizuku.server AIDL files, and
+moe/shizuku/api/BinderContainer.java. Original wire names are required for IPC.
+
+Gradle launcher scripts and wrapper JAR were obtained from Nightzuku revision
+ca02387ec272f5bf57b0cb3ccf80b3a5bffab944. Gradle wrapper: Copyright Gradle contributors,
+Apache-2.0, https://github.com/gradle/gradle. No Nightzuku artwork is included.
+
+Architecture references (no wholesale code import): Porter by darken and
+contributors; Nightzuku by kerneldroid and contributors; Shevery by HmnDev-Tech
+and contributors; AxManager by fahrez182 and contributors. See docs/UPSTREAMS.md.
+
+Runtime/build dependencies retain their own licenses, including AndroidX
+(Apache-2.0), Kotlin (Apache-2.0), Rikka Hidden API (Apache-2.0), and Shizuku SDK
+(Apache-2.0; test-client only). JUnit (EPL-1.0) is test-only.
+A component-level notice pass is required before any new vendored dependency.
