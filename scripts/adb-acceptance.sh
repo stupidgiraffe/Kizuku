@@ -21,8 +21,8 @@ adb tcpip 37055 || true # Restarting adbd can close the original transport befor
 export ANDROID_SERIAL=127.0.0.1:37055
 trap restore_transport EXIT
 for attempt in $(seq 1 30); do
-  adb connect 127.0.0.1:37055 >/dev/null 2>&1 || true
-  if adb shell true 2>/dev/null; then break; fi
+  timeout 3 "$adb_binary" connect 127.0.0.1:37055 >/dev/null 2>&1 || true
+  if timeout 2 "$adb_binary" shell true 2>/dev/null; then break; fi
   sleep 1
 done
 timeout 30 adb wait-for-device

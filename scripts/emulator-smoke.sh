@@ -6,7 +6,7 @@ mkdir -p "$evidence"
 host_uid=$(adb shell id -u | tr -d '\r')
 manager=io.github.stupidgiraffe.kizuku
 client=io.github.stupidgiraffe.kizuku.testclient
-trap 'adb logcat -d -s KizukuServer AndroidRuntime JavaBinder >"$evidence"/logcat.txt; adb shell cat /data/local/tmp/kizuku-smoke.log >"$evidence"/server.txt 2>/dev/null || true' EXIT
+trap 'timeout 10 adb logcat -d -s KizukuServer AndroidRuntime JavaBinder >"$evidence"/logcat.txt; timeout 10 adb shell cat /data/local/tmp/kizuku-smoke.log >"$evidence"/server.txt 2>/dev/null || true' EXIT
 adb shell df -h /data >"$evidence"/storage.txt
 while IFS= read -r apk; do adb install -r -t "$apk"; done < <(find "$artifact_root" -name '*.apk' -type f ! -path '*/androidTest/*' | sort)
 while IFS= read -r apk; do adb install -r -t "$apk"; done < <(find "$artifact_root" -name '*.apk' -type f -path '*/androidTest/*' | sort)
