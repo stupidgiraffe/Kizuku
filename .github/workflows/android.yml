@@ -26,6 +26,7 @@ jobs:
           java-version: '21'
       - uses: android-actions/setup-android@v3
         with:
+          cmdline-tools-version: '15859902' # 22.0: correctly parses android-37.0
           packages: 'platform-tools platforms;android-37.0 build-tools;37.0.0'
       - uses: gradle/actions/setup-gradle@v4
       - name: Compile, test and lint
@@ -72,6 +73,7 @@ jobs:
           java-version: '21'
       - uses: android-actions/setup-android@v3
         with:
+          cmdline-tools-version: '15859902' # 22.0; older runners silently create android-0
           packages: 'platform-tools emulator platforms;android-37.0 system-images;android-37.0;google_apis;x86_64'
       - name: Android 17 framework readiness and IPC acceptance
         run: scripts/run-emulator.sh artifacts

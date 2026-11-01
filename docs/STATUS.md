@@ -34,7 +34,12 @@ Updated 2026-11-01. Canonical work item: Plane Kizuku mainline #3,
   were absent and the action exited before the test script. Both failures happened
   before app runtime acceptance. The workflow now starts the official emulator
   directly with a 6 GB partition and waits for stable package/activity/input/settings
-  services, preserving boot logs. Runtime success is not yet claimed.
+  services, preserving boot logs. Captured native tombstones identified the precise
+  `hasReadColorBufferDma` assertion. AVD metadata was incorrectly API 0: the runner's
+  old command-line tools misparse `37.0`. Tools 22.0 (build 15859902) are now pinned,
+  and the script rejects any AVD whose target is not `android-37.0` before boot.
+  [Upstream reproduction](https://github.com/actions/runner-images/issues/14484).
+  Runtime success is not yet claimed.
 - Codemagic application `6ae6fc2bd51c43c2576e6be4` exists for the public repository
   using a generic Git connection. Manual debug YAML is committed; no build started.
 
