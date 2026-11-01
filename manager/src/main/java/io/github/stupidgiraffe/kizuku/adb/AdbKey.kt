@@ -261,8 +261,8 @@ interface AdbKeyStore {
 
 /**
  * Holds [AdbKey]'s ciphertext rather than the key itself. The AndroidKeyStore key that wraps it
- * never leaves the device, so a restored copy fails to decrypt and a new ADB identity is generated
- * in its place, which is why this is allowed in the backed-up settings file. See `BackupRulesTest`.
+ * never leaves the device. Existing ciphertext that cannot be decrypted fails closed;
+ * it never silently replaces an already-paired ADB identity. Manager backup is disabled.
  */
 class PreferenceAdbKeyStore(private val preference: SharedPreferences) : AdbKeyStore {
 

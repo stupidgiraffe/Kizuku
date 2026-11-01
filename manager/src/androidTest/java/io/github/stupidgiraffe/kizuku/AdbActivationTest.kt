@@ -147,6 +147,7 @@ class AdbActivationTest {
     private fun clickText(text: String, scroll: Boolean = false) {
         repeat(if (scroll) 15 else 30) {
             findText(text)?.let { node -> click(node); return }
+            if (text != "Allow") findText("Allow")?.let(::click)
             if (scroll) nodes().firstOrNull { it.isScrollable }?.performAction(AccessibilityNodeInfo.ACTION_SCROLL_FORWARD)
             SystemClock.sleep(200)
         }

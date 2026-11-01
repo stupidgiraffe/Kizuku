@@ -122,6 +122,7 @@ class ActivationController private constructor(private val app:Application) {
             AdbDiscovery.checkLocalNetworkPermission(app)
             adbMutable.value=adbMutable.value.copy(stage="Pairing",message=null)
             withContext(Dispatchers.IO) {
+                if(Build.VERSION.SDK_INT<30)error("Wireless pairing requires Android 11 or later")
                 AdbPairingClient(host,port,code,key).use { client->
                     cancelIo=client::cancel
                     ensureActive();check(client.start()){ "Pairing failed. Open a new code in Settings and retry." }
