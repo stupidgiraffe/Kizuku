@@ -3,18 +3,21 @@ set -euo pipefail
 manager=io.github.stupidgiraffe.kizuku
 evidence=${KIZUKU_EVIDENCE_DIR:-smoke-evidence/adb}
 mkdir -p "$evidence"
+# adb normally waits forever for an offline selected transport, including in traps.
+adb_binary=$(type -P adb)
+adb() { timeout 60 "$adb_binary" "$@"; }
 instrument() {
   adb shell am instrument -w -e class "$manager.AdbActivationTest" -e scenario "$1" "$manager.test/androidx.test.runner.AndroidJUnitRunner" | tee "$evidence/$1.txt"
   grep -E 'OK \(1 test\)' "$evidence/$1.txt"
 }
 restore_transport() {
-  adb tcpip 5555 >/dev/null 2>&1 || true
+  timeout 10 "$adb_binary" tcpip 5555 >/dev/null 2>&1 || true
   export ANDROID_SERIAL=emulator-5554
   timeout 30 adb wait-for-device || true
 }
 # A fresh emulator owns this custom port; no workstation or physical phone involved.
 adb emu redir add tcp:37055:37055
-adb tcpip 37055
+adb tcpip 37055 || true # Restarting adbd can close the original transport before its reply.
 export ANDROID_SERIAL=127.0.0.1:37055
 trap restore_transport EXIT
 for attempt in $(seq 1 30); do
