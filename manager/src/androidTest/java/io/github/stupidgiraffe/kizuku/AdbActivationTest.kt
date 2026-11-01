@@ -59,6 +59,10 @@ class AdbActivationTest {
                     findText("Allow")?.let(::click)
                     CoreConnection.service != null
                 }
+                await("finished TCP activation") { !controller.state.value.busy }
+                main { controller.discoverPairing(); controller.cancelActivation(); CoreConnection.changed() }
+                SystemClock.sleep(800)
+                assertNotNull("Cancelling a new pairing search preserves the connected core", CoreConnection.service)
                 assertConnectedAndStop()
             }
             "pair" -> pairThroughNotification()

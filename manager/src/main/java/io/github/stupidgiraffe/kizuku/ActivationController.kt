@@ -165,8 +165,10 @@ class ActivationController private constructor(private val app:Application) {
         check(CoreConnection.service?.asBinder()?.pingBinder()==true){"Core died during startup"}
     }
     fun cancelActivation() {
-        wanted=false;recoveryJob?.cancel()
-        if(mutable.value.busy)cancelLateHostUntil=SystemClock.elapsedRealtime()+15000
+        if(CoreConnection.service==null) {
+            wanted=false;recoveryJob?.cancel()
+            if(mutable.value.busy)cancelLateHostUntil=SystemClock.elapsedRealtime()+15000
+        }
         operationVersion++;cancelIo?.invoke();operation?.cancel();cancelIo=null
         mutable.value=mutable.value.copy(busy=false,phase=if(CoreConnection.service!=null)"Connected" else "Not connected")
         adbMutable.value=adbMutable.value.copy(stage="Cancelled",pairing=null,message="Cancelled")
