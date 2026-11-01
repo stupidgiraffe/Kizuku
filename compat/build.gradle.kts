@@ -5,7 +5,7 @@ android {
     buildToolsVersion = "37.0.0"
     defaultConfig {
         applicationId = "moe.shizuku.privileged.api"
-        minSdk = 26; targetSdk = 37; versionCode = 2; versionName = "0.1.0-preview.1"
+        minSdk = 26; targetSdk = 37; versionCode = rootProject.extra["kizukuVersionCode"] as Int; versionName = rootProject.extra["kizukuVersionName"] as String
     }
     signingConfigs {
         create("kizukuRelease") {

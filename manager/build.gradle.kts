@@ -8,11 +8,12 @@ android {
         applicationId = "io.github.stupidgiraffe.kizuku"
         minSdk = 26
         targetSdk = 37
-        versionCode = 2
-        versionName = "0.1.0-preview.1"
+        versionCode = rootProject.extra["kizukuVersionCode"] as Int
+        versionName = rootProject.extra["kizukuVersionName"] as String
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     buildFeatures { compose = true; buildConfig = true; prefab = true }
+    packaging { resources.merges += setOf("META-INF/LICENSE.md", "META-INF/NOTICE.md") }
     externalNativeBuild { cmake { path = file("src/main/cpp/CMakeLists.txt"); version = "3.31.6" } }
     buildTypes { release { isMinifyEnabled = false } }
     signingConfigs {

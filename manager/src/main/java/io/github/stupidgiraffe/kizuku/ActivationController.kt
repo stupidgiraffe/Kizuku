@@ -164,6 +164,7 @@ class ActivationController private constructor(private val app:Application) {
         check(CoreConnection.service?.asBinder()?.pingBinder()==true){"Core died during startup"}
     }
     fun cancelActivation() {
+        wanted=false;recoveryJob?.cancel()
         if(mutable.value.busy)cancelLateHostUntil=SystemClock.elapsedRealtime()+15000
         operationVersion++;cancelIo?.invoke();operation?.cancel();cancelIo=null
         mutable.value=mutable.value.copy(busy=false,phase=if(CoreConnection.service!=null)"Connected" else "Not connected")
@@ -187,6 +188,7 @@ class ActivationController private constructor(private val app:Application) {
     }
     fun action(block:(io.github.stupidgiraffe.kizuku.api.IKizukuService)->Unit){scope.launch(Dispatchers.IO){try{block(requireNotNull(CoreConnection.service){"Start the core first"});refresh()}catch(e:Exception){notice(e.message?.take(240)?:"Operation failed")}}}
     fun decide(snapshot:Bundle,mask:Long,lifetime:Int?){scope.launch(Dispatchers.IO){try{
+        require(mask>0 && mask and Protocol.SUPPORTED.inv()==0L){"Unsupported capability"}
         val identity=AuthorizationStore.verify(app,snapshot)
         val service=CoreConnection.service
         check(service!=null || lifetime==null || lifetime==2){"Start the core before granting once or session access."}

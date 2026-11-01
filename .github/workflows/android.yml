@@ -78,6 +78,8 @@ jobs:
           cmdline-tools-version: '15859902' # 22.0; older runners silently create android-0
           packages: 'platform-tools emulator platforms;android-37.0 system-images;android-37.0;google_apis;x86_64'
       - name: Android 17 framework readiness and IPC acceptance
+        env:
+          KIZUKU_TEST_ADB: 'true'
         run: scripts/run-emulator.sh artifacts
       - uses: actions/upload-artifact@v4
         if: always()

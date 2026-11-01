@@ -90,6 +90,7 @@ jobs:
       - name: Exercise signed APKs as ADB shell and root on Android 17
         env:
           KIZUKU_TEST_ROOT: 'true'
+          KIZUKU_TEST_ADB: 'true'
         run: scripts/run-emulator.sh artifacts
       - uses: actions/upload-artifact@v4
         if: always()
@@ -113,6 +114,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           mkdir dist
-          cp artifacts/manager/build/outputs/apk/release/manager-release.apk dist/Kizuku-v0.1.0-preview.1.apk
+          version=$(sed -n 's/^versionName=//p' release.properties)
+          test -n "$version"
+          cp artifacts/manager/build/outputs/apk/release/manager-release.apk "dist/Kizuku-v${version}.apk"
           (cd dist && sha256sum *.apk > SHA256SUMS.txt)
-          gh release create v0.1.0-preview.1 dist/* --target "$GITHUB_SHA" --title 'Kizuku 0.1.0 Preview 1' --prerelease --notes-file docs/RELEASE_NOTES.md
+          gh release create "v${version}" dist/* --target "$GITHUB_SHA" --title "Kizuku ${version}" --prerelease --notes-file docs/RELEASE_NOTES.md

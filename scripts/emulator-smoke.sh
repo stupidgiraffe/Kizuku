@@ -10,6 +10,9 @@ trap 'adb logcat -d -s KizukuServer AndroidRuntime JavaBinder >"$evidence"/logca
 adb shell df -h /data >"$evidence"/storage.txt
 while IFS= read -r apk; do adb install -r -t "$apk"; done < <(find "$artifact_root" -name '*.apk' -type f ! -path '*/androidTest/*' | sort)
 while IFS= read -r apk; do adb install -r -t "$apk"; done < <(find "$artifact_root" -name '*.apk' -type f -path '*/androidTest/*' | sort)
+if [[ "${KIZUKU_TEST_ADB:-false}" == true && "$host_uid" == 2000 ]]; then
+  KIZUKU_EVIDENCE_DIR="$evidence/adb" scripts/adb-acceptance.sh
+fi
 manager=io.github.stupidgiraffe.kizuku
 client=io.github.stupidgiraffe.kizuku.testclient
 launch() {
@@ -17,7 +20,9 @@ launch() {
 }
 instrument() {
   local package=$1 argument=$2 value=$3
-  adb shell am instrument -w -e host_uid "$host_uid" -e "$argument" "$value" "$package.test/androidx.test.runner.AndroidJUnitRunner" | tee "$evidence/$argument-$value.txt"
+  local class="$package.ManagerSmokeTest"
+  if [[ "$package" == "$client" ]]; then class="$package.ProtocolSmokeTest"; fi
+  adb shell am instrument -w -e class "$class" -e host_uid "$host_uid" -e "$argument" "$value" "$package.test/androidx.test.runner.AndroidJUnitRunner" | tee "$evidence/$argument-$value.txt"
   grep -E 'OK \(1 test\)' "$evidence/$argument-$value.txt"
 }
 probe() { adb shell am force-stop "$client"; instrument "$client" stage "$1"; }
