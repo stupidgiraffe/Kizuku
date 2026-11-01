@@ -8,6 +8,7 @@
 #include <openssl/curve25519.h>
 #include <openssl/hkdf.h>
 #include <openssl/evp.h>
+#include <openssl/mem.h>
 #include "adb_pairing.h"
 
 #define LOG_TAG "AdbPairClient"

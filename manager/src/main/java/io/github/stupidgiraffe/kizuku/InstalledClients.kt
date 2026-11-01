@@ -30,7 +30,7 @@ object InstalledClients {
                     putString("identity",AndroidIdentity.encode(identity).toString());putBoolean("verified",true)
                     putString("certificate",identity.members()[identity.packageName()]!!.first())
                     putStringArray("shared_uid",identity.members().keys.toTypedArray())
-                    putLong("granted",if(connected) 0 else remembered[info.packageName()] ?: 0)
+                    putLong("granted",if(connected) 0 else remembered[info.packageName] ?: 0)
                     putLong("requested",0);putBoolean("saved_only",!connected)
                 }
             }
