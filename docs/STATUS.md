@@ -16,7 +16,12 @@ TCP port closed the original ADB transport; an unbounded cleanup command then hu
 until job cancellation. `ba36cab` / `a2edcc8` bound ADB commands, reconnection probes
 and diagnostic cleanup, and tolerate the expected transport disconnect. Corrected
 signed/runtime gate: https://github.com/stupidgiraffe/Kizuku/actions/runs/41345959538
-Do not call pairing, switches or TCP runtime-verified until that gate proves them.
+Corrected run: signed build passed, runtime gate failed promptly in the `apps`
+instrumentation scenario with `NoSuchElementException` (no matching UI node).
+The transport handover now reaches instrumentation; app-switch acceptance failed
+before wireless/TCP/core suites ran. Investigate the accessibility selector and
+actual switch state; do not assume this is only a test defect. Publication was
+skipped. Session stopped at the user's request, with no further build cycle.
 Preview 2 remains unpublished. No physical phone was modified.
 
 ## Published checkpoint
