@@ -32,8 +32,8 @@ to Gradle 9.6.0 independently. All other initial implementation is new Kizuku co
 ## Binary evidence
 
 - Uploaded Shizuku+ r2219 contains `assets/compat.apk`; upstream release is r2551.
-- Uploaded Shevery contains `assets/shevery-stub.apk` and `assets/shevery-dhizuku-stub.apk`.
-- Uploaded `shiz-release.apk` contains ShizuPosed/Amiru/XStealth native libraries.
+- Uploaded Shevery is version 14.4.0 (current upstream release: 14.5.0) and contains `assets/shevery-stub.apk` and `assets/shevery-dhizuku-stub.apk`.
+- Uploaded `shiz-release.apk` is `com.shizuposed.manager` version 1.0.5 (current release: 1.3.2) and contains ShizuPosed/Amiru/XStealth native libraries.
   It is a hooking reference, not assumed to be stock Shizuku.
 - Uploaded Axora v1.5.1 r377 includes Axeron, BusyBox and resetprop. It predates
   current Axora 26.10.21 and AxManager 3.0.0.

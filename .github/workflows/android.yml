@@ -72,6 +72,7 @@ jobs:
           target: google_apis
           arch: x86_64
           profile: pixel_7
+          disk-size: 6G
           disable-animations: true
           script: scripts/emulator-smoke.sh artifacts
       - uses: actions/upload-artifact@v4

@@ -56,7 +56,7 @@ public class ProtocolSmokeTest {
                 assertTrue(java.util.Arrays.asList(reply.createStringArray()).contains(app.getPackageName()));
             } finally { parcel.recycle();reply.recycle(); }
             Parcel invalid=Parcel.obtain(),invalidReply=Parcel.obtain();
-            try { assertThrows(SecurityException.class, () -> new ShizukuBinderWrapper(new Binder()).transact(1,invalid,invalidReply,0)); }
+            try { assertThrows(SecurityException.class, () -> { new ShizukuBinderWrapper(new Binder()).transact(1,invalid,invalidReply,0); invalidReply.readException(); }); }
             finally { invalid.recycle();invalidReply.recycle(); }
         }
         if (nativeAllowed) assertTrue(service.diagnostics(app.getPackageName()).getInt("server_uid",-1) <= 2000);

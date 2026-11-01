@@ -22,7 +22,16 @@ Updated 2026-11-01. Canonical work item: Plane Kizuku mainline #3,
 - Supplied APK assets inspected locally; Render warmed and upload succeeded,
   but decoding timed out. No decompiled source was used.
 - No physical device was installed or modified. No production signing key exists.
-- Full Android compilation, lint and CI artifact are not yet claimed successful.
+- GitHub Actions build job passed on commit `f9d37b0ac2ae91b5dcd5d5eaec1ae383b20e44ed`:
+  full Android compilation, 14 policy/identity tests, lint (zero errors), all three
+  debug APKs and both instrumentation APKs. [Run](https://github.com/stupidgiraffe/Kizuku/actions/runs/41291294717).
+- [First APK bundle](https://github.com/stupidgiraffe/Kizuku/actions/runs/41291294717/artifacts/13077137842)
+  (artifact ID 13077137842). APK package/signature and embedded companion were
+  independently verified locally with aapt2/apksigner/ZIP inspection.
+- First Android 17 emulator run booted, but its default userdata partition was
+  too small to install even the companion. No app runtime test ran. The smoke
+  configuration now explicitly provisions 6 GB, with storage/log evidence saved
+  even when installation fails. Runtime success is not yet claimed.
 - Codemagic application `6ae6fc2bd51c43c2576e6be4` exists for the public repository
   using a generic Git connection. Manual debug YAML is committed; no build started.
 
@@ -41,7 +50,7 @@ Updated 2026-11-01. Canonical work item: Plane Kizuku mainline #3,
 
 ## Next acceptance gates
 
-1. Finish Android build/lint and produce the first CI APK.
+1. DONE: Android build/lint and first CI APK.
 2. Exercise separate-UID native/stock SDK connection, independent grants,
    revocation, persisted trust after host restart and manager Binder death on emulator.
 3. Review foundational security/IPC code and regress any discovered bugs.
