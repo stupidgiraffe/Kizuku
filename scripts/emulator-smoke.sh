@@ -21,6 +21,8 @@ instrument() {
 probe() { adb shell am force-stop "$client"; instrument "$client" stage "$1"; }
 adb shell dumpsys package "$manager" >smoke-evidence/manager-package.txt
 adb shell am start -W --user 0 -n "$manager/.MainActivity"
+adb shell screencap -p /data/local/tmp/kizuku-stopped.png
+adb pull /data/local/tmp/kizuku-stopped.png smoke-evidence/stopped.png
 launch
 instrument "$manager" action connected
 instrument "$manager" action stale
@@ -39,7 +41,8 @@ probe persisted
 adb shell content call --uri "content://$manager.core" --method save_grants --extra 's:grants:[]' 2>&1 | tee smoke-evidence/shell-write-denied.txt || true
 grep -F 'Unknown controller method' smoke-evidence/shell-write-denied.txt
 probe persisted
-adb shell am start -n "$manager/.MainActivity"
+adb shell am start -W -n "$manager/.MainActivity"
+sleep 1
 adb shell screencap -p /data/local/tmp/kizuku-core.png
 adb pull /data/local/tmp/kizuku-core.png smoke-evidence/core.png
 instrument "$manager" action stop

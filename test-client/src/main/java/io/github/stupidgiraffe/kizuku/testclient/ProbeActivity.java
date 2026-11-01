@@ -2,11 +2,11 @@ package io.github.stupidgiraffe.kizuku.testclient;
 
 import android.app.Activity;
 import android.os.Bundle;
-import android.net.Uri;
 import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import io.github.stupidgiraffe.kizuku.api.IKizukuService;
+import io.github.stupidgiraffe.kizuku.api.KizukuConnection;
 import io.github.stupidgiraffe.kizuku.api.Protocol;
 import io.github.stupidgiraffe.kizuku.core.Capability;
 import rikka.shizuku.Shizuku;
@@ -25,10 +25,8 @@ public final class ProbeActivity extends Activity {
         add(column, "Read Shizuku server UID", () -> "Legacy UID: " + Shizuku.getUid());
         setContentView(column);
     }
-    private IKizukuService nativeService() {
-        Bundle data = getContentResolver().call(Uri.parse("content://"+Protocol.AUTHORITY), "connect", null, null);
-        if (data == null || data.getBinder(Protocol.BINDER) == null) throw new IllegalStateException("Start the Kizuku core first");
-        return IKizukuService.Stub.asInterface(data.getBinder(Protocol.BINDER));
+    private IKizukuService nativeService() throws Exception {
+        return KizukuConnection.await(getApplicationContext(), 10000);
     }
     private interface Operation { String run() throws Exception; }
     private void add(LinearLayout column, String label, Operation operation) {

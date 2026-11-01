@@ -41,6 +41,7 @@ public final class ServerMain {
                         attempts = 0;
                         lifetime.linkToDeath(() -> { attempts = 0; handler.postDelayed(this, 2000); }, 0);
                     } catch (Exception unavailable) {
+                        Log.w("KizukuServer", "Manager connection unavailable; bounded retry", unavailable);
                         long delay = RecoveryPolicy.retryDelay(true, false, true, attempts++);
                         if (delay >= 0) handler.postDelayed(this, delay);
                         else Log.e("KizukuServer", "Manager reconnect attempts exhausted");

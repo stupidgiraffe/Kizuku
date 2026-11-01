@@ -13,6 +13,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import static org.junit.Assert.*;
 import io.github.stupidgiraffe.kizuku.api.IKizukuService;
+import io.github.stupidgiraffe.kizuku.api.KizukuConnection;
 import io.github.stupidgiraffe.kizuku.api.Protocol;
 import rikka.shizuku.Shizuku;
 import rikka.shizuku.SystemServiceHelper;
@@ -24,9 +25,9 @@ import java.util.concurrent.TimeUnit;
 public class ProtocolSmokeTest {
     @Test public void separateUidUsesBothProtocolsAndEnforcesIndependentGrants() throws Exception {
         Context app = InstrumentationRegistry.getInstrumentation().getTargetContext();
-        Bundle data = app.getContentResolver().call(Uri.parse("content://" + Protocol.AUTHORITY), "connect", null, null);
-        assertNotNull(data); assertNotNull(data.getBinder(Protocol.BINDER));
-        IKizukuService service = IKizukuService.Stub.asInterface(data.getBinder(Protocol.BINDER));
+        // Manager instrumentation deliberately restarts its process between stages.
+        // Exercise the SDK's bounded discovery rather than assuming immediate publication.
+        IKizukuService service = KizukuConnection.await(app, 15000);
         assertEquals(1, service.negotiate(app.getPackageName(),1,1).getInt("protocol"));
         assertThrows(SecurityException.class, () -> service.negotiate(Protocol.MANAGER,1,1));
         assertThrows(IllegalArgumentException.class, () -> service.negotiate(app.getPackageName(),2,2));

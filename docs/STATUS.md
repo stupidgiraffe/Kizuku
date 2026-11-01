@@ -43,7 +43,11 @@ Updated 2026-11-01. Canonical work item: Plane Kizuku mainline #3,
   Real IPC acceptance caught a missing Refine bytecode transform: ActivityManagerHidden
   is a compile-time shim, not an Android runtime class. Refine 4.4.0 is now applied;
   a DEX guard failed on the old APK and passed on the corrected local build.
-  Full IPC acceptance is rerunning; success is not yet claimed.
+  [Run 41295156000](https://github.com/stupidgiraffe/Kizuku/actions/runs/41295156000)
+  then started the UID 2000 host and passed the real manager handshake and stale-
+  approval rejection. Separate-client discovery exposed the manager-restart window;
+  the native API and probe now await discovery with a bounded, cancellable worker-
+  thread connection helper. Full cross-UID acceptance is rerunning, not yet claimed.
 - Codemagic application `6ae6fc2bd51c43c2576e6be4` exists for the public repository
   using a generic Git connection. Manual debug YAML is committed; no build started.
 
