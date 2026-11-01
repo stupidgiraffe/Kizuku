@@ -26,6 +26,7 @@ import io.github.stupidgiraffe.kizuku.core.GrantLedger;
 final class KizukuService extends IKizukuService.Stub {
     final PlatformBridge platform;
     private final ClientIdentity manager;
+    private final String managerApk;
     private final Handler main;
     private final long started = SystemClock.elapsedRealtime();
     private GrantLedger ledger = new GrantLedger();
@@ -40,6 +41,7 @@ final class KizukuService extends IKizukuService.Stub {
         PackageInfo pi = platform.packageInfo(Protocol.MANAGER, 0);
         if (pi.applicationInfo == null) throw new SecurityException("Missing manager");
         manager = platform.identity(pi.applicationInfo.uid, Protocol.MANAGER);
+        managerApk = pi.applicationInfo.sourceDir;
         legacy = new LegacyEndpoint(this);
         Bundle configuration = platform.managerCall("load_grants", null);
         if (configuration == null) throw new IllegalStateException("Cannot load authorization store");
@@ -75,8 +77,15 @@ final class KizukuService extends IKizukuService.Stub {
         ClientIdentity current = platform.identity(Binder.getCallingUid(), Protocol.MANAGER);
         if (!manager.equals(current)) throw new SecurityException("Manager signing identity mismatch");
     }
+    boolean managerValid() {
+        try {
+            PackageInfo current = platform.packageInfo(Protocol.MANAGER,0);
+            return manager.equals(platform.identity(manager.uid(),Protocol.MANAGER))
+                && current.applicationInfo != null && managerApk.equals(current.applicationInfo.sourceDir);
+        } catch (Exception removedOrReplaced) { return false; }
+    }
     synchronized boolean allowed(ClientIdentity identity, long mask, boolean consume) {
-        if (safeMode) return false;
+        if (safeMode || !managerValid()) return false;
         try {
             if (!identity.equals(platform.identity(identity.uid(), identity.packageName()))) {
                 ledger.revokePrincipal(identity.uid(), identity.packageName(), Capability.KNOWN);

@@ -16,7 +16,7 @@ launch() {
 instrument() {
   local package=$1 argument=$2 value=$3
   adb shell am instrument -w -e "$argument" "$value" "$package.test/androidx.test.runner.AndroidJUnitRunner" | tee "smoke-evidence/$argument-$value.txt"
-  rg 'OK \(1 test\)' "smoke-evidence/$argument-$value.txt"
+  grep -E 'OK \(1 test\)' "smoke-evidence/$argument-$value.txt"
 }
 probe() { adb shell am force-stop "$client"; instrument "$client" stage "$1"; }
 adb shell dumpsys package "$manager" >smoke-evidence/manager-package.txt
@@ -37,9 +37,18 @@ launch
 instrument "$manager" action connected
 probe persisted
 adb shell content call --uri "content://$manager.core" --method save_grants --extra 's:grants:[]' 2>&1 | tee smoke-evidence/shell-write-denied.txt || true
-rg 'Unknown controller method' smoke-evidence/shell-write-denied.txt
+grep -F 'Unknown controller method' smoke-evidence/shell-write-denied.txt
 probe persisted
 adb shell am start -n "$manager/.MainActivity"
 adb shell screencap -p /data/local/tmp/kizuku-core.png
 adb pull /data/local/tmp/kizuku-core.png smoke-evidence/core.png
 instrument "$manager" action stop
+launch
+instrument "$manager" action connected
+adb uninstall "$manager"
+for attempt in $(seq 1 40); do
+  if ! adb shell pidof kizuku_server >/dev/null; then echo 'Manager removal terminated its privileged host'; exit 0; fi
+  sleep 0.25
+done
+echo 'Privileged host survived removal of its manager'
+exit 1

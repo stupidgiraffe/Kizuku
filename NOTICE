@@ -17,6 +17,6 @@ contributors; Nightzuku by kerneldroid and contributors; Shevery by HmnDev-Tech
 and contributors; AxManager by fahrez182 and contributors. See docs/UPSTREAMS.md.
 
 Runtime/build dependencies retain their own licenses, including AndroidX
-(Apache-2.0), Kotlin (Apache-2.0), Rikka Hidden API (Apache-2.0), and Shizuku SDK
+(Apache-2.0), Kotlin (Apache-2.0), Rikka Hidden API and Refine (Apache-2.0), and Shizuku SDK
 (Apache-2.0; test-client only). JUnit (EPL-1.0) is test-only.
 A component-level notice pass is required before any new vendored dependency.

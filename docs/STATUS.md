@@ -39,7 +39,11 @@ Updated 2026-11-01. Canonical work item: Plane Kizuku mainline #3,
   old command-line tools misparse `37.0`. Tools 22.0 (build 15859902) are now pinned,
   and the script rejects any AVD whose target is not `android-37.0` before boot.
   [Upstream reproduction](https://github.com/actions/runner-images/issues/14484).
-  Runtime success is not yet claimed.
+  The corrected AVD booted, installed all five APKs and launched the Compose UI.
+  Real IPC acceptance caught a missing Refine bytecode transform: ActivityManagerHidden
+  is a compile-time shim, not an Android runtime class. Refine 4.4.0 is now applied;
+  a DEX guard failed on the old APK and passed on the corrected local build.
+  Full IPC acceptance is rerunning; success is not yet claimed.
 - Codemagic application `6ae6fc2bd51c43c2576e6be4` exists for the public repository
   using a generic Git connection. Manual debug YAML is committed; no build started.
 

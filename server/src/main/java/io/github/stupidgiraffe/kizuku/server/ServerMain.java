@@ -32,6 +32,7 @@ public final class ServerMain {
             class Delivery implements Runnable {
                 int attempts;
                 @Override public void run() {
+                    if (!service.managerValid()) { System.exit(0); return; }
                     try {
                         Bundle input = new Bundle(); input.putBinder(Protocol.BINDER, service);
                         Bundle reply = platform.managerCall("attach", input);

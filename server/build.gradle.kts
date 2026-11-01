@@ -1,4 +1,4 @@
-plugins { id("com.android.library") }
+plugins { id("com.android.library"); id("dev.rikka.tools.refine") }
 android {
     namespace = "io.github.stupidgiraffe.kizuku.server"
     compileSdk = 37

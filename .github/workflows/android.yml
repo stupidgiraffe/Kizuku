@@ -30,7 +30,9 @@ jobs:
           packages: 'platform-tools platforms;android-37.0 build-tools;37.0.0'
       - uses: gradle/actions/setup-gradle@v4
       - name: Compile, test and lint
-        run: ./gradlew :core:test :manager:assembleDebug :test-client:assembleDebug :manager:assembleDebugAndroidTest :test-client:assembleDebugAndroidTest :manager:lintDebug :test-client:lintDebug :compat:lintDebug --stacktrace
+        run: |
+          ./gradlew :core:test :manager:assembleDebug :test-client:assembleDebug :manager:assembleDebugAndroidTest :test-client:assembleDebugAndroidTest :manager:lintDebug :test-client:lintDebug :compat:lintDebug --stacktrace
+          python3 scripts/check-runtime-stubs.py manager/build/outputs/apk/debug/manager-debug.apk
       - name: APK checksums
         run: sha256sum manager/build/outputs/apk/debug/*.apk test-client/build/outputs/apk/debug/*.apk compat/build/outputs/apk/debug/*.apk > APK-SHA256SUMS.txt
       - uses: actions/upload-artifact@v4
