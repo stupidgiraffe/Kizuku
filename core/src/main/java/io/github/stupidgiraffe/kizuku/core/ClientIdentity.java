@@ -33,6 +33,10 @@ public final class ClientIdentity {
     public String packageName() { return packageName; }
     public Map<String, Set<String>> members() { return members; }
     public Map<String, Long> installations() { return installations; }
+    public void verifyDisplay(int displayedUid, String displayedPackage, String displayedCertificate, Set<String> displayedPeers) {
+        if (displayedUid != uid || !packageName.equals(displayedPackage) || !members.get(packageName).contains(displayedCertificate)
+            || !members.keySet().equals(displayedPeers)) throw new SecurityException("Displayed app identity does not match the approval");
+    }
     public String fingerprint() {
         try {
             String canonical = uid + ":" + packageName + ":" + members + ":" + installations;

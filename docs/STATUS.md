@@ -16,7 +16,7 @@ Updated 2026-11-01. Canonical work item: Plane Kizuku mainline #3,
 
 ## Evidence so far
 
-- 14 Android-free policy/identity tests passed locally using JDK 21 / JUnit 4.13.2.
+- 16 Android-free policy/identity tests passed locally using JDK 21 / JUnit 4.13.2.
 - Tests were first compiled before implementation and failed on missing policy types.
 - Source metadata/revisions and latest releases verified for ten named upstreams.
 - Supplied APK assets inspected locally; Render warmed and upload succeeded,
@@ -29,9 +29,12 @@ Updated 2026-11-01. Canonical work item: Plane Kizuku mainline #3,
   (artifact ID 13077137842). APK package/signature and embedded companion were
   independently verified locally with aapt2/apksigner/ZIP inspection.
 - First Android 17 emulator run booted, but its default userdata partition was
-  too small to install even the companion. No app runtime test ran. The smoke
-  configuration now explicitly provisions 6 GB, with storage/log evidence saved
-  even when installation fails. Runtime success is not yet claimed.
+  too small to install even the companion. A second run exposed the emulator
+  action treating sys.boot_completed as full framework readiness: input/settings
+  were absent and the action exited before the test script. Both failures happened
+  before app runtime acceptance. The workflow now starts the official emulator
+  directly with a 6 GB partition and waits for stable package/activity/input/settings
+  services, preserving boot logs. Runtime success is not yet claimed.
 - Codemagic application `6ae6fc2bd51c43c2576e6be4` exists for the public repository
   using a generic Git connection. Manual debug YAML is committed; no build started.
 
@@ -45,6 +48,8 @@ Updated 2026-11-01. Canonical work item: Plane Kizuku mainline #3,
   reuse fails closed; observed changed identities are invalidated, not suspended.
 - Stock discovery uses process/UID observers. The acceptance client no longer uses
   a Kizuku-specific call to obtain its legacy Binder.
+- Approval metadata is checked against the exact package, certificate and shared
+  UID member set shown on-screen (16 local policy/identity tests).
 - Root recovery has a cancellable bounded loop. Denial clears pending requests.
 - Death is checked as connected → shutdown → dead in one manager instrumentation.
 

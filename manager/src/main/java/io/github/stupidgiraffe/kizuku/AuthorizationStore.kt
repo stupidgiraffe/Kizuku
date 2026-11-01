@@ -26,6 +26,7 @@ object AuthorizationStore {
     }
     fun verify(context: Context, snapshot: Bundle): ClientIdentity {
         val expected = AndroidIdentity.decode(JSONObject(requireNotNull(snapshot.getString("identity"))))
+        expected.verifyDisplay(snapshot.getInt("uid"), snapshot.getString("package"), snapshot.getString("certificate"), snapshot.getStringArray("shared_uid").orEmpty().toSet())
         val actual = AndroidIdentity.resolve(context.packageManager, expected.uid(), expected.packageName())
         check(expected == actual) { "App identity changed. Review a fresh permission request." }
         return expected

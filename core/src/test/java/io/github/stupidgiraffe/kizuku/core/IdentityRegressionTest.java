@@ -24,4 +24,13 @@ public class IdentityRegressionTest {
         ClientIdentity identity=new ClientIdentity(10123,"test.client",Map.of("test.client",Set.of("same-cert")),epochs);
         epochs.put("test.client",99L);assertEquals(Long.valueOf(10),identity.installations().get("test.client"));
     }
+    @Test public void displayedPackageCannotDifferFromAuthorizedIdentity() {
+        assertThrows(SecurityException.class, () -> identity(10).verifyDisplay(10123,"trusted.other","same-cert",Set.of("test.client")));
+    }
+    @Test public void displayedCertificateAndPeersMustBeTheReviewedIdentity() {
+        ClientIdentity identity=identity(10);
+        identity.verifyDisplay(10123,"test.client","same-cert",Set.of("test.client"));
+        assertThrows(SecurityException.class, () -> identity.verifyDisplay(10123,"test.client","forged-display",Set.of("test.client")));
+        assertThrows(SecurityException.class, () -> identity.verifyDisplay(10123,"test.client","same-cert",Set.of("test.client","hidden.peer")));
+    }
 }
