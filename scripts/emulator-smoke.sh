@@ -4,7 +4,7 @@ artifact_root=${1:-.}
 mkdir -p smoke-evidence
 manager=io.github.stupidgiraffe.kizuku
 client=io.github.stupidgiraffe.kizuku.testclient
-trap 'adb logcat -d -s KizukuServer AndroidRuntime >smoke-evidence/logcat.txt; adb shell cat /data/local/tmp/kizuku-smoke.log >smoke-evidence/server.txt 2>/dev/null || true' EXIT
+trap 'adb logcat -d -s KizukuServer AndroidRuntime JavaBinder >smoke-evidence/logcat.txt; adb shell cat /data/local/tmp/kizuku-smoke.log >smoke-evidence/server.txt 2>/dev/null || true' EXIT
 adb shell df -h /data >smoke-evidence/storage.txt
 while IFS= read -r apk; do adb install -r -t "$apk"; done < <(find "$artifact_root" -name '*debug*.apk' -type f ! -path '*/androidTest/*' | sort)
 while IFS= read -r apk; do adb install -r -t "$apk"; done < <(find "$artifact_root" -name '*debug*.apk' -type f -path '*/androidTest/*' | sort)

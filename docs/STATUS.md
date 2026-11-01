@@ -47,7 +47,11 @@ Updated 2026-11-01. Canonical work item: Plane Kizuku mainline #3,
   then started the UID 2000 host and passed the real manager handshake and stale-
   approval rejection. Separate-client discovery exposed the manager-restart window;
   the native API and probe now await discovery with a bounded, cancellable worker-
-  thread connection helper. Full cross-UID acceptance is rerunning, not yet claimed.
+  thread connection helper. Run 41295842746 then passed separate-UID native denial and actual stock SDK
+  system Binder forwarding, but lost manager death notifications before native
+  grants. AOSP JNI keeps death recipients weak on modern targets; the entire
+  connection and manager lifetime token must be strongly rooted. The fix retains
+  them for the host lifetime. Full acceptance remains a release gate.
 - Codemagic application `6ae6fc2bd51c43c2576e6be4` exists for the public repository
   using a generic Git connection. Manual debug YAML is committed; no build started.
 
