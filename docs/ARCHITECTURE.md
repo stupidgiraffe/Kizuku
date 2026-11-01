@@ -36,12 +36,12 @@ runtimes may later be isolated, but grants remain central.
 
 ## First implementation sequence
 
-- [ ] Pin upstream evidence and licenses; initialize SDK 37 / min SDK 26 project.
-- [ ] Test capability isolation, signer replacement, shared UID changes, revocation,
+- [x] Pin upstream evidence and licenses; initialize SDK 37 / min SDK 26 project.
+- [x] Test capability isolation, signer replacement, shared UID changes, revocation,
       grant lifetimes and bounded recovery before implementing them.
-- [ ] Build the native Compose manager and authenticated `app_process` service.
-- [ ] Add stock SDK attach/permission/Binder adapter and bundled companion.
-- [ ] Compile, test, lint, upload APKs in GitHub Actions; exercise real IPC on emulator.
+- [x] Build the native Compose manager and authenticated `app_process` service.
+- [x] Add stock SDK attach/permission/Binder adapter and bundled companion.
+- [x] Compile, test, lint, upload APKs in GitHub Actions; exercise real IPC on emulator.
 
 The full product brief is the phase authority. This foundation is not an alpha
 claim. Wireless pairing, full user services, migration, signing-lineage rotation,

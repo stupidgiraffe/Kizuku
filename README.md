@@ -3,7 +3,13 @@
 An offline Android privilege platform with its own identity, a Shizuku compatibility
 surface and independently scoped native capabilities. Android 8+; targeting Android 17.
 
-**Development foundation. Not yet a production privilege broker or a full Shizuku replacement.**
+**Signed developer preview. Full Shizuku user services and Wireless ADB pairing are still pending.**
+
+[Download Kizuku 0.1.0 Preview 1](https://github.com/stupidgiraffe/Kizuku/releases/download/v0.1.0-preview.1/Kizuku-v0.1.0-preview.1.apk) · [Release notes](https://github.com/stupidgiraffe/Kizuku/releases/tag/v0.1.0-preview.1) · [Passed signed acceptance](https://github.com/stupidgiraffe/Kizuku/actions/runs/41323692790)
+
+The same signed APK passed the Android 17 emulator suite as shell UID 2000 and
+root UID 0, including independent grants, revocation, persistence and lifecycle.
+Physical-device/OEM and normal installer UI acceptance remain pending.
 
 The Compose manager follows the Kizuku Command Center direction: navy/cobalt,
 cyan/violet accents, expressive surfaces, real service state and compact controls.

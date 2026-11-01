@@ -25,7 +25,9 @@ APIVault's API rejects larger payloads, so the authenticated encrypted backup is
 stored separately as `Kizuku-signing-v1.encrypted.json` in the owner's files.
 Decrypt using PyNaCl SecretBox and the base64 recovery key; the resulting JSON
 contains the PKCS12 base64, alias, passwords and certificate fingerprint. Recovery
-was byte-verified before saving. Never regenerate this identity or use another
+was byte-verified before saving. The current MCP connection lacks `keys:reveal`;
+recovery requires the owner UI or a connection authorized to reveal those records.
+This does not block builds using the encrypted GitHub secrets. Never regenerate this identity or use another
 project's key. No private signing material is in the repository.
 
 Signed release publication is manual and depends on build/lint/unit checks plus
