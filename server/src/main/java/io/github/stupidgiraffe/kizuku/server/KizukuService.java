@@ -43,7 +43,7 @@ final class KizukuService extends IKizukuService.Stub {
         manager = platform.identity(pi.applicationInfo.uid, Protocol.MANAGER);
         managerApk = pi.applicationInfo.sourceDir;
         legacy = new LegacyEndpoint(this);
-        Bundle configuration = platform.managerCall("load_grants", null);
+        Bundle configuration = platform.loadManagerConfiguration();
         if (configuration == null) throw new IllegalStateException("Cannot load authorization store");
         safeMode = configuration.getBoolean("safe_mode", false);
         JSONArray saved = new JSONArray(configuration.getString("grants", "[]"));

@@ -97,5 +97,19 @@ final class PlatformBridge {
             Binder.restoreCallingIdentity(identity);
         }
     }
+    Bundle loadManagerConfiguration() throws Exception {
+        // A simultaneous manager process restart can invalidate the external provider
+        // between acquisition and call. Retry the read, never default to empty trust.
+        for (int attempt=0; ; attempt++) {
+            try {
+                Bundle configuration=managerCall("load_grants",null);
+                if (configuration==null) throw new IllegalStateException("Manager configuration unavailable");
+                return configuration;
+            } catch (android.os.RemoteException | IllegalStateException restarting) {
+                if (attempt>=5) throw restarting;
+                android.os.SystemClock.sleep(100L << attempt);
+            }
+        }
+    }
     Bundle managerCall(String method, Bundle extras) throws Exception { return call(Protocol.AUTHORITY, method, null, extras); }
 }
