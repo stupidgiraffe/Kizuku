@@ -24,7 +24,7 @@ public class ManagerSmokeTest {
         long end = SystemClock.elapsedRealtime()+15000;
         while (CoreConnection.INSTANCE.getService()==null && SystemClock.elapsedRealtime()<end) SystemClock.sleep(100);
         IKizukuService service = CoreConnection.INSTANCE.getService(); assertNotNull("Real server handshake", service);
-        assertTrue(service.status().getInt("uid",-1)==0 || service.status().getInt("uid",-1)==2000);
+        assertEquals(Integer.parseInt(InstrumentationRegistry.getArguments().getString("host_uid","2000")), service.status().getInt("uid",-1));
         Context app = InstrumentationRegistry.getInstrumentation().getTargetContext();
         String target="io.github.stupidgiraffe.kizuku.testclient"; int uid=app.getPackageManager().getApplicationInfo(target,0).uid;
         ClientIdentity identity=AndroidIdentity.resolve(app.getPackageManager(),uid,target);

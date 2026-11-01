@@ -60,7 +60,7 @@ public class ProtocolSmokeTest {
             try { assertThrows(SecurityException.class, () -> { new ShizukuBinderWrapper(new Binder()).transact(1,invalid,invalidReply,0); invalidReply.readException(); }); }
             finally { invalid.recycle();invalidReply.recycle(); }
         }
-        if (nativeAllowed) assertTrue(service.diagnostics(app.getPackageName()).getInt("server_uid",-1) <= 2000);
+        if (nativeAllowed) { int uid=service.diagnostics(app.getPackageName()).getInt("server_uid",-1); assertTrue(uid==0 || uid==2000); }
         else assertThrows(SecurityException.class, () -> service.diagnostics(app.getPackageName()));
         if (!legacyAllowed) assertThrows(SecurityException.class, () -> moe.shizuku.server.IShizukuService.Stub.asInterface(Shizuku.getBinder()).getUid());
         if (stage.equals("denied")) service.requestCapabilities(app.getPackageName(), io.github.stupidgiraffe.kizuku.core.Capability.DIAGNOSTICS);

@@ -1,13 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
 artifact_root=${1:-.}
-mkdir -p smoke-evidence
+evidence=${KIZUKU_EVIDENCE_DIR:-smoke-evidence}
+mkdir -p "$evidence"
+host_uid=$(adb shell id -u | tr -d '\r')
 manager=io.github.stupidgiraffe.kizuku
 client=io.github.stupidgiraffe.kizuku.testclient
-trap 'adb logcat -d -s KizukuServer AndroidRuntime JavaBinder >smoke-evidence/logcat.txt; adb shell cat /data/local/tmp/kizuku-smoke.log >smoke-evidence/server.txt 2>/dev/null || true' EXIT
-adb shell df -h /data >smoke-evidence/storage.txt
-while IFS= read -r apk; do adb install -r -t "$apk"; done < <(find "$artifact_root" -name '*debug*.apk' -type f ! -path '*/androidTest/*' | sort)
-while IFS= read -r apk; do adb install -r -t "$apk"; done < <(find "$artifact_root" -name '*debug*.apk' -type f -path '*/androidTest/*' | sort)
+trap 'adb logcat -d -s KizukuServer AndroidRuntime JavaBinder >"$evidence"/logcat.txt; adb shell cat /data/local/tmp/kizuku-smoke.log >"$evidence"/server.txt 2>/dev/null || true' EXIT
+adb shell df -h /data >"$evidence"/storage.txt
+while IFS= read -r apk; do adb install -r -t "$apk"; done < <(find "$artifact_root" -name '*.apk' -type f ! -path '*/androidTest/*' | sort)
+while IFS= read -r apk; do adb install -r -t "$apk"; done < <(find "$artifact_root" -name '*.apk' -type f -path '*/androidTest/*' | sort)
 manager=io.github.stupidgiraffe.kizuku
 client=io.github.stupidgiraffe.kizuku.testclient
 launch() {
@@ -15,14 +17,14 @@ launch() {
 }
 instrument() {
   local package=$1 argument=$2 value=$3
-  adb shell am instrument -w -e "$argument" "$value" "$package.test/androidx.test.runner.AndroidJUnitRunner" | tee "smoke-evidence/$argument-$value.txt"
-  grep -E 'OK \(1 test\)' "smoke-evidence/$argument-$value.txt"
+  adb shell am instrument -w -e host_uid "$host_uid" -e "$argument" "$value" "$package.test/androidx.test.runner.AndroidJUnitRunner" | tee "$evidence/$argument-$value.txt"
+  grep -E 'OK \(1 test\)' "$evidence/$argument-$value.txt"
 }
 probe() { adb shell am force-stop "$client"; instrument "$client" stage "$1"; }
-adb shell dumpsys package "$manager" >smoke-evidence/manager-package.txt
+adb shell dumpsys package "$manager" >"$evidence"/manager-package.txt
 adb shell am start -W --user 0 -n "$manager/.MainActivity"
 adb shell screencap -p /data/local/tmp/kizuku-stopped.png
-adb pull /data/local/tmp/kizuku-stopped.png smoke-evidence/stopped.png
+adb pull /data/local/tmp/kizuku-stopped.png "$evidence"/stopped.png
 launch
 instrument "$manager" action connected
 instrument "$manager" action stale
@@ -38,13 +40,13 @@ instrument "$manager" action stop
 launch
 instrument "$manager" action connected
 probe persisted
-adb shell content call --uri "content://$manager.core" --method save_grants --extra 's:grants:[]' 2>&1 | tee smoke-evidence/shell-write-denied.txt || true
-grep -F 'Unknown controller method' smoke-evidence/shell-write-denied.txt
+adb shell content call --uri "content://$manager.core" --method save_grants --extra 'grants:s:[]' 2>&1 | tee "$evidence"/shell-write-denied.txt || true
+grep -F 'Unknown controller method' "$evidence"/shell-write-denied.txt
 probe persisted
 adb shell am start -W -n "$manager/.MainActivity"
 sleep 1
 adb shell screencap -p /data/local/tmp/kizuku-core.png
-adb pull /data/local/tmp/kizuku-core.png smoke-evidence/core.png
+adb pull /data/local/tmp/kizuku-core.png "$evidence"/core.png
 instrument "$manager" action stop
 launch
 instrument "$manager" action connected

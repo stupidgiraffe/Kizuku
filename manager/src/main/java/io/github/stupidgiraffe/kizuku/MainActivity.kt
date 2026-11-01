@@ -108,7 +108,7 @@ private enum class Destination(val title: String, val icon: ImageVector) {
                 }
             }
             state.message?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium) }
-            Text("0.1 · DEVELOPMENT FOUNDATION", color = Muted, style = MaterialTheme.typography.labelSmall, letterSpacing = 1.sp)
+            Text("${BuildConfig.VERSION_NAME} · PREVIEW", color = Muted, style = MaterialTheme.typography.labelSmall, letterSpacing = 1.sp)
         }
     }
 }

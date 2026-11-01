@@ -1,6 +1,6 @@
 # Implementation state
 
-Updated 2026-11-01. Canonical work item: Plane Kizuku mainline #3,
+Updated 2026-11-02. Canonical work item: Plane Kizuku mainline #3,
 `68ff91b5-1e6c-4a37-b755-8d284b4fffb4`.
 
 ## Implemented; verification in progress
@@ -21,7 +21,9 @@ Updated 2026-11-01. Canonical work item: Plane Kizuku mainline #3,
 - Source metadata/revisions and latest releases verified for ten named upstreams.
 - Supplied APK assets inspected locally; Render warmed and upload succeeded,
   but decoding timed out. No decompiled source was used.
-- No physical device was installed or modified. No production signing key exists.
+- No physical device was installed or modified. Permanent signing identity is now
+  established; see SECURITY.md. Encrypted GitHub secrets and independent encrypted
+  recovery backup are saved, with recovery/password records in APIVault.
 - GitHub Actions build job passed on commit `f9d37b0ac2ae91b5dcd5d5eaec1ae383b20e44ed`:
   full Android compilation, 14 policy/identity tests, lint (zero errors), all three
   debug APKs and both instrumentation APKs. [Run](https://github.com/stupidgiraffe/Kizuku/actions/runs/41291294717).
@@ -51,7 +53,11 @@ Updated 2026-11-01. Canonical work item: Plane Kizuku mainline #3,
   system Binder forwarding, but lost manager death notifications before native
   grants. AOSP JNI keeps death recipients weak on modern targets; the entire
   connection and manager lifetime token must be strongly rooted. The fix retains
-  them for the host lifetime. Full acceptance remains a release gate.
+  them for the host lifetime. Run 41321828416 passed native/legacy isolation,
+  revocation, permanent grants after host restart and Binder death. Its remaining
+  failure was a malformed content-CLI test argument (`s:grants:[]` instead of
+  `grants:s:[]`), now corrected. The signed release workflow tests the actual
+  signed artifacts as shell and root before allowing publication.
 - Codemagic application `6ae6fc2bd51c43c2576e6be4` exists for the public repository
   using a generic Git connection. Manual debug YAML is committed; no build started.
 

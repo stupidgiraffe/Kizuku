@@ -52,4 +52,10 @@ adb shell input keyevent 82
 adb shell settings put global window_animation_scale 0
 adb shell settings put global transition_animation_scale 0
 adb shell settings put global animator_duration_scale 0
-scripts/emulator-smoke.sh "${1:-artifacts}"
+KIZUKU_EVIDENCE_DIR=smoke-evidence/shell scripts/emulator-smoke.sh "${1:-artifacts}"
+if [[ "${KIZUKU_TEST_ROOT:-false}" == true ]]; then
+  adb root
+  timeout 30 adb wait-for-device
+  test "$(adb shell id -u | tr -d '\r')" == 0
+  KIZUKU_EVIDENCE_DIR=smoke-evidence/root scripts/emulator-smoke.sh "${1:-artifacts}"
+fi

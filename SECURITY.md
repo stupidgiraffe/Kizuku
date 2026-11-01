@@ -12,10 +12,25 @@ Debug APKs use Android's development signing key. A CI debug identity is not a
 permanent release identity and may differ between runs. Uninstalling loses app
 data; do not present debug builds as a durable update channel.
 
-No production key has been created. Before the first durable release, generate one
-Kizuku-specific signing identity, store it securely in APIVault, configure encrypted
-CI variables, and publish its SHA-256 certificate fingerprint here. Never use the
-unrelated Reseam key. Never commit a private key, keystore, password or ADB token.
+Permanent Kizuku signing identity (RSA-4096, alias `kizuku`, created 2026-11-02 JST):
+
+```
+SHA-256: 83c9b70c57b2666f8eb48f0cfe74013053c804fd0b452addfdeed451629d2bce
+```
+
+The private keystore is held only in encrypted GitHub Actions secrets and an
+independently encrypted recovery backup outside git. APIVault holds the recovery
+key (`Kizuku backup key`) and keystore password (`Kizuku signing password`).
+APIVault's API rejects larger payloads, so the authenticated encrypted backup is
+stored separately as `Kizuku-signing-v1.encrypted.json` in the owner's files.
+Decrypt using PyNaCl SecretBox and the base64 recovery key; the resulting JSON
+contains the PKCS12 base64, alias, passwords and certificate fingerprint. Recovery
+was byte-verified before saving. Never regenerate this identity or use another
+project's key. No private signing material is in the repository.
+
+Signed release publication is manual and depends on build/lint/unit checks plus
+runtime acceptance of the same signed APKs as UID 2000 and UID 0 on Android 17.
+The compatibility APK is built with the same certificate and bundled byte-for-byte.
 
 Report vulnerabilities privately through the repository owner's GitHub contact.
 Do not publish ADB pairing secrets or unredacted diagnostic output in an issue.
