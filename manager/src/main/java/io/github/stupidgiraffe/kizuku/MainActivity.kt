@@ -29,8 +29,10 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.window.DialogWindowProvider
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -194,7 +196,10 @@ private enum class Destination(val title: String, val icon: ImageVector) {
             listOf("Shizuku Binder" to Capability.SHIZUKU, "Native diagnostics" to Capability.DIAGNOSTICS).forEach { (title, scope) ->
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(title, Modifier.weight(1f))
-                    Switch(modifier = Modifier.semantics { contentDescription = "$title for $label" },
+                    Switch(modifier = Modifier.testTag("capability:$pkg:$scope").semantics {
+                        testTagsAsResourceId = true
+                        contentDescription = "$title for $label"
+                    },
                         checked = app.getLong("granted") and scope != 0L, enabled = app.getBoolean("verified"), onCheckedChange = { on ->
                         if (on) approval = app to scope else controller.decide(app, scope, null)
                     })

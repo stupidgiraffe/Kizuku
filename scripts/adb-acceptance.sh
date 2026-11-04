@@ -7,8 +7,9 @@ mkdir -p "$evidence"
 adb_binary=$(type -P adb)
 adb() { timeout 60 "$adb_binary" "$@"; }
 instrument() {
-  adb shell am instrument -w -e class "$manager.AdbActivationTest" -e scenario "$1" "$manager.test/androidx.test.runner.AndroidJUnitRunner" | tee "$evidence/$1.txt"
-  grep -E 'OK \(1 test\)' "$evidence/$1.txt"
+  echo "ADB acceptance: $1"
+  timeout 140 "$adb_binary" shell am instrument -w -e class "$manager.AdbActivationTest" -e scenario "$1" "$manager.test/androidx.test.runner.AndroidJUnitRunner" \
+    | tee "$evidence/$1.txt" && grep -E 'OK \(1 test\)' "$evidence/$1.txt"
 }
 restore_transport() {
   timeout 10 "$adb_binary" tcpip 5555 >/dev/null 2>&1 || true
@@ -26,8 +27,13 @@ for attempt in $(seq 1 30); do
   sleep 1
 done
 timeout 30 adb wait-for-device
+apps_failed=0
+if ! instrument apps; then
+  apps_failed=1
+  # A failed revocation assertion can leave a persisted test grant.
+  adb shell pm clear "$manager"
+fi
 adb shell pm grant "$manager" android.permission.POST_NOTIFICATIONS
-instrument apps
 adb shell pm revoke "$manager" android.permission.ACCESS_LOCAL_NETWORK
 instrument denied
 adb shell pm grant "$manager" android.permission.ACCESS_LOCAL_NETWORK
@@ -40,3 +46,4 @@ instrument reconnect
 adb shell am start -W -n "$manager/.MainActivity"
 adb shell screencap -p /data/local/tmp/kizuku-adb-complete.png
 adb pull /data/local/tmp/kizuku-adb-complete.png "$evidence/complete.png"
+exit "$apps_failed"

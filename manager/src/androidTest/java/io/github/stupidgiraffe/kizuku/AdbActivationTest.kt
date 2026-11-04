@@ -116,10 +116,16 @@ class AdbActivationTest {
         await("honest stopped state") { controller.state.value.status == null && !controller.state.value.busy }
     }
     private fun clickProbeBinderSwitch(checked: Boolean) {
-        val label = "Shizuku Binder for Kizuku Probe"
-        await("$label switch (checked=$checked)") {
-            val node = findText(label) ?: return@await false
-            if (!node.isCheckable || !node.isEnabled || node.isChecked != checked) return@await false
+        val tag = "capability:$client:${Capability.SHIZUKU}"
+        await("probe Binder switch (checked=$checked)", diagnostics = {
+            nodes().take(80).joinToString("\n") { node ->
+                "${node.className}: text=${node.text}, description=${node.contentDescription}, " +
+                    "tag=${node.viewIdResourceName}, enabled=${node.isEnabled}, " +
+                    "checkable=${node.isCheckable}, checked=${node.isChecked}"
+            }
+        }) {
+            val node = nodes().firstOrNull { it.viewIdResourceName == tag } ?: return@await false
+            if (!node.isEnabled || node.isChecked != checked) return@await false
             click(node)
             true
         }
@@ -131,13 +137,18 @@ class AdbActivationTest {
         SystemClock.sleep(300)
     }
     private fun main(block: () -> Unit) = instrumentation.runOnMainSync(block)
-    private fun await(label: String, milliseconds: Long = 15000, condition: () -> Boolean) {
+    private fun await(
+        label: String,
+        milliseconds: Long = 15000,
+        diagnostics: () -> String = { "" },
+        condition: () -> Boolean,
+    ) {
         val end = SystemClock.elapsedRealtime() + milliseconds
         while (SystemClock.elapsedRealtime() < end) {
             if (condition()) return
             SystemClock.sleep(150)
         }
-        fail("Timed out: $label; core=${controller.state.value.phase}; adb=${controller.adb.value.stage}; detail=${controller.state.value.message}")
+        fail("Timed out: $label; core=${controller.state.value.phase}; adb=${controller.adb.value.stage}; detail=${controller.state.value.message}\n${diagnostics()}")
     }
     private fun nodes(): List<AccessibilityNodeInfo> {
         val root = instrumentation.uiAutomation.rootInActiveWindow ?: return emptyList()
