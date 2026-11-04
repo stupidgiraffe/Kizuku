@@ -21,6 +21,10 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
+// AOSP highlights this preference when present. OEM settings can ignore the hint.
+internal fun wirelessDebuggingSettingsIntent() = Intent(Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS)
+    .putExtra(":settings:fragment_args_key", "toggle_adb_wireless")
+
 @Composable fun AdbControls(controller:ActivationController,onDismiss:()->Unit) {
     val context=LocalContext.current
     val state by controller.state.collectAsStateWithLifecycle()
@@ -31,7 +35,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
     var tls by remember{mutableStateOf(false)}
     var manualPair by remember{mutableStateOf(false)}
     var pending by remember{mutableStateOf<(() -> Unit)?>(null)}
-    fun settings(){runCatching{context.startActivity(Intent(Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS))}.onFailure{context.startActivity(Intent(Settings.ACTION_SETTINGS))}}
+    fun settings(){runCatching{context.startActivity(wirelessDebuggingSettingsIntent())}.onFailure{context.startActivity(Intent(Settings.ACTION_SETTINGS))}}
     val permission=rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()){ results ->
         val allowed=results.values.all{it}
         val action=pending;pending=null

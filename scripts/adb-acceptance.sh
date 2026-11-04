@@ -45,6 +45,8 @@ if ! instrument tcp; then
   adb shell 'pids=$(pidof kizuku_server); [ -z "$pids" ] || kill $pids'
 fi
 adb shell settings put global development_settings_enabled 1
+adb shell cmd adb is-wifi-supported | tee "$evidence/wifi-supported.txt"
+grep -qx 'true' "$evidence/wifi-supported.txt"
 instrument pair
 # A new instrumentation process reopens the encrypted persisted ADB identity.
 instrument reconnect

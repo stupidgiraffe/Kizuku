@@ -5,7 +5,6 @@ import android.app.RemoteInput
 import android.content.Intent
 import android.os.Bundle
 import android.os.SystemClock
-import android.provider.Settings
 import android.view.accessibility.AccessibilityNodeInfo
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -76,8 +75,11 @@ class AdbActivationTest {
     }
     private fun pairThroughNotification() {
         main { app.startForegroundService(Intent(app, AdbPairingService::class.java).setAction(AdbPairingService.BEGIN)) }
-        app.startActivity(Intent(Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-        clickText("Wireless debugging", scroll = true)
+        app.startActivity(wirelessDebuggingSettingsIntent().addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        await("Developer options loaded", 20000) {
+            nodes().any { it.packageName?.toString() == "com.android.settings" && it.isScrollable }
+        }
+        clickText("Wireless debugging", scroll = true, diagnoseSettings = true)
         // Some images require an explicit trusted-network confirmation on first use.
         findText("Allow")?.let(::click)
         if (findText("Pair device with pairing code") == null) {
@@ -167,13 +169,22 @@ class AdbActivationTest {
         check(target?.performAction(AccessibilityNodeInfo.ACTION_CLICK) == true) { "UI control was not clickable" }
         SystemClock.sleep(300)
     }
-    private fun clickText(text: String, scroll: Boolean = false) {
-        repeat(if (scroll) 15 else 30) {
-            findText(text)?.let { node -> click(node); return }
-            if (text != "Allow") findText("Allow")?.let(::click)
-            if (scroll) nodes().firstOrNull { it.isScrollable }?.performAction(AccessibilityNodeInfo.ACTION_SCROLL_FORWARD)
-            SystemClock.sleep(200)
+    private fun clickText(text: String, scroll: Boolean = false, diagnoseSettings: Boolean = false) {
+        val deadline = SystemClock.elapsedRealtime() + if (scroll) 30000L else 8000L
+        while (SystemClock.elapsedRealtime() < deadline) {
+            val visible = nodes()
+            visible.firstOrNull { it.text?.toString() == text || it.contentDescription?.toString() == text }?.let { node ->
+                click(node)
+                return
+            }
+            if (text != "Allow") visible.firstOrNull { it.text?.toString() == "Allow" }?.let(::click)
+            if (scroll) visible.firstOrNull { node ->
+                node.actionList.any { it.id == AccessibilityNodeInfo.ACTION_SCROLL_FORWARD }
+            }?.performAction(AccessibilityNodeInfo.ACTION_SCROLL_FORWARD)
+            SystemClock.sleep(if (scroll) 400 else 200)
         }
-        fail("UI control not found: $text")
+        // Only the Developer options list is diagnosed. Never log the pairing dialog.
+        val settings = if (diagnoseSettings) nodes().take(70).mapNotNull { it.text }.joinToString(" | ") else ""
+        fail("UI control not found: $text. $settings")
     }
 }
