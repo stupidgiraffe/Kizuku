@@ -150,7 +150,7 @@ class AdbActivationTest {
             if (condition()) return
             SystemClock.sleep(150)
         }
-        fail("Timed out: $label; core=${controller.state.value.phase}; adb=${controller.adb.value.stage}; detail=${controller.state.value.message}\n${diagnostics()}")
+        fail("Timed out: $label; core=${controller.state.value.phase}; busy=${controller.state.value.busy}; adb=${controller.adb.value.stage}; detail=${controller.state.value.message}\n${diagnostics()}")
     }
     private fun nodes(): List<AccessibilityNodeInfo> {
         val root = instrumentation.uiAutomation.rootInActiveWindow ?: return emptyList()

@@ -55,13 +55,13 @@ class ActivationController private constructor(private val app:Application) {
         val safe=snapshot?.getBoolean("safe_mode") ?: app.getSharedPreferences("authorization",0).getBoolean("safe_mode",false)
         mutable.value=mutable.value.copy(phase=if(snapshot!=null) "Connected" else if(mutable.value.busy) mutable.value.phase else if(wanted) "Disconnected" else "Not connected",status=snapshot,apps=apps,message=message,safeMode=safe)
     }
-    private fun runOperation(label:String,block:suspend CoroutineScope.()->Unit):Job? {
+    private fun runOperation(label:String,refreshAfter:Boolean=true,block:suspend CoroutineScope.()->Unit):Job? {
         if(mutable.value.busy)return null
         cancelLateHostUntil=0
         val version=++operationVersion
         return scope.launch {
             mutable.value=mutable.value.copy(phase=if(CoreConnection.service!=null) "Connected" else label,busy=true,message=null)
-            try { block();refresh() }
+            try { block();if(refreshAfter)refresh() }
             catch(e:CancellationException){throw e}
             catch(e:Exception) {
                 if(version!=operationVersion)return@launch
@@ -109,7 +109,9 @@ class ActivationController private constructor(private val app:Application) {
         wanted=true;mode=if(tls)"wireless" else "tcp";tcp=AdbEndpoint(host,port);attempts=0
         return runOperation("Connecting ADB") {startAdb(requireNotNull(tcp),tls)}
     }
-    fun discoverPairing():Job?=runOperation("Waiting for pairing") {
+    // Discovery does not change the host. Finish on main without suspending for a
+    // host refresh after making the notification's reply action available.
+    fun discoverPairing():Job?=runOperation("Waiting for pairing",refreshAfter=false) {
         check(Build.VERSION.SDK_INT>=30){"Wireless pairing requires Android 11 or later"}
         adbMutable.value=adbMutable.value.copy(stage="Finding pairing",pairing=null,message=null)
         val endpoint=AdbDiscovery(app).find(AdbDiscovery.PAIRING,110000)

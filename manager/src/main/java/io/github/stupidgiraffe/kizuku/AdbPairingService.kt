@@ -3,6 +3,7 @@ package io.github.stupidgiraffe.kizuku
 import android.app.*
 import android.content.*
 import android.os.*
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.RemoteInput
 import kotlinx.coroutines.*
@@ -38,11 +39,13 @@ class AdbPairingService:Service() {
         when(intent?.action) {
             BEGIN -> { sessionActive=true; if(controller.discoverPairing()==null)stopSelf() }
             SEND -> {
+                Log.d("KizukuAdb", "Notification reply received")
                 val code=RemoteInput.getResultsFromIntent(intent)?.getCharSequence(CODE)?.toString().orEmpty()
                 intent.removeExtra(CODE)
                 val endpoint=controller.adb.value.pairing
                 if(endpoint==null)controller.notice("Open a new pairing code in Settings first.")
-                else controller.pair(endpoint.host,endpoint.port,code)
+                else if(controller.pair(endpoint.host,endpoint.port,code)==null)
+                    controller.notice("Pairing is already busy. Wait for it to finish and try again.")
             }
             CANCEL -> {controller.cancelActivation();stopSelf()}
         }

@@ -12,6 +12,7 @@ instrument() {
     | tee "$evidence/$1.txt" && grep -E 'OK \(1 test\)' "$evidence/$1.txt"
 }
 restore_transport() {
+  timeout 10 "$adb_binary" logcat -d -s KizukuAdb AdbPairClient >"$evidence/pairing.log" 2>/dev/null || true
   timeout 10 "$adb_binary" shell 'tail -c 16384 /data/local/tmp/kizuku-start.log' >"$evidence/startup.log" 2>/dev/null || true
   timeout 10 "$adb_binary" tcpip 5555 >/dev/null 2>&1 || true
   export ANDROID_SERIAL=emulator-5554
