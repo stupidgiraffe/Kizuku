@@ -33,12 +33,11 @@ class AdbActivationTest {
                 await("installed compatible client") { controller.state.value.apps.any { it.getString("package") == client } }
                 assertNull(CoreConnection.service)
                 clickText("Apps")
-                await("per-app switches") { nodes().any { it.isCheckable && it.isEnabled } }
-                click(nodes().first { it.isCheckable && it.isEnabled })
+                clickProbeBinderSwitch(checked = false)
                 clickText("Remember this certificate")
                 await("remembered Binder grant") { row().getLong("granted") and Capability.SHIZUKU != 0L }
                 assertEquals("Binder access never grants native diagnostics", 0L, row().getLong("granted") and Capability.DIAGNOSTICS)
-                click(nodes().first { it.isCheckable && it.isChecked })
+                clickProbeBinderSwitch(checked = true)
                 await("revoked offline grant") { row().getLong("granted") == 0L }
             }
             "denied" -> {
@@ -115,6 +114,15 @@ class AdbActivationTest {
         main { controller.stop() }
         await("stopped Binder") { CoreConnection.service == null }
         await("honest stopped state") { controller.state.value.status == null && !controller.state.value.busy }
+    }
+    private fun clickProbeBinderSwitch(checked: Boolean) {
+        val label = "Shizuku Binder for Kizuku Probe"
+        await("$label switch (checked=$checked)") {
+            val node = findText(label) ?: return@await false
+            if (!node.isCheckable || !node.isEnabled || node.isChecked != checked) return@await false
+            click(node)
+            true
+        }
     }
     private fun row() = controller.state.value.apps.first { it.getString("package") == client }
     private fun openManager() {
