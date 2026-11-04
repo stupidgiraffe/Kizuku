@@ -15,7 +15,8 @@ printf 'disk.dataPartition.size=6G\n' >>"$ANDROID_AVD_HOME/kizuku-ci.avd/config.
 emulator_pid=$!
 cleanup() {
   set +e
-  timeout 10 adb logcat -d -b crash -b system >smoke-evidence/framework.log
+  # Android's debug image logs temporary pairing codes under this system tag.
+  timeout 10 adb logcat -d -b crash -b system 'AdbDebuggingManager:S' '*:V' >smoke-evidence/framework.log
   timeout 10 adb shell df -h /data >smoke-evidence/storage.txt
   adb emu kill
   kill "$emulator_pid" 2>/dev/null
