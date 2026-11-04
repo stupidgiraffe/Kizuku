@@ -152,8 +152,9 @@ class ActivationController private constructor(private val app:Application) {
             AdbClient(endpoint.host,endpoint.port,key,tls).use { client->
                 cancelIo=client::close
                 ensureActive();try {client.connect()}catch(e:java.io.IOException){throw AdbTransportUnavailable(e)};ensureActive()
-                // All activation methods launch the same installed APK entry point.
-                client.command("shell:"+launchCommand(app.applicationInfo.sourceDir)+" >/data/local/tmp/kizuku-start.log 2>&1 </dev/null &")
+                // Legacy ADB shell allocates a PTY even for commands. Ignore its hangup
+                // before forking so the host survives closure of the startup stream.
+                client.command("shell:trap '' HUP; "+launchCommand(app.applicationInfo.sourceDir)+" >/data/local/tmp/kizuku-start.log 2>&1 </dev/null &")
             }
         }
         awaitHost()
