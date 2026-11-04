@@ -80,7 +80,7 @@ app's own key, pairing transport, connect discovery, shell startup and live Bind
 verification; then cancel, use a wrong code, toggle debugging and test reconnect.
 Host `adb pair` tests the host key; existing emulator TCP access does not establish
 pairing acceptance. SDK 37 permission grant/deny/revoke needs an API 37 run.
-Not yet executed. [ADB shell command][cmd], [wireless workflow][adb]
+Preview 2's [signed Android 17 run](https://github.com/stupidgiraffe/Kizuku/actions/runs/41845954990) passed notification pairing, saved-key reconnect, custom TCP, local-network denial and cancellation. [ADB shell command][cmd], [wireless workflow][adb]
 
 [lnp]: https://developer.android.com/privacy-and-security/local-network-permission
 [nsd]: https://developer.android.com/reference/android/net/nsd/NsdManager

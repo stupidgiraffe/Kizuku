@@ -1,30 +1,29 @@
 # Implementation state
 
-Updated 2026-11-02 JST. Canonical Plane mainline #3:
+Updated 2026-11-04 JST. Canonical Plane mainline #3:
 `68ff91b5-1e6c-4a37-b755-8d284b4fffb4`.
 
-## Current unreleased implementation
+## Published Preview 2
 
-Source `a2edcc8df75afa29361f095ee81960d447d502f5` adds on-device notification
-pairing, wireless/TCP startup, cancellation and compatible installed-app switches.
-All 21 policy/protocol tests, debug compilation and lint passed on `0aac097`.
-Its signed build also passed permanent-certificate, bundled-companion, notice and
-four-ABI pairing-library checks.
+[0.1.0 Preview 2](https://github.com/stupidgiraffe/Kizuku/releases/tag/v0.1.0-preview.2)
+ships on-device notification pairing, saved-key Wireless ADB reconnect, classic
+local TCP startup and installed-app permission switches.
 
-Runtime gate 41338947735 did **not** exercise these features: changing the emulator
-TCP port closed the original ADB transport; an unbounded cleanup command then hung
-until job cancellation. `ba36cab` / `a2edcc8` bound ADB commands, reconnection probes
-and diagnostic cleanup, and tolerate the expected transport disconnect. Corrected
-signed/runtime gate: https://github.com/stupidgiraffe/Kizuku/actions/runs/41345959538
-Corrected run: signed build passed, runtime gate failed promptly in the `apps`
-instrumentation scenario with `NoSuchElementException` (no matching UI node).
-The transport handover now reaches instrumentation; app-switch acceptance failed
-before wireless/TCP/core suites ran. Investigate the accessibility selector and
-actual switch state; do not assume this is only a test defect. Publication was
-skipped. Session stopped at the user's request, with no further build cycle.
-Preview 2 remains unpublished. No physical phone was modified.
+- Source: `65d0b5180a5382357c3f8d447a7632dd6faa86f3`.
+- [Signed acceptance and publication](https://github.com/stupidgiraffe/Kizuku/actions/runs/41845954990):
+  build, acceptance and publication passed. The build ran 21 unit tests, lint,
+  permanent-certificate checks and bundled companion/notice/native ABI checks.
+- API 37 Google APIs x86_64 emulator: app grants/revocation, local-network denial,
+  cancellation, custom TCP port 37055, notification code pairing, and reconnect
+  with the persisted key. Full cross-UID Binder suites passed as shell and root.
+- APK: `Kizuku-v0.1.0-preview.2.apk`, 16,352,194 bytes.
+  SHA-256 `487c76dab988ce3f0cc5c3952b83207737a97849553befe7e158f1905772f11f`
+  matches both the tested artifact and the GitHub release asset.
+- Runtime fixes cover the classic ADB PTY hangup and the race between publishing
+  the pairing reply action and making the controller available for pairing.
+  No physical device was modified or tested.
 
-## Published checkpoint
+## Previous published checkpoint
 
 [0.1.0 Preview 1](https://github.com/stupidgiraffe/Kizuku/releases/tag/v0.1.0-preview.1)
 is published with a permanent signing identity. It is a developer preview of the
@@ -69,13 +68,12 @@ preserved in git history. No unchanged failure was blindly rerun.
 
 ## Next substantial gates
 
-1. Wireless ADB pairing/start with SDK 37 local-network permission handling.
-2. Full legacy user services/rish and migration; current forwarding is a subset.
-3. Physical Android 16/17/OEM acceptance, including `su` activation and normal
+1. Full legacy user services/rish and migration; current forwarding is a subset.
+2. Physical Android 16/17/OEM acceptance, including `su` activation and normal
    PackageInstaller/uninstall UI. Companion embedding/state checks are verified;
    automated direct installation is not installer-UI acceptance.
-4. Signing-lineage rotation, richer local diagnostics/audit and watchdog acceptance.
-5. Axeron runtime after the full Phase 1/1.5 acceptance gate; keep DexorX and
+3. Signing-lineage rotation, richer local diagnostics/audit and watchdog acceptance.
+4. Axeron runtime after the full Phase 1/1.5 acceptance gate; keep DexorX and
    ShizuPosed separate from the privileged core.
 
 Visual follow-up: system status-bar icon contrast in a light OS theme needs
