@@ -91,9 +91,11 @@ object CompanionInstaller {
         changed()
         if (!current.installed && !current.conflict) return "Companion removed."
         val reason = data?.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE)
+        if (reason.isNullOrBlank() && (result == android.app.Activity.RESULT_CANCELED || (result == android.app.Activity.RESULT_FIRST_USER && data == null))) {
+            return "Removal was canceled or blocked by Android."
+        }
         return reason?.take(240) ?: when (result) {
             android.app.Activity.RESULT_OK -> "Android returned success, but the compatibility package is still installed."
-            android.app.Activity.RESULT_CANCELED -> "Removal was canceled or blocked by Android."
             else -> "Android did not remove the companion (result $result)."
         }
     }

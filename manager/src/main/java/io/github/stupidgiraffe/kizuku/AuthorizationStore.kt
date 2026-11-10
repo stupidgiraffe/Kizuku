@@ -3,6 +3,7 @@ package io.github.stupidgiraffe.kizuku
 import android.content.Context
 import android.os.Bundle
 import io.github.stupidgiraffe.kizuku.api.AndroidIdentity
+import io.github.stupidgiraffe.kizuku.api.Protocol
 import io.github.stupidgiraffe.kizuku.core.ClientIdentity
 import io.github.stupidgiraffe.kizuku.core.GrantLedger
 import org.json.JSONArray
@@ -31,14 +32,32 @@ object AuthorizationStore {
         check(expected == actual) { "App identity changed. Review a fresh permission request." }
         return expected
     }
-    @Synchronized fun decide(context: Context, identity: ClientIdentity, mask: Long, lifetime: Int?) {
-        val entries = JSONArray(load(context)); val ledger = GrantLedger()
-        for (i in 0 until entries.length()) { val entry=entries.getJSONObject(i); ledger.grant(AndroidIdentity.decode(entry),entry.getLong("mask"),GrantLedger.Lifetime.PERMANENT) }
+    internal fun rememberedGrants(context: Context): List<Pair<ClientIdentity, Long>> {
+        val entries = JSONArray(load(context))
+        return List(entries.length()) { index ->
+            val entry = entries.getJSONObject(index)
+            AndroidIdentity.decode(entry) to entry.getLong("mask")
+        }
+    }
+    fun decide(context: Context, identity: ClientIdentity, mask: Long, lifetime: Int?) {
+        replaceRemembered(context, identity, mask, if (lifetime == GrantLedger.Lifetime.PERMANENT.ordinal) mask else 0L)
+    }
+    @Synchronized internal fun replaceRemembered(context: Context, identity: ClientIdentity, mask: Long, replacement: Long): Long {
+        val ledger = GrantLedger()
+        val saved = rememberedGrants(context)
+        saved.forEach { (client, scopes) -> ledger.grant(client, scopes, GrantLedger.Lifetime.PERMANENT) }
+        val previous = ledger.capabilities(identity) and mask
+        if (previous == replacement) return previous
         ledger.revokePrincipal(identity.uid(), identity.packageName(), mask)
-        if (lifetime == GrantLedger.Lifetime.PERMANENT.ordinal) ledger.grant(identity,mask,GrantLedger.Lifetime.PERMANENT)
+        if (replacement != 0L) ledger.grant(identity, replacement, GrantLedger.Lifetime.PERMANENT)
+        val grants = ledger.permanentGrants()
+        check(grants.size <= Protocol.MAX_CLIENTS || grants.size <= saved.size) {
+            "Remembered app limit reached. Revoke an unused grant and retry."
+        }
         val result = JSONArray()
-        ledger.permanentGrants().forEach { grant -> result.put(AndroidIdentity.encode(grant.identity()).put("mask",grant.mask())) }
-        check(prefs(context).edit().putString("grants",result.toString()).commit()) { "Cannot save authorization decision" }
+        grants.forEach { grant -> result.put(AndroidIdentity.encode(grant.identity()).put("mask", grant.mask())) }
+        check(prefs(context).edit().putString("grants", result.toString()).commit()) { "Cannot save authorization decision" }
+        return previous
     }
     fun safeMode(context: Context, enabled: Boolean) { check(prefs(context).edit().putBoolean("safe_mode",enabled).commit()) }
 }

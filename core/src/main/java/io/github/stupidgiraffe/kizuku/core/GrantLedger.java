@@ -25,6 +25,11 @@ public final class GrantLedger {
         Capability.validate(mask);
         return (capabilities(client) & mask) == mask;
     }
+    public synchronized boolean allowsContinuing(ClientIdentity client, long mask) {
+        Capability.validate(mask);
+        long[] scopes = grants.get(client);
+        return scopes != null && ((scopes[Lifetime.SESSION.ordinal()] | scopes[Lifetime.PERMANENT.ordinal()]) & mask) == mask;
+    }
     public synchronized boolean consume(ClientIdentity client, long mask) {
         if (!allows(client, mask)) return false;
         grants.get(client)[Lifetime.ONCE.ordinal()] &= ~mask;

@@ -12,4 +12,5 @@ dependencies {
     implementation("dev.rikka.hidden:compat:4.4.0")
     compileOnly("dev.rikka.hidden:stub:4.4.0")
     implementation("androidx.annotation:annotation:1.9.1")
+    implementation("dev.rikka.rikkax.parcelablelist:parcelablelist:2.0.1")
 }

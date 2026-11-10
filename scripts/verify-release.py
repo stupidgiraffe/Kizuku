@@ -23,7 +23,7 @@ for module in ('manager', 'compat', 'test-client'):
 with zipfile.ZipFile(packages['manager']) as archive:
     if archive.read('assets/legacy-compat.apk') != packages['compat'].read_bytes():
         raise SystemExit('Bundled compatibility APK differs from signed build')
-    for notice in ('LICENSE', 'NOTICE', 'BORINGSSL-LICENSE.txt', 'BOUNCYCASTLE-LICENSE.txt'):
+    for notice in ('LICENSE', 'NOTICE', 'BORINGSSL-LICENSE.txt', 'BOUNCYCASTLE-LICENSE.txt', 'AXERON-API-LICENSE.txt'):
         if archive.read('assets/'+notice) != Path(notice).read_bytes():
             raise SystemExit(f'{notice} is missing or stale')
 

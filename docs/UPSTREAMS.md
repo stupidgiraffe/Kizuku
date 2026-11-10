@@ -67,3 +67,21 @@ resource-only decode timed out. The uploaded Shizuku 14.0.31-next digest matches
 rushiranpise/Shizuku-Next tag v14.0.31-next, c97dc7d23c94cee90748128160c4a3366983aa12.
 We reused its narrow queued-resolution/stale-port ideas, not its full engines; no
 decompiled implementation was used.
+
+## November 10 integration
+
+| Reference | Source examined | Decision |
+|---|---|---|
+| [AxManager](https://github.com/fahrez182/AxManager/tree/v3.0.0) | 3.0.0 at `1b08f1c`; Axeron-API `bfceee9` | Implement the Axeron client wire and documented ZIP layout in Kizuku's host. Reuse the exact AIDL and wire payload layouts. Keep separately licensed native utilities outside the package. |
+| [OmniShizuku](https://github.com/krishna3163/OmniShizuku) | `997cffa`, v1.0.0 and moving latest release | App freeze and accessibility inventory references. Use Android package state readback. Keep its debloat catalogue, firewall and bundled GPL tools outside this implementation. |
+| [Xhizuku](https://github.com/xeonleonreal/Xhizuku) | `245d312`, v4.0.0 | Review module ZIP lifecycle and its test fixture. Preserve Kizuku's Binder-driven recovery instead of killing a host on a stale heartbeat. |
+| [Shizuku-Next](https://github.com/rushiranpise/Shizuku-Next) | `9b8cb38` | Accessibility inventory and Settings handoff. |
+| [Shizuku+](https://github.com/thejaustin/ShizukuPlus) | `8033070`, 13.7.0.r3216 prerelease | Service Doctor patterns. Preserve a single activation controller and bounded reconnect. |
+| [Shevery](https://github.com/HmnDev-Tech/shevery) | `580a996`, 14.6.3 | Biometric protection and system installer reference. DPC/Dhizuku provider requires a separate protocol and authorization review. |
+| [ADB Captain](https://f-droid.org/en/packages/adb.captain/) and [aMiNo](https://github.com/AMINODa/aMiNo-App/releases/tag/v1.4.2) | Published feature/reference artifacts | ADB workflows and external client candidates. No source or APK imports. |
+
+OmniShizuku and Xhizuku top-level source licenses are Apache-2.0. OmniShizuku
+contains components with separate GPL and MIT licenses. The attached APKs were
+inspected for manifest identity and bundled companion/native files. The uploaded
+Shevery is 14.6.1 and the uploaded Next is 14.0.31-next. Those binaries are
+reference material and are not packaged in Kizuku.

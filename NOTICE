@@ -28,3 +28,14 @@ TLS exporter on API31+, bounded local-device transport, code/key log removal,
 correct DEVICE_GUID type, explicit cancellation, fail-closed key persistence.
 Native BoringSSL prefab 20251124: see BORINGSSL-LICENSE.txt. Bouncy Castle 1.86:
 see BOUNCYCASTLE-LICENSE.txt. These licenses are bundled with the application.
+
+The legacy UserService launch/classloading and rish wire follow RikkaApps/Shizuku
+b844bc491f1790c72328e1a8e5b2349f8978f0ea and Shizuku-API
+a27f6e4151ba7b39965ca47edb2bf0aeed7102e5 (Apache-2.0). Kizuku supplies
+its own caller authorization, subprocess lifecycle, and rish JNI bridge.
+
+The Axeron v3 wire includes five unmodified frb.axeron.server AIDL files
+and Java parcelable equivalents of the matching upstream Kotlin payloads.
+Source: fahrez182/Axeron-API bfceee9cecfb0451448b3453017b8326ee1f591e, MIT.
+See AXERON-API-LICENSE.txt. The wire's RikkaX ParcelableList 2.0.1
+dependency is MIT. No AxManager BusyBox, resetprop, or artwork is included.

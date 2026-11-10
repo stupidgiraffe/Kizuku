@@ -3,6 +3,25 @@
 Updated 2026-11-04 JST. Canonical Plane mainline #3:
 `68ff91b5-1e6c-4a37-b755-8d284b4fffb4`.
 
+## November 10 integration branch
+
+`integration/kizuku-major` integrates stock legacy process pipes, UserService
+and rish server support, an independently authorized Axeron 3.0 command endpoint,
+and a manager runtime for saved commands, plugin ZIP lifecycle, local WebUI,
+primary-user app enable/disable and settings editing. It also adds app filters and
+bulk Shizuku grants, a Service Doctor, accessibility inventory, opt-in device
+authentication, companion installer results, adaptive layouts and both supplied
+launcher icons.
+
+The runtime uses one privileged host with separate shell and root directories.
+A remembered Shizuku or Axeron grant follows the active host privilege. Consent
+discloses that a later root start confers root execution for the authorized wire.
+Axeron's interactive PTY and native socket/file service, complete plugin WebUI API,
+BusyBox-specific installers, full third-party compatibility, SU bridge,
+automation and Device Owner/Dhizuku are outstanding. Android 16/17 acceptance,
+physical/OEM acceptance, update from Preview 2, and signed publication are gated.
+Runtime status is measured independently of legacy host availability.
+
 ## Published Preview 2
 
 [0.1.0 Preview 2](https://github.com/stupidgiraffe/Kizuku/releases/tag/v0.1.0-preview.2)

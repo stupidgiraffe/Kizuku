@@ -3,6 +3,8 @@ package io.github.stupidgiraffe.kizuku.server;
 import android.os.Binder;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.os.Handler;
+import android.os.Looper;
 import android.os.Parcel;
 import android.os.Process;
 import android.os.RemoteException;
@@ -17,14 +19,21 @@ import moe.shizuku.server.IShizukuService;
 import moe.shizuku.server.IShizukuServiceConnection;
 import rikka.hidden.compat.ActivityManagerApis;
 
-/** Stock v13 wire, deliberately limited until full user-service acceptance is proven. */
+/** Stock Shizuku v13 wire using the Kizuku identity and grant policy. */
 final class LegacyEndpoint extends IShizukuService.Stub {
     private record Client(ClientIdentity identity, IShizukuApplication callback, int apiVersion) {}
     private record Caller(int uid, int pid) {}
     private final KizukuService host;
     private final ConcurrentHashMap<Caller, Client> attached = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<Caller, Integer> requests = new ConcurrentHashMap<>();
-    LegacyEndpoint(KizukuService host) { this.host = host; }
+    private final java.util.Set<LegacyRemoteProcess> processes = java.util.concurrent.ConcurrentHashMap.newKeySet();
+    private final LegacyUserServices userServices;
+    private final LegacyRish rish;
+    LegacyEndpoint(KizukuService host) {
+        this.host = host;
+        userServices = new LegacyUserServices(host, new Handler(Looper.getMainLooper()));
+        rish = new LegacyRish(host);
+    }
     private Caller caller() { return new Caller(Binder.getCallingUid(), Binder.getCallingPid()); }
     private Client client(boolean consume) {
         Client c = attached.get(caller());
@@ -36,10 +45,19 @@ final class LegacyEndpoint extends IShizukuService.Stub {
         ClientIdentity identity = host.identify(Binder.getCallingUid(), args.getString("shizuku:attach-package-name"));
         Caller caller = caller();
         if (attached.size() >= Protocol.MAX_CLIENTS && !attached.containsKey(caller)) throw new SecurityException("Client limit reached");
-        Client client = new Client(identity, callback, args.getInt("shizuku:attach-api-version", 13));
-        callback.asBinder().linkToDeath(() -> { attached.remove(caller, client); requests.remove(caller); }, 0);
+        Client client = new Client(identity, callback, args.getInt("shizuku:attach-api-version", -1));
+        callback.asBinder().linkToDeath(() -> {
+            if (attached.remove(caller, client)) {
+                requests.remove(caller);
+                stopProcesses(process -> process.owner.uid() == caller.uid() && process.ownerPid == caller.pid());
+                synchronized (host) {
+                    userServices.stopCaller(caller.uid(), caller.pid());
+                    rish.stopCaller(caller.uid(), caller.pid());
+                }
+            }
+        }, 0);
         attached.put(caller, client);
-        Bundle reply = new Bundle(); reply.putInt("shizuku:attach-reply-version", 13); reply.putInt("shizuku:attach-reply-patch-version", 6);
+        Bundle reply = new Bundle(); reply.putInt("shizuku:attach-reply-version", client.apiVersion() < 0 ? 12 : 13); reply.putInt("shizuku:attach-reply-patch-version", 6);
         reply.putInt("shizuku:attach-reply-uid", Process.myUid()); reply.putString("shizuku:attach-reply-secontext", context());
         reply.putBoolean("shizuku:attach-reply-permission-granted", host.allowed(identity, Capability.SHIZUKU, false));
         reply.putBoolean("shizuku:attach-reply-should-show-request-permission-rationale", false);
@@ -51,6 +69,12 @@ final class LegacyEndpoint extends IShizukuService.Stub {
         requests.put(caller, requestCode); host.request(c.identity(), Capability.SHIZUKU);
     }
     void permissionChanged(ClientIdentity identity, boolean allowed) {
+        synchronized (host) {
+            if (!host.legacyContinuing(identity)) {
+                userServices.revoke(identity);
+                rish.stop(identity::equals);
+            }
+        }
         attached.forEach((caller, c) -> {
             if (!c.identity().equals(identity)) return;
             Integer code = requests.remove(caller);
@@ -85,11 +109,75 @@ final class LegacyEndpoint extends IShizukuService.Stub {
         catch (Exception e) { throw new IllegalStateException("Property read failed", e); }
     }
     @Override public void setSystemProperty(String name, String value) { throw unsupported(); }
-    @Override public IRemoteProcess newProcess(String[] cmd, String[] env, String dir) { throw unsupported(); }
-    @Override public int addUserService(IShizukuServiceConnection conn, Bundle args) { throw unsupported(); }
-    @Override public int removeUserService(IShizukuServiceConnection conn, Bundle args) { throw unsupported(); }
+    @Override public IRemoteProcess newProcess(String[] cmd, String[] env, String dir) {
+        synchronized (host) {
+            Client client = client(false);
+            // A finished process can still be read by its owner. Reap descendants before
+            // releasing the host's tracking slot, while retaining the Binder and exit status.
+            for (LegacyRemoteProcess process : processes) {
+                if (process.running()) continue;
+                process.reapDescendants();
+                processes.remove(process);
+            }
+            if (processes.size() >= 6) throw new IllegalStateException("Too many active Shizuku processes");
+            try {
+                LegacyRemoteProcess process = new LegacyRemoteProcess(host, client.identity(), Binder.getCallingPid(), cmd, env, dir);
+                processes.add(process);
+                if (!host.allowed(client.identity(), Capability.SHIZUKU, true)) {
+                    stopProcesses(candidate -> candidate == process);
+                    throw new SecurityException("Shizuku access expired");
+                }
+                return process;
+            } catch (java.io.IOException failure) {
+                throw new IllegalStateException("Cannot start the Shizuku process", failure);
+            }
+        }
+    }
+    void revokeProcesses(ClientIdentity identity) {
+        synchronized (host) {
+            stopProcesses(process -> process.owner.equals(identity));
+            userServices.revoke(identity);
+            rish.stop(identity::equals);
+        }
+    }
+    void stopAllProcesses() {
+        synchronized (host) {
+            stopProcesses(process -> true);
+            userServices.stopAll();
+            rish.stop(identity -> true);
+        }
+    }
+    void removeStaleProcesses() {
+        synchronized (host) {
+            stopProcesses(process -> !host.activeIdentity(process.owner));
+            userServices.removeStale();
+            rish.stop(identity -> !host.legacyContinuing(identity));
+        }
+    }
+    private void stopProcesses(java.util.function.Predicate<LegacyRemoteProcess> matches) {
+        for (LegacyRemoteProcess process : processes) {
+            if (matches.test(process) && processes.remove(process)) process.stop();
+        }
+    }
+    private Client continuingClient() {
+        Client client = attached.get(caller());
+        if (client == null || !host.legacyContinuing(client.identity()))
+            throw new SecurityException("A session or permanent Shizuku grant is required");
+        return client;
+    }
+    @Override public int addUserService(IShizukuServiceConnection conn, Bundle args) throws RemoteException {
+        synchronized (host) {
+            Client client = continuingClient();
+            return userServices.add(client.identity(), Binder.getCallingPid(), client.apiVersion(), conn, args);
+        }
+    }
+    @Override public int removeUserService(IShizukuServiceConnection conn, Bundle args) {
+        synchronized (host) { return userServices.remove(continuingClient().identity(), conn, args); }
+    }
     @Override public void exit() { host.enforceManager(); host.shutdown(); }
-    @Override public void attachUserService(IBinder binder, Bundle options) { throw unsupported(); }
+    @Override public void attachUserService(IBinder binder, Bundle options) throws RemoteException {
+        synchronized (host) { userServices.attach(Binder.getCallingUid(), Binder.getCallingPid(), binder, options); }
+    }
     @Override public void dispatchPackageChanged(android.content.Intent intent) { host.enforceManager(); }
     @Override public boolean isHidden(int uid) { host.enforceManager(); return false; }
     @Override public void dispatchPermissionConfirmationResult(int uid, int pid, int code, Bundle data) { host.enforceManager(); throw unsupported(); }
@@ -98,6 +186,19 @@ final class LegacyEndpoint extends IShizukuService.Stub {
     private static UnsupportedOperationException unsupported() { return new UnsupportedOperationException("Not implemented in the foundation build"); }
     @Override public boolean onTransact(int code, Parcel data, Parcel reply, int flags) throws RemoteException {
         if (data.dataSize() > Protocol.MAX_IPC_BYTES) throw new SecurityException("IPC size limit exceeded");
+        if (code == 14 && reply != null) { // Stock attachApplication through API 12.
+            data.enforceInterface("moe.shizuku.server.IShizukuService");
+            IShizukuApplication callback = IShizukuApplication.Stub.asInterface(data.readStrongBinder());
+            Bundle args = new Bundle();
+            args.putString("shizuku:attach-package-name", data.readString());
+            attachApplication(callback, args);
+            reply.writeNoException();
+            return true;
+        }
+        if (LegacyRish.handles(code)) {
+            synchronized (host) { rish.transact(continuingClient().identity(), Binder.getCallingPid(), code, data, reply); }
+            return true;
+        }
         if (code != 1) return super.onTransact(code, data, reply, flags);
         data.enforceInterface("moe.shizuku.server.IShizukuService");
         Client c = client(true); IBinder target = data.readStrongBinder(); int targetCode = data.readInt();

@@ -4,11 +4,17 @@ mkdir -p smoke-evidence
 export ANDROID_USER_HOME="${RUNNER_TEMP:-/tmp}/kizuku-android"
 export ANDROID_AVD_HOME="$ANDROID_USER_HOME/avd"
 export ANDROID_SERIAL=emulator-5554
+target=${KIZUKU_EMULATOR_TARGET:-android-37.0}
+case "$target" in
+  android-36) expected_api=36 ;;
+  android-37.0) expected_api=37 ;;
+  *) echo "Unsupported emulator target: $target"; exit 1 ;;
+esac
 mkdir -p "$ANDROID_AVD_HOME"
-printf 'no\n' | avdmanager create avd --force -n kizuku-ci --path "$ANDROID_AVD_HOME/kizuku-ci.avd" --package 'system-images;android-37.0;google_apis;x86_64' --device pixel_7
+printf 'no\n' | avdmanager create avd --force -n kizuku-ci --path "$ANDROID_AVD_HOME/kizuku-ci.avd" --package "system-images;$target;google_apis;x86_64" --device pixel_7
 avdmanager list avd >smoke-evidence/avds.txt
 cp "$ANDROID_AVD_HOME/kizuku-ci.ini" smoke-evidence/avd-target.ini
-grep -qx 'target=android-37.0' smoke-evidence/avd-target.ini
+grep -Fxq "target=$target" smoke-evidence/avd-target.ini
 test -f "$ANDROID_AVD_HOME/kizuku-ci.avd/config.ini"
 printf 'disk.dataPartition.size=6G\n' >>"$ANDROID_AVD_HOME/kizuku-ci.avd/config.ini"
 "$ANDROID_HOME/emulator/emulator" -port 5554 -avd kizuku-ci -no-window -gpu software -no-snapshot -noaudio -no-boot-anim -camera-back none -memory 2048 -partition-size 6144 >smoke-evidence/emulator.log 2>&1 &
@@ -39,6 +45,8 @@ for attempt in $(seq 1 90); do
   sleep 2
 done
 if (( ready < 3 )); then echo 'Android framework services did not become stable'; exit 1; fi
+adb shell getprop ro.build.version.sdk | tr -d '\r' | tee smoke-evidence/android-api.txt
+grep -Fxq "$expected_api" smoke-evidence/android-api.txt
 # The previous image restarted SurfaceFlinger/system_server during first boot and
 # left user 0 locked. An installed CE-only activity cannot resolve until unlock.
 adb shell am unlock-user 0 || true
@@ -53,6 +61,9 @@ adb shell input keyevent 82
 adb shell settings put global window_animation_scale 0
 adb shell settings put global transition_animation_scale 0
 adb shell settings put global animator_duration_scale 0
+if [[ "${KIZUKU_TEST_SIGNED_UPDATE:-false}" == true ]]; then
+  scripts/signed-update-acceptance.sh "${1:-artifacts}"
+fi
 KIZUKU_EVIDENCE_DIR=smoke-evidence/shell scripts/emulator-smoke.sh "${1:-artifacts}"
 if [[ "${KIZUKU_TEST_ROOT:-false}" == true ]]; then
   adb root

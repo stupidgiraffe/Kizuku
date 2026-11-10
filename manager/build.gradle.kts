@@ -13,7 +13,10 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     buildFeatures { compose = true; buildConfig = true; prefab = true }
-    packaging { resources.merges += setOf("META-INF/LICENSE.md", "META-INF/NOTICE.md") }
+    packaging {
+        resources.merges += setOf("META-INF/LICENSE.md", "META-INF/NOTICE.md")
+        jniLibs.useLegacyPackaging = true
+    }
     externalNativeBuild { cmake { path = file("src/main/cpp/CMakeLists.txt"); version = "3.31.6" } }
     buildTypes { release { isMinifyEnabled = false } }
     signingConfigs {
@@ -36,7 +39,7 @@ dependencies {
     implementation("org.lsposed.hiddenapibypass:hiddenapibypass:6.1")
     implementation(project(":server"))
     implementation(platform("androidx.compose:compose-bom:2026.08.00"))
-    implementation("androidx.compose.material3:material3")
+    implementation("androidx.compose.material3:material3:1.5.0-rc01")
     implementation("androidx.compose.material:material-icons-extended")
     implementation("androidx.compose.ui:ui-tooling-preview")
     debugImplementation("androidx.compose.ui:ui-tooling")
@@ -64,7 +67,7 @@ androidComponents.onVariants { variant ->
     val title = kind.replaceFirstChar { it.uppercase() }
     val bundle = tasks.register<BundleCompanionTask>("bundle${title}Companion") {
         dependsOn(":compat:assemble${title}")
-        notices.from(rootProject.file("LICENSE"), rootProject.file("NOTICE"), rootProject.file("BORINGSSL-LICENSE.txt"), rootProject.file("BOUNCYCASTLE-LICENSE.txt"))
+        notices.from(rootProject.file("LICENSE"), rootProject.file("NOTICE"), rootProject.file("BORINGSSL-LICENSE.txt"), rootProject.file("BOUNCYCASTLE-LICENSE.txt"), rootProject.file("AXERON-API-LICENSE.txt"))
         apk.set(project(":compat").layout.buildDirectory.file("outputs/apk/${kind}/compat-${kind}.apk"))
         outputDirectory.set(layout.buildDirectory.dir("generated/companion/${kind}"))
     }

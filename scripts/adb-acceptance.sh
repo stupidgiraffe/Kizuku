@@ -36,9 +36,12 @@ if ! instrument apps; then
   adb shell pm clear "$manager"
 fi
 adb shell pm grant "$manager" android.permission.POST_NOTIFICATIONS
-adb shell pm revoke "$manager" android.permission.ACCESS_LOCAL_NETWORK
-instrument denied
-adb shell pm grant "$manager" android.permission.ACCESS_LOCAL_NETWORK
+api=$(adb shell getprop ro.build.version.sdk | tr -d '\r')
+if (( api >= 37 )); then
+  adb shell pm revoke "$manager" android.permission.ACCESS_LOCAL_NETWORK
+  instrument denied
+  adb shell pm grant "$manager" android.permission.ACCESS_LOCAL_NETWORK
+fi
 instrument cancel
 if ! instrument tcp; then
   failed=1

@@ -31,6 +31,14 @@ public final class ServerMain {
                 throw new SecurityException("Launch APK is not the installed manager");
             KizukuService service = new KizukuService(platform, handler);
             new LegacyDiscovery(service,handler).start();
+            service.startRuntime();
+            handler.postDelayed(new Runnable() {
+                @Override public void run() {
+                    if (!service.managerValid()) { service.close(); System.exit(0); return; }
+                    service.sweepResources();
+                    handler.postDelayed(this, 15_000);
+                }
+            }, 15_000);
             managerConnection = new ManagerConnection(service, platform, handler);
             managerConnection.run();
             Log.i("KizukuServer", "Privileged host started: uid=" + Process.myUid());
@@ -50,7 +58,7 @@ public final class ServerMain {
             this.service=service; this.platform=platform; this.handler=handler;
         }
         @Override public void run() {
-            if (!service.managerValid()) { System.exit(0); return; }
+            if (!service.managerValid()) { service.close(); System.exit(0); return; }
             try {
                 Bundle input=new Bundle(); input.putBinder(Protocol.BINDER,service);
                 Bundle reply=platform.managerCall("attach",input);

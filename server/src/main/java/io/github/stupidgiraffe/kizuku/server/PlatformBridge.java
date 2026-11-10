@@ -82,10 +82,13 @@ final class PlatformBridge {
         return (String[]) packageManager.getClass().getMethod("getPackagesForUid", int.class).invoke(packageManager,uid);
     }
     Bundle call(String authority, String method, String arg, Bundle extras) throws Exception {
+        return call(authority, 0, method, arg, extras);
+    }
+    Bundle call(String authority, int userId, String method, String arg, Bundle extras) throws Exception {
         long identity = Binder.clearCallingIdentity();
         IContentProvider provider = null;
         try {
-            provider = ActivityManagerApis.getContentProviderExternal(authority, 0, null, authority);
+            provider = ActivityManagerApis.getContentProviderExternal(authority, userId, null, authority);
             if (provider == null) throw new IllegalStateException("Provider is unavailable");
             if (Build.VERSION.SDK_INT >= 31) {
                 return provider.call(new AttributionSource.Builder(Process.myUid()).build(), authority, method, arg, extras);

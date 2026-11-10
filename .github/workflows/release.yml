@@ -68,6 +68,10 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        sdk: ['36', '37.0']
     steps:
       - uses: actions/checkout@v5
       - uses: actions/download-artifact@v4
@@ -86,16 +90,19 @@ jobs:
       - uses: android-actions/setup-android@v3
         with:
           cmdline-tools-version: '15859902'
-          packages: 'platform-tools emulator platforms;android-37.0 system-images;android-37.0;google_apis;x86_64'
-      - name: Exercise signed APKs as ADB shell and root on Android 17
+          packages: 'platform-tools emulator build-tools;37.0.0 platforms;android-${{ matrix.sdk }} system-images;android-${{ matrix.sdk }};google_apis;x86_64'
+      - name: Exercise the signed update and fresh installs as ADB shell and root
         env:
+          KIZUKU_EMULATOR_TARGET: android-${{ matrix.sdk }}
           KIZUKU_TEST_ROOT: 'true'
           KIZUKU_TEST_ADB: 'true'
+          KIZUKU_TEST_SIGNED_UPDATE: 'true'
+          KIZUKU_REQUIRE_NEWER_VERSION: ${{ inputs.publish }}
         run: scripts/run-emulator.sh artifacts
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: signed-runtime-evidence-${{ github.sha }}
+          name: signed-runtime-evidence-api-${{ matrix.sdk }}-${{ github.sha }}
           path: smoke-evidence/
   publish:
     if: inputs.publish
@@ -116,6 +123,13 @@ jobs:
           mkdir dist
           version=$(sed -n 's/^versionName=//p' release.properties)
           test -n "$version"
-          cp artifacts/manager/build/outputs/apk/release/manager-release.apk "dist/Kizuku-v${version}.apk"
+          asset="Kizuku-v${version}.apk"
+          cp artifacts/manager/build/outputs/apk/release/manager-release.apk "dist/$asset"
           (cd dist && sha256sum *.apk > SHA256SUMS.txt)
-          gh release create "v${version}" dist/* --target "$GITHUB_SHA" --title "Kizuku ${version}" --prerelease --notes-file docs/RELEASE_NOTES.md
+          flags=()
+          if [[ "$version" == *-* ]]; then flags+=(--prerelease); fi
+          gh release create "v${version}" dist/* --target "$GITHUB_SHA" --title "Kizuku ${version}" "${flags[@]}" --notes-file docs/RELEASE_NOTES.md
+          mkdir published
+          gh release download "v${version}" --pattern "$asset" --pattern SHA256SUMS.txt --dir published
+          cmp dist/SHA256SUMS.txt published/SHA256SUMS.txt
+          (cd published && sha256sum --strict -c ../dist/SHA256SUMS.txt)

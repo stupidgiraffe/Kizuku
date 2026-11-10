@@ -13,4 +13,13 @@ interface IKizukuService {
     IBinder legacyBinder();
     void setSafeMode(boolean enabled);
     void shutdown();
+    Bundle runtimeCommand(String command);
+    Bundle[] runtimePlugins();
+    Bundle installRuntimePlugin(in ParcelFileDescriptor archive);
+    Bundle controlRuntimePlugin(String id, String operation);
+    ParcelFileDescriptor openRuntimeWebAsset(String id, String path);
+    Bundle runtimeWebCommand(String id, String command, String directory);
+    Bundle systemSetting(String namespace, String key, String value, String operation);
+    Bundle setPackageEnabled(String packageName, boolean enabled);
+    void requestAxeronAccess(String packageName, int uid);
 }

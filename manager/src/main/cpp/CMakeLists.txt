@@ -6,3 +6,7 @@ add_library(kizuku_adb SHARED adb_pairing.cpp)
 target_compile_options(kizuku_adb PRIVATE -Werror=format -fvisibility=hidden -ffunction-sections -fdata-sections)
 target_link_options(kizuku_adb PRIVATE -Wl,--gc-sections -Wl,--exclude-libs,ALL)
 target_link_libraries(kizuku_adb log boringssl::crypto_static)
+
+# The stock loader resolves librish from the manager's installed native library directory.
+add_library(rish SHARED legacy_rish.cpp)
+target_compile_options(rish PRIVATE -Werror=format -fvisibility=hidden)

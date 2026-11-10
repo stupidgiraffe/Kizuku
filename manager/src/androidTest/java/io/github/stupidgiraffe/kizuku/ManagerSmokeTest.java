@@ -33,6 +33,14 @@ public class ManagerSmokeTest {
             case "native": AuthorizationStore.INSTANCE.decide(app,identity,Capability.SHIZUKU | Capability.DIAGNOSTICS,null); service.grant(target,uid,Capability.DIAGNOSTICS,1,identity.fingerprint()); service.revoke(target,uid,Capability.SHIZUKU); break;
             case "revoke": AuthorizationStore.INSTANCE.decide(app,identity,Capability.SHIZUKU | Capability.DIAGNOSTICS,null); service.revoke(target,uid,Capability.DIAGNOSTICS | Capability.SHIZUKU); break;
             case "persist": AuthorizationStore.INSTANCE.decide(app,identity,Capability.DIAGNOSTICS,2); service.grant(target,uid,Capability.DIAGNOSTICS,2,identity.fingerprint()); break;
+            case "axeron_allow":
+                AuthorizationStore.INSTANCE.decide(app, identity, Capability.AXERON, 2);
+                service.grant(target, uid, Capability.AXERON, 2, identity.fingerprint());
+                break;
+            case "axeron_revoke":
+                AuthorizationStore.INSTANCE.decide(app, identity, Capability.AXERON, null);
+                service.revoke(target, uid, Capability.AXERON);
+                break;
             case "stop":
                 assertNotNull(CoreConnection.INSTANCE.getService());
                 service.shutdown();

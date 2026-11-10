@@ -53,6 +53,11 @@ class CoreProvider : ContentProvider() {
                 "load_grants" -> Bundle().apply {
                     putString("grants", AuthorizationStore.load(app)); putBoolean("safe_mode", prefs.getBoolean("safe_mode", false))
                 }
+                "legacy_bootstrap" -> {
+                    val service = requireNotNull(CoreConnection.service) { "Core is not connected" }
+                    if (service.status().getInt("uid", -1) != callerUid) throw SecurityException("UserService host UID mismatch")
+                    Bundle().apply { putBinder(Protocol.BINDER, service.legacyBinder()) }
+                }
                 "changed" -> { CoreConnection.changed(); Bundle() }
                 else -> throw IllegalArgumentException("Unknown controller method")
             }

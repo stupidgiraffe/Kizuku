@@ -8,6 +8,8 @@ import android.os.SystemClock
 import android.view.accessibility.AccessibilityNodeInfo
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import io.github.stupidgiraffe.kizuku.api.AndroidIdentity
+import io.github.stupidgiraffe.kizuku.core.GrantLedger
 import io.github.stupidgiraffe.kizuku.core.Capability
 import org.junit.Assert.*
 import org.junit.Test
@@ -28,17 +30,7 @@ class AdbActivationTest {
         instrumentation.uiAutomation.serviceInfo = accessibility
         openManager()
         when (scenario) {
-            "apps" -> {
-                await("installed compatible client") { controller.state.value.apps.any { it.getString("package") == client } }
-                assertNull(CoreConnection.service)
-                clickText("Apps")
-                clickProbeBinderSwitch(checked = false)
-                clickText("Remember this certificate")
-                await("remembered Binder grant") { row().getLong("granted") and Capability.SHIZUKU != 0L }
-                assertEquals("Binder access never grants native diagnostics", 0L, row().getLong("granted") and Capability.DIAGNOSTICS)
-                clickProbeBinderSwitch(checked = true)
-                await("revoked offline grant") { row().getLong("granted") == 0L }
-            }
+            "apps" -> exerciseAppPermissions()
             "denied" -> {
                 main { controller.startTcp("127.0.0.1", 37055, false) }
                 await("denied local-network request") { !controller.state.value.busy && controller.state.value.message?.contains("Local network") == true }
@@ -73,6 +65,70 @@ class AdbActivationTest {
             else -> error("Unknown ADB acceptance scenario")
         }
     }
+    private fun exerciseAppPermissions() {
+        await("installed compatible client") { controller.state.value.apps.any { it.getString("package") == client } }
+        assertNull(CoreConnection.service)
+        val both = Capability.SHIZUKU or Capability.AXERON
+        assertEquals("Both manifest contracts are detected independently", both, row().getLong("manifest_scopes") and both)
+        clickText("Apps")
+        clickProbeBinderSwitch(checked = false)
+        clickText("Remember this certificate")
+        await("remembered Binder grant") { row().getLong("granted") == Capability.SHIZUKU }
+        clickProbeBinderSwitch(checked = true)
+        await("revoked offline grant") { row().getLong("granted") == 0L }
+
+        val nativeOnly = instrumentation.context.packageName
+        @Suppress("DEPRECATION")
+        val nativeUid = app.packageManager.getApplicationInfo(nativeOnly, 0).uid
+        val nativeIdentity = AndroidIdentity.resolve(app.packageManager, nativeUid, nativeOnly)
+        val permanent = GrantLedger.Lifetime.PERMANENT.ordinal
+        AuthorizationStore.decide(app, nativeIdentity, Capability.DIAGNOSTICS, permanent)
+        try {
+            main { controller.decide(row(), Capability.AXERON, permanent) }
+            await("separate Axeron grant and diagnostics-only control") {
+                row().getLong("granted") == Capability.AXERON &&
+                    controller.state.value.apps.any { it.getString("package") == nativeOnly && it.getLong("granted") == Capability.DIAGNOSTICS }
+            }
+
+            clickText("Shizuku actions")
+            clickText("Grant All Shizuku")
+            assertNotNull("Confirmation identifies the target package", findText(client))
+            clickText("Cancel")
+            assertEquals("Dismissing confirmation preserves the current grants", Capability.AXERON, row().getLong("granted"))
+
+            clickText("Shizuku actions")
+            clickText("Grant All Shizuku")
+            clickText("Grant Shizuku")
+            await("offline bulk grant") {
+                row().getLong("granted") == both && controller.shizukuBatch.value.result?.action == ShizukuBatchAction.GRANT
+            }
+            assertEquals("Bulk grant requires the installed Shizuku declaration", Capability.DIAGNOSTICS,
+                controller.state.value.apps.first { it.getString("package") == nativeOnly }.getLong("granted"))
+
+            clickText("Shizuku actions")
+            clickText("Revoke All Shizuku")
+            clickText("Revoke Shizuku")
+            await("offline bulk revoke preserves Axeron") {
+                row().getLong("granted") == Capability.AXERON && controller.shizukuBatch.value.result?.action == ShizukuBatchAction.REVOKE
+            }
+            assertTrue(requireNotNull(controller.shizukuBatch.value.result).failures.isEmpty())
+
+            val stale = Bundle(row()).apply { putString("certificate", "stale-certificate") }
+            val nativeRow = controller.state.value.apps.first { it.getString("package") == nativeOnly }
+            main { controller.changeAllShizuku(ShizukuBatchAction.GRANT, listOf(stale, nativeRow)) }
+            await("stale and ineligible bulk decisions fail") {
+                controller.shizukuBatch.value.result?.failures?.map { it.first } == listOf(client, nativeOnly)
+            }
+            val rejected = requireNotNull(controller.shizukuBatch.value.result)
+            assertEquals(0, rejected.offlineUpdates + rejected.coreUpdates)
+            assertEquals(Capability.AXERON, row().getLong("granted"))
+        } finally {
+            AuthorizationStore.decide(app, nativeIdentity, Capability.DIAGNOSTICS, null)
+            main { controller.decide(row(), both, null) }
+            await("probe grants cleared") { row().getLong("granted") == 0L }
+        }
+    }
+
     private fun pairThroughNotification() {
         main { app.startForegroundService(Intent(app, AdbPairingService::class.java).setAction(AdbPairingService.BEGIN)) }
         app.startActivity(wirelessDebuggingSettingsIntent().addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))

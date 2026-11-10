@@ -58,6 +58,10 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        sdk: ['36', '37.0']
     steps:
       - uses: actions/checkout@v5
       - uses: actions/download-artifact@v4
@@ -76,13 +80,15 @@ jobs:
       - uses: android-actions/setup-android@v3
         with:
           cmdline-tools-version: '15859902' # 22.0; older runners silently create android-0
-          packages: 'platform-tools emulator platforms;android-37.0 system-images;android-37.0;google_apis;x86_64'
-      - name: Android 17 framework readiness and IPC acceptance
+          packages: 'platform-tools emulator platforms;android-${{ matrix.sdk }} system-images;android-${{ matrix.sdk }};google_apis;x86_64'
+      - name: Android framework readiness and IPC acceptance
         env:
+          KIZUKU_EMULATOR_TARGET: android-${{ matrix.sdk }}
           KIZUKU_TEST_ADB: 'true'
+          KIZUKU_TEST_ROOT: 'true'
         run: scripts/run-emulator.sh artifacts
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: emulator-evidence-${{ github.sha }}
+          name: emulator-evidence-api-${{ matrix.sdk }}-${{ github.sha }}
           path: smoke-evidence/

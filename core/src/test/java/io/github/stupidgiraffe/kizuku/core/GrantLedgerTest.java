@@ -45,6 +45,17 @@ public class GrantLedgerTest {
         assertTrue(ledger.consume(client, Capability.DIAGNOSTICS));
         assertFalse(ledger.consume(client, Capability.DIAGNOSTICS));
     }
+    @Test public void ongoingWorkRequiresSessionOrPermanentGrant() {
+        GrantLedger ledger = new GrantLedger();
+        ClientIdentity client = identity("a");
+        ledger.grant(client, Capability.SHIZUKU, GrantLedger.Lifetime.ONCE);
+        assertFalse(ledger.allowsContinuing(client, Capability.SHIZUKU));
+        assertTrue(ledger.allows(client, Capability.SHIZUKU));
+        ledger.grant(client, Capability.SHIZUKU, GrantLedger.Lifetime.SESSION);
+        assertTrue(ledger.allowsContinuing(client, Capability.SHIZUKU));
+        ledger.revoke(client, Capability.SHIZUKU);
+        assertFalse(ledger.allowsContinuing(client, Capability.SHIZUKU));
+    }
     @Test public void restorationIncludesOnlyPermanentGrants() {
         GrantLedger ledger = new GrantLedger();
         ClientIdentity client = identity("a");
