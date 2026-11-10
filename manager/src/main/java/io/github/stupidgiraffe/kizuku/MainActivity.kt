@@ -8,6 +8,8 @@ import android.text.BidiFormatter
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.SystemBarStyle
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.BorderStroke
@@ -241,14 +243,44 @@ private enum class Destination(val title: String, val icon: ImageVector) {
 @Composable private fun SettingsScreen(state: CoreState, controller: ActivationController) {
     val context = LocalContext.current
     var recover by remember { mutableStateOf(false) }
+    val changes by CompanionInstaller.changes.collectAsStateWithLifecycle()
+    var resumed by remember { mutableIntStateOf(0) }
+    var removing by rememberSaveable { mutableStateOf(false) }
+    var removalNotice by rememberSaveable { mutableStateOf<String?>(null) }
+    val remove = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        removing = false
+        removalNotice = CompanionInstaller.removalResult(context, result.resultCode, result.data)
+    }
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+        CompanionInstaller.reconcile(context)
+        resumed++
+    }
+    val companion = remember(changes, resumed) { CompanionInstaller.packageState(context) }
+    val installing = remember(changes, resumed) { CompanionInstaller.installing(context) }
     Glass {
-        Text("Compatibility", style = MaterialTheme.typography.titleMedium)
-        Text("Legacy Shizuku Stub", fontWeight = FontWeight.SemiBold)
-        Text(CompanionInstaller.state(context), color = Muted, style = MaterialTheme.typography.bodySmall)
-        Text("Bundled with Kizuku. It owns the legacy identity and conflicts with stock Shizuku or another fork using that identity.", color = Muted, style = MaterialTheme.typography.bodySmall)
+        Text("Compatibility companion", style = MaterialTheme.typography.titleMedium)
+        Text(companion.text, color = Muted, style = MaterialTheme.typography.bodySmall)
+        Text("The companion provides the package identity that Shizuku apps look for.", color = Muted, style = MaterialTheme.typography.bodySmall)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Button(onClick = { runCatching { CompanionInstaller.install(context) }.onFailure { controller.notice(it.message ?: "Install failed") } }) { Text("Install") }
-            OutlinedButton(onClick = { runCatching { CompanionInstaller.remove(context) }.onFailure { controller.notice(it.message ?: "Remove failed") } }) { Text("Remove") }
+            Button(enabled = !installing && !removing && !companion.conflict, onClick = {
+                removalNotice = null
+                runCatching { CompanionInstaller.install(context) }.onFailure { controller.notice(it.message ?: "Install failed") }
+            }) { Text(if (companion.installed) "Reinstall" else "Install") }
+            OutlinedButton(enabled = !installing && !removing && companion.installed, onClick = {
+                runCatching {
+                    val intent = CompanionInstaller.removalIntent(context)
+                    removing = true
+                    removalNotice = null
+                    remove.launch(intent)
+                }.onFailure { removing = false; removalNotice = it.message ?: "Cannot open Android’s uninstaller." }
+            }) { Text("Remove") }
+        }
+        if (installing) {
+            Text("Waiting for Android’s installation confirmation.", style = MaterialTheme.typography.bodySmall)
+            TextButton(onClick = { CompanionInstaller.reset(context) }) { Text("Clear install session") }
+        }
+        (removalNotice ?: CompanionInstaller.notice(context))?.let {
+            Text(it, style = MaterialTheme.typography.bodySmall)
         }
     }
     Glass {

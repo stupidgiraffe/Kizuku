@@ -3,8 +3,12 @@
     <permission-group android:name="moe.shizuku.manager.permission-group.API" android:label="Kizuku compatibility" />
     <permission android:name="moe.shizuku.manager.permission.API_V23" android:protectionLevel="dangerous"
         android:permissionGroup="moe.shizuku.manager.permission-group.API" android:label="Legacy privileged Binder access" android:description="@string/permission_description" />
-    <application android:label="Kizuku · Shizuku compatibility" android:allowBackup="false" android:supportsRtl="true">
+    <application android:label="Kizuku Companion" android:icon="@mipmap/ic_companion" android:roundIcon="@mipmap/ic_companion" android:allowBackup="false" android:supportsRtl="true">
         <activity android:name=".OpenKizukuActivity" android:exported="true" android:theme="@android:style/Theme.Material.NoActionBar">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
             <intent-filter>
                 <action android:name="moe.shizuku.manager.intent.action.REQUEST_PERMISSION" />
                 <action android:name="moe.shizuku.privileged.api.intent.action.REQUEST_PERMISSION" />
