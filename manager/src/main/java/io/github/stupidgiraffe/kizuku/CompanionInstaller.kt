@@ -34,13 +34,6 @@ object CompanionInstaller {
     fun installing(context: Context) = store(context).getInt(SESSION, NO_SESSION) != NO_SESSION
     private fun changed() { revision.value += 1; CoreConnection.changed() }
 
-    fun reconcile(context: Context) {
-        val id = store(context).getInt(SESSION, NO_SESSION)
-        if (id != NO_SESSION && context.packageManager.packageInstaller.getSessionInfo(id) == null) {
-            complete(context, if (packageState(context).installed) "Companion is installed." else "Installation ended before the companion was installed.")
-        }
-    }
-
     fun reset(context: Context) {
         val id = store(context).getInt(SESSION, NO_SESSION)
         if (id != NO_SESSION) runCatching { context.packageManager.packageInstaller.abandonSession(id) }
@@ -48,7 +41,8 @@ object CompanionInstaller {
     }
 
     fun install(context: Context) {
-        reconcile(context)
+        // Android may drop the session before it delivers the final broadcast.
+        // Keep the recorded ID until that callback or an explicit reset.
         check(!installing(context)) { "An installation is already open." }
         check(!packageState(context).conflict) { "Remove the other Shizuku manager before installing the Kizuku companion." }
         if (!context.packageManager.canRequestPackageInstalls()) {

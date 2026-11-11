@@ -30,9 +30,10 @@ instrument() {
 }
 probe() { adb shell am force-stop "$client"; instrument "$client" stage "$1"; }
 axeron_probe() { adb shell am force-stop "$client"; instrument "$client" stage "$1" AxeronWireSmokeTest; }
+companion_status=0
 if [[ "$host_uid" == 2000 ]]; then
   adb shell appops set "$manager" REQUEST_INSTALL_PACKAGES allow
-  instrument "$manager" action companion CompanionLifecycleTest
+  instrument "$manager" action companion CompanionLifecycleTest || companion_status=1
 fi
 while IFS= read -r apk; do adb install -r -t "$apk"; done < <(find "$artifact_root" -name '*.apk' -type f -path '*/compat/*' | sort)
 if [[ "${KIZUKU_TEST_ADB:-false}" == true && "$host_uid" == 2000 ]]; then
@@ -87,7 +88,7 @@ launch
 instrument "$manager" action connected
 adb uninstall "$manager"
 for attempt in $(seq 1 40); do
-  if ! adb shell pidof kizuku_server >/dev/null; then echo 'Manager removal terminated its privileged host'; exit 0; fi
+  if ! adb shell pidof kizuku_server >/dev/null; then echo 'Manager removal terminated its privileged host'; exit "$companion_status"; fi
   sleep 0.25
 done
 echo 'Privileged host survived removal of its manager'

@@ -208,7 +208,6 @@ private enum class Destination(val title: String, val heading: String, val icon:
         removalNotice = CompanionInstaller.removalResult(context, result.resultCode, result.data)
     }
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
-        CompanionInstaller.reconcile(context)
         resumed++
     }
     val companion = remember(changes, resumed) { CompanionInstaller.packageState(context) }

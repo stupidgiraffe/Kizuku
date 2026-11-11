@@ -1,6 +1,6 @@
 # Implementation state
 
-Updated 2026-11-04 JST. Canonical Plane mainline #3:
+Updated 2026-11-12 JST. Canonical Plane mainline #3:
 `68ff91b5-1e6c-4a37-b755-8d284b4fffb4`.
 
 ## November 10 integration branch
@@ -21,6 +21,14 @@ BusyBox-specific installers, full third-party compatibility, SU bridge,
 automation and Device Owner/Dhizuku are outstanding. Android 16/17 acceptance,
 physical/OEM acceptance, update from Preview 2, and signed publication are gated.
 Runtime status is measured independently of legacy host availability.
+
+The [November 10 Android CI run](https://github.com/stupidgiraffe/Kizuku/actions/runs/42773418551)
+passed build and lint. Android 16 and 17 both booted and reached the companion
+installer. On cancel, the manager discarded the recorded session when Android
+removed it, before Android sent the final result. The test stopped on the
+generic message in both jobs, before ADB and runtime acceptance. The follow-up
+keeps the session ID until the final callback or explicit reset. Companion
+failures still fail acceptance while allowing the remaining suite to run.
 
 ## Published Preview 2
 

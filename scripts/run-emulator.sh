@@ -64,10 +64,17 @@ adb shell settings put global animator_duration_scale 0
 if [[ "${KIZUKU_TEST_SIGNED_UPDATE:-false}" == true ]]; then
   scripts/signed-update-acceptance.sh "${1:-artifacts}"
 fi
-KIZUKU_EVIDENCE_DIR=smoke-evidence/shell scripts/emulator-smoke.sh "${1:-artifacts}"
+shell_status=0
+KIZUKU_EVIDENCE_DIR=smoke-evidence/shell scripts/emulator-smoke.sh "${1:-artifacts}" || shell_status=$?
 if [[ "${KIZUKU_TEST_ROOT:-false}" == true ]]; then
   adb root
   timeout 30 adb wait-for-device
   test "$(adb shell id -u | tr -d '\r')" == 0
+  if (( shell_status != 0 )); then
+    adb shell pkill -x kizuku_server || true
+    adb uninstall io.github.stupidgiraffe.kizuku || true
+    adb uninstall io.github.stupidgiraffe.kizuku.testclient || true
+  fi
   KIZUKU_EVIDENCE_DIR=smoke-evidence/root scripts/emulator-smoke.sh "${1:-artifacts}"
 fi
+exit "$shell_status"
