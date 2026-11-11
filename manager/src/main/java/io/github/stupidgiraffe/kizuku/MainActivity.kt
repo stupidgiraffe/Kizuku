@@ -238,6 +238,7 @@ private enum class Destination(val title: String, val heading: String, val icon:
             Text(it, style = MaterialTheme.typography.bodySmall)
         }
     }
+    Glass { RishExport() }
     Glass {
         Text("Protection & recovery", style = MaterialTheme.typography.titleMedium)
         Row(verticalAlignment = Alignment.CenterVertically) {

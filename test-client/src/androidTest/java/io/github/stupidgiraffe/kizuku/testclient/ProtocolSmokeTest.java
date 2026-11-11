@@ -83,6 +83,7 @@ public class ProtocolSmokeTest {
             assertLegacyUserService(app);
             assertRish(false);
             assertRish(true);
+            assertStockRishLoader(app);
         }
         if (nativeAllowed) { int uid=service.diagnostics(app.getPackageName()).getInt("server_uid",-1); assertTrue(uid==0 || uid==2000); }
         else assertThrows(SecurityException.class, () -> service.diagnostics(app.getPackageName()));
@@ -142,6 +143,37 @@ public class ProtocolSmokeTest {
         long deadline = SystemClock.elapsedRealtime() + 5_000;
         while (service.get().isBinderAlive() && SystemClock.elapsedRealtime() < deadline) SystemClock.sleep(20);
         assertFalse(service.get().isBinderAlive());
+    }
+
+    private static void assertStockRishLoader(Context app) throws Exception {
+        Context manager = app.createPackageContext(Protocol.MANAGER, 0);
+        java.nio.file.Path directory = java.nio.file.Files.createTempDirectory(app.getCacheDir().toPath(), "rish");
+        java.nio.file.Path launcher = directory.resolve("rish");
+        java.nio.file.Path dex = directory.resolve("rish_shizuku.dex");
+        java.lang.Process command = null;
+        try {
+            try (var input = manager.getAssets().open("rish/rish")) {
+                java.nio.file.Files.copy(input, launcher);
+            }
+            try (var input = manager.getAssets().open("rish/rish_shizuku.dex")) {
+                java.nio.file.Files.copy(input, dex);
+            }
+            assertTrue("Stock loader DEX must be read-only", dex.toFile().setReadOnly());
+            ProcessBuilder builder = new ProcessBuilder("/system/bin/sh", launcher.toString(), "-c", "id -u")
+                .directory(directory.toFile()).redirectErrorStream(true);
+            builder.environment().put("RISH_APPLICATION_ID", app.getPackageName());
+            command = builder.start();
+            command.getOutputStream().close();
+            assertTrue("Published rish loader returned", command.waitFor(25, TimeUnit.SECONDS));
+            String output = readOutput(command.getInputStream());
+            assertEquals(output, 0, command.exitValue());
+            assertEquals(Integer.toString(Shizuku.getUid()), output);
+        } finally {
+            if (command != null && command.isAlive()) command.destroyForcibly();
+            java.nio.file.Files.deleteIfExists(dex);
+            java.nio.file.Files.deleteIfExists(launcher);
+            java.nio.file.Files.deleteIfExists(directory);
+        }
     }
 
     private static void assertRish(boolean tty) throws Exception {

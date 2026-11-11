@@ -30,6 +30,10 @@ generic message in both jobs, before ADB and runtime acceptance. The follow-up
 keeps the session ID until the final callback or explicit reset. Companion
 failures still fail acceptance while allowing the remaining suite to run.
 
+The branch adds a Settings export with the stock Shizuku v13.6.0 rish launcher
+and DEX. Their SHA-256 values match the original release. The stock loader
+end-to-end case is separate from the raw rish Binder tests.
+
 ## Published Preview 2
 
 [0.1.0 Preview 2](https://github.com/stupidgiraffe/Kizuku/releases/tag/v0.1.0-preview.2)

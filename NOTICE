@@ -39,3 +39,7 @@ and Java parcelable equivalents of the matching upstream Kotlin payloads.
 Source: fahrez182/Axeron-API bfceee9cecfb0451448b3453017b8326ee1f591e, MIT.
 See AXERON-API-LICENSE.txt. The wire's RikkaX ParcelableList 2.0.1
 dependency is MIT. No AxManager BusyBox, resetprop, or artwork is included.
+
+The rish export includes the unmodified Shizuku v13.6.0 launcher and loader
+DEX (RikkaApps/Shizuku revision 2650830c5b099ae0dd34fedf614d4f592ca05d65).
+The export bundles the Apache-2.0 license and source notice.
