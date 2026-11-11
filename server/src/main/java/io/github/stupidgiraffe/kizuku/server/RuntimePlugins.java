@@ -198,7 +198,9 @@ final class RuntimePlugins {
         if (web.equals(directory)) throw new SecurityException("Invalid WebUI directory");
         File resource = child(web, relative);
         if (!resource.isFile() || resource.length() > 16 * 1024 * 1024) return null;
-        return ParcelFileDescriptor.open(resource, ParcelFileDescriptor.MODE_READ_ONLY);
+        // A regular file under the root host's data directory cannot be passed to
+        // an unprivileged app on every SELinux policy. The host serves it over a pipe.
+        return runtime.readAsset(resource);
     }
 
     synchronized Bundle webCommand(String id, String command, String cwd) throws Exception {

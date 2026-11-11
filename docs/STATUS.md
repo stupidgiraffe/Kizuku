@@ -30,6 +30,14 @@ generic message in both jobs, before ADB and runtime acceptance. The follow-up
 keeps the session ID until the final callback or explicit reset. Companion
 failures still fail acceptance while allowing the remaining suite to run.
 
+The [November 12 rerun](https://github.com/stupidgiraffe/Kizuku/actions/runs/43072452390)
+passed companion install/cancel/removal, ADB activation, shell plugin lifecycle,
+and Labs on both API 36 and 37. The stock process test timed out with stdin still
+open because the host pump did not flush the Java process stream. Root runtime
+acceptance reached the WebUI file transfer, where the regular-file Binder
+transaction failed while the host remained alive. The follow-up flushes command
+streams and serves WebUI assets through a pipe.
+
 The branch adds a Settings export with the stock Shizuku v13.6.0 rish launcher
 and DEX. Their SHA-256 values match the original release. The stock loader
 end-to-end case is separate from the raw rish Binder tests.

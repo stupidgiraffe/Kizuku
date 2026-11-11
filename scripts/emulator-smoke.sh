@@ -23,7 +23,7 @@ instrument() {
     class="$package.$4"
     if [[ "$4" == AxeronWireSmokeTest ]]; then output="$evidence/axeron-$value.txt"; fi
   fi
-  adb shell am instrument -w -e class "$class" -e host_uid "$host_uid" -e "$argument" "$value" "$package.test/androidx.test.runner.AndroidJUnitRunner" | tee "$output"
+  timeout 95 adb shell am instrument -w -e class "$class" -e host_uid "$host_uid" -e "$argument" "$value" "$package.test/androidx.test.runner.AndroidJUnitRunner" | tee "$output"
   local count=1
   if [[ "${4:-}" == LabsSmokeTest ]]; then count=3; fi
   grep -E "OK \($count tests?\)" "$output"

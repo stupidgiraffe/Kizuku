@@ -238,10 +238,31 @@ final class AxRuntime {
         return new byte[0];
     }
 
+    ParcelFileDescriptor readAsset(File asset) throws IOException {
+        ParcelFileDescriptor[] pipe = ParcelFileDescriptor.createPipe();
+        try {
+            var input = new java.io.FileInputStream(asset);
+            try {
+                io.execute(() -> copy(input, new ParcelFileDescriptor.AutoCloseOutputStream(pipe[1])));
+            } catch (RuntimeException failure) {
+                input.close();
+                throw failure;
+            }
+            return pipe[0];
+        } catch (IOException | RuntimeException failure) {
+            closeDescriptor(pipe[0]);
+            closeDescriptor(pipe[1]);
+            throw failure;
+        }
+    }
+
     private static void copy(InputStream in, OutputStream out) {
         try (in; out) {
             byte[] buffer = new byte[8192];
-            for (int count; (count = in.read(buffer)) != -1;) out.write(buffer, 0, count);
+            for (int count; (count = in.read(buffer)) != -1;) {
+                out.write(buffer, 0, count);
+                out.flush();
+            }
         } catch (IOException closed) {}
     }
 

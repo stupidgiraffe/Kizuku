@@ -148,7 +148,10 @@ final class LegacyRemoteProcess extends IRemoteProcess.Stub {
         Thread worker = new Thread(() -> {
             try (from; to) {
                 byte[] buffer = new byte[8192];
-                for (int count; (count = from.read(buffer)) >= 0;) to.write(buffer, 0, count);
+                for (int count; (count = from.read(buffer)) != -1;) {
+                    to.write(buffer, 0, count);
+                    to.flush();
+                }
             } catch (IOException closed) {
                 // A caller or child can close a stream independently.
             }
