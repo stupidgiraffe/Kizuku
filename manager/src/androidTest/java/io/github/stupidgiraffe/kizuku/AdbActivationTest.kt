@@ -131,18 +131,7 @@ class AdbActivationTest {
 
     private fun pairThroughNotification() {
         main { app.startForegroundService(Intent(app, AdbPairingService::class.java).setAction(AdbPairingService.BEGIN)) }
-        app.startActivity(wirelessDebuggingSettingsIntent().addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-        await("Developer options loaded", 20000) {
-            nodes().any { it.packageName?.toString() == "com.android.settings" && it.isScrollable }
-        }
-        clickText("Wireless debugging", scroll = true, diagnoseSettings = true)
-        // Some images require an explicit trusted-network confirmation on first use.
-        findText("Allow")?.let(::click)
-        if (findText("Pair device with pairing code") == null) {
-            nodes().firstOrNull { it.isCheckable && !it.isChecked && it.isEnabled }?.let(::click)
-            findText("Allow")?.let(::click)
-        }
-        clickText("Pair device with pairing code", scroll = true)
+        openPairingDialog()
         var code = ""
         await("Android pairing dialog") {
             code = nodes().firstOrNull { it.viewIdResourceName == "com.android.settings:id/pairing_code" }?.text?.toString().orEmpty()
@@ -165,6 +154,63 @@ class AdbActivationTest {
         assertTrue(controller.adb.value.paired)
         assertConnectedAndStop()
         openManager()
+    }
+
+    private fun openPairingDialog() {
+        val settings = wirelessDebuggingSettingsIntent().addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        app.startActivity(settings)
+        var nextAction = 0L
+        var leftSettings = false
+        await("enabled Wireless debugging and pairing dialog", 35000, diagnostics = {
+            // Exclude node text, since a Settings dialog can contain a pairing code.
+            nodes().take(25).joinToString("\n") {
+                "${it.packageName} ${it.viewIdResourceName} enabled=${it.isEnabled} checked=${it.isChecked}"
+            }
+        }) {
+            val visible = nodes()
+            val now = SystemClock.elapsedRealtime()
+            if (now < nextAction) return@await false
+            val settingsNodes = visible.filter { it.packageName?.toString() == "com.android.settings" }
+            val systemNodes = visible.filter { it.packageName?.toString() == "com.android.systemui" }
+            val trustPrompt = systemNodes.any { it.hasLabel("Allow wireless debugging on this network?") }
+            if (trustPrompt) {
+                systemNodes.firstOrNull { it.isEnabled && it.hasLabel("Allow") }?.let {
+                    click(it)
+                    nextAction = now + 1800
+                }
+                return@await false
+            }
+            val pair = settingsNodes.firstOrNull { it.isEnabled && it.hasLabel("Pair device with pairing code") }
+            if (pair != null) {
+                click(pair)
+                return@await true
+            }
+            val switch = settingsNodes.firstOrNull { it.hasLabel("Use wireless debugging") }
+            val developerEntry = settingsNodes.firstOrNull { it.isEnabled && it.hasLabel("Wireless debugging") }
+            when {
+                switch != null -> {
+                    val toggle = settingsNodes.firstOrNull { it.isCheckable && it.isEnabled && !it.isChecked }
+                    if (toggle != null) {
+                        click(toggle)
+                        // Android can temporarily reset the switch while it opens the trust prompt.
+                        nextAction = now + 2500
+                    }
+                }
+                developerEntry != null -> {
+                    click(developerEntry)
+                    nextAction = now + 1000
+                }
+                settingsNodes.isNotEmpty() -> settingsNodes.firstOrNull { node ->
+                    node.actionList.any { it.id == AccessibilityNodeInfo.ACTION_SCROLL_FORWARD }
+                }?.performAction(AccessibilityNodeInfo.ACTION_SCROLL_FORWARD)
+                !leftSettings && visible.any { it.packageName?.toString() == "com.google.android.apps.nexuslauncher" } -> {
+                    leftSettings = true
+                    app.startActivity(settings)
+                    nextAction = now + 1500
+                }
+            }
+            false
+        }
     }
     private fun assertConnectedAndStop() {
         assertEquals(2000, requireNotNull(CoreConnection.service).status().getInt("uid"))
@@ -218,29 +264,21 @@ class AdbActivationTest {
         visit(root)
         return result
     }
-    private fun findText(text: String) = nodes().firstOrNull { it.text?.toString() == text || it.contentDescription?.toString() == text }
+    private fun AccessibilityNodeInfo.hasLabel(label: String) =
+        text?.toString() == label || contentDescription?.toString() == label
+
+    private fun findText(text: String) = nodes().firstOrNull { it.hasLabel(text) }
     private fun click(node: AccessibilityNodeInfo) {
         var target: AccessibilityNodeInfo? = node
         while (target != null && !target.isClickable) target = target.parent
         check(target?.performAction(AccessibilityNodeInfo.ACTION_CLICK) == true) { "UI control was not clickable" }
         SystemClock.sleep(300)
     }
-    private fun clickText(text: String, scroll: Boolean = false, diagnoseSettings: Boolean = false) {
-        val deadline = SystemClock.elapsedRealtime() + if (scroll) 30000L else 8000L
-        while (SystemClock.elapsedRealtime() < deadline) {
-            val visible = nodes()
-            visible.firstOrNull { it.text?.toString() == text || it.contentDescription?.toString() == text }?.let { node ->
-                click(node)
-                return
-            }
-            if (text != "Allow") visible.firstOrNull { it.text?.toString() == "Allow" }?.let(::click)
-            if (scroll) visible.firstOrNull { node ->
-                node.actionList.any { it.id == AccessibilityNodeInfo.ACTION_SCROLL_FORWARD }
-            }?.performAction(AccessibilityNodeInfo.ACTION_SCROLL_FORWARD)
-            SystemClock.sleep(if (scroll) 400 else 200)
+    private fun clickText(text: String) {
+        await("UI control $text", 8000) {
+            val node = findText(text) ?: return@await false
+            click(node)
+            true
         }
-        // Only the Developer options list is diagnosed. Never log the pairing dialog.
-        val settings = if (diagnoseSettings) nodes().take(70).mapNotNull { it.text }.joinToString(" | ") else ""
-        fail("UI control not found: $text. $settings")
     }
 }
