@@ -3,9 +3,33 @@
 Updated 2026-11-12 JST. Canonical Plane mainline #3:
 `68ff91b5-1e6c-4a37-b755-8d284b4fffb4`.
 
-## 0.2.0 Preview 1
+## Published 0.2.0 Preview 1
 
-`integration/kizuku-major` integrates stock legacy process pipes, UserService
+[Download the signed APK](https://github.com/stupidgiraffe/Kizuku/releases/download/v0.2.0-preview.1/Kizuku-v0.2.0-preview.1.apk) ·
+[Release](https://github.com/stupidgiraffe/Kizuku/releases/tag/v0.2.0-preview.1) ·
+[Passed signed workflow](https://github.com/stupidgiraffe/Kizuku/actions/runs/43200546463)
+
+- Source: `6c8acc2eb5e87bd7a0b929c755230e16e90dbc1b`, version code 4.
+- Signed APK: 17,512,658 bytes. SHA-256
+  `47c49d93dc0ecef1b87e088182212ec8eb0039489b7fd5cc434aa739a829198c`.
+  The public download matches both the published checksum and the signed
+  acceptance artifact byte-for-byte.
+- Verified permanent signatures, non-debuggable builds, pairing and rish
+  libraries for four ABIs, and the embedded signed companion and notices.
+- Android 16 (API 36) and 17 (API 37) Google APIs x86_64 emulators passed
+  in-place update from the public Preview 2 APK, retaining the manager UID
+  and remembered Shizuku grant. Both also passed fresh-install acceptance as
+  shell UID 2000 and root UID 0. Evidence artifacts: 13935961443 and 13936200533.
+- Acceptance covered companion system confirmation, cancel and removal, app
+  grants and bulk revoke, TCP startup, notification pairing and saved-key
+  reconnect, computer ADB startup, stock Shizuku SDK discovery and Binder
+  transactions, process streams, UserService, the stock rish loader, independent
+  Axeron authorization and revocation, plugin lifecycle and WebUI, Labs, and host
+  teardown. Android 17 also verified denied local-network permission.
+- Emulator root uses `adb root`. OEM root-manager prompts and physical devices
+  still need testing.
+
+The release integrates stock legacy process pipes, UserService
 and rish server support, an independently authorized Axeron 3.0 command endpoint,
 and a manager runtime for saved commands, plugin ZIP lifecycle, local WebUI,
 primary-user app enable/disable and settings editing. It also adds app filters and
@@ -49,9 +73,11 @@ activation cancellation and TCP. It failed before entering the wireless pairing
 code, during Android's network trust prompt. The pairing test now waits for the
 enabled Settings option and handles that prompt only on its SystemUI screen.
 
-The signed preview requires passing Android 16 and 17 shell/root acceptance
-and an in-place upgrade from the published Preview 2, with a preserved
-manager UID and remembered Shizuku grant.
+The [next debug run](https://github.com/stupidgiraffe/Kizuku/actions/runs/43198811373)
+passed pairing and reconnect on both APIs. Android 17's grant test checked the
+confirmation before the target was visible. The first signed build also hit
+missing Kotlin dependency metadata. The final candidate puts the targets higher
+in the dialog, waits for them to appear, and refreshes signed build dependencies.
 
 ## Published Preview 2
 

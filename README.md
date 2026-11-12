@@ -3,7 +3,7 @@
 An offline Android privilege platform with Shizuku compatibility and an
 independently authorized Axeron runtime. Android 8+ with an Android 17 target.
 
-[Download a signed Kizuku preview](https://github.com/stupidgiraffe/Kizuku/releases) ·
+[Download the signed 0.2.0 Preview 1 APK](https://github.com/stupidgiraffe/Kizuku/releases/download/v0.2.0-preview.1/Kizuku-v0.2.0-preview.1.apk) ·
 [Verification and limitations](docs/STATUS.md)
 
 ## Build
