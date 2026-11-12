@@ -339,8 +339,6 @@ private fun BulkShizukuDialog(
             ProtectPermissionDialog()
             Column(Modifier.heightIn(max = 320.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(if (granting) SHIZUKU_WARNING else "Removes remembered and temporary Shizuku grants for the listed apps.")
-                Text(if (granting) "Remembers permission for every app listed below, including any with temporary access. Search and filters only affect the list behind this dialog."
-                    else "Search and filters only affect the list behind this dialog.")
                 apps.forEach { app ->
                     Column {
                         Text(BidiFormatter.getInstance().unicodeWrap(app.label), style = MaterialTheme.typography.titleSmall)
@@ -348,6 +346,8 @@ private fun BulkShizukuDialog(
                         app.getStringArray("shared_uid")?.takeIf { it.size > 1 }?.let { SecondaryText("Shared UID · ${it.joinToString()}") }
                     }
                 }
+                SecondaryText(if (granting) "Remembers access for every listed app, including apps with temporary access. Search and filters do not limit this action."
+                    else "Search and filters do not limit this action.")
             }
         },
         confirmButton = { TextButton(enabled = enabled, onClick = onConfirm) { Text(if (granting) "Grant Shizuku" else "Revoke Shizuku") } },

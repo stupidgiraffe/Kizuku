@@ -92,7 +92,15 @@ class AdbActivationTest {
 
             clickText("Shizuku actions")
             clickText("Grant All Shizuku")
-            assertNotNull("Confirmation identifies the target package", findText(client))
+            await("confirmation identifies the target package", 8000) {
+                val visible = nodes()
+                if (visible.none { it.hasLabel("Grant Shizuku to 1 app?") }) return@await false
+                if (visible.any { it.hasLabel(client) && it.isVisibleToUser }) return@await true
+                visible.firstOrNull { node ->
+                    node.actionList.any { it.id == AccessibilityNodeInfo.ACTION_SCROLL_FORWARD }
+                }?.performAction(AccessibilityNodeInfo.ACTION_SCROLL_FORWARD)
+                false
+            }
             clickText("Cancel")
             assertEquals("Dismissing confirmation preserves the current grants", Capability.AXERON, row().getLong("granted"))
 
