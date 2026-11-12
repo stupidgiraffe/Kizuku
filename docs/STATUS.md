@@ -3,7 +3,7 @@
 Updated 2026-11-12 JST. Canonical Plane mainline #3:
 `68ff91b5-1e6c-4a37-b755-8d284b4fffb4`.
 
-## November 10 integration branch
+## 0.2.0 Preview 1
 
 `integration/kizuku-major` integrates stock legacy process pipes, UserService
 and rish server support, an independently authorized Axeron 3.0 command endpoint,
@@ -17,10 +17,10 @@ The runtime uses one privileged host with separate shell and root directories.
 A remembered Shizuku or Axeron grant follows the active host privilege. Consent
 discloses that a later root start confers root execution for the authorized wire.
 Axeron's interactive PTY and native socket/file service, complete plugin WebUI API,
-BusyBox-specific installers, full third-party compatibility, SU bridge,
-automation and Device Owner/Dhizuku are outstanding. Android 16/17 acceptance,
-physical/OEM acceptance, update from Preview 2, and signed publication are gated.
-Runtime status is measured independently of legacy host availability.
+BusyBox-specific installers, broader third-party compatibility, SU bridge,
+automation and Device Owner/Dhizuku are outstanding. Runtime status is measured
+independently of legacy host availability. Physical device and OEM behavior
+remain unverified.
 
 The [November 10 Android CI run](https://github.com/stupidgiraffe/Kizuku/actions/runs/42773418551)
 passed build and lint. Android 16 and 17 both booted and reached the companion
@@ -41,6 +41,17 @@ streams and serves WebUI assets through a pipe.
 The branch adds a Settings export with the stock Shizuku v13.6.0 rish launcher
 and DEX. Their SHA-256 values match the original release. The stock loader
 end-to-end case is separate from the raw rish Binder tests.
+
+The [command and WebUI fix run](https://github.com/stupidgiraffe/Kizuku/actions/runs/43074205462)
+passed build and lint, the complete Android 17 shell/root matrix, and Android 16
+root. Android 16 shell passed companion install/cancel/removal, app grants,
+activation cancellation and TCP. It failed before entering the wireless pairing
+code, during Android's network trust prompt. The pairing test now waits for the
+enabled Settings option and handles that prompt only on its SystemUI screen.
+
+The signed preview requires passing Android 16 and 17 shell/root acceptance
+and an in-place upgrade from the published Preview 2, with a preserved
+manager UID and remembered Shizuku grant.
 
 ## Published Preview 2
 
@@ -105,17 +116,10 @@ core, not the full alpha described in the product brief.
 Earlier emulator infrastructure and missing Refine integration failures are
 preserved in git history. No unchanged failure was blindly rerun.
 
-## Next substantial gates
+## Remaining acceptance and feature work
 
-1. Full legacy user services/rish and migration; current forwarding is a subset.
-2. Physical Android 16/17/OEM acceptance, including `su` activation and normal
-   PackageInstaller/uninstall UI. Companion embedding/state checks are verified;
-   automated direct installation is not installer-UI acceptance.
-3. Signing-lineage rotation, richer local diagnostics/audit and watchdog acceptance.
-4. Axeron runtime after the full Phase 1/1.5 acceptance gate; keep DexorX and
-   ShizuPosed separate from the privileged core.
-
-Visual follow-up: system status-bar icon contrast in a light OS theme needs
-adjustment; in-app controls and service-state layout were readable in review.
-Codemagic app `6ae6fc2bd51c43c2576e6be4` exists; the working signed lane is GitHub
-Actions. Its manual release workflow requires runtime acceptance before publishing.
+1. Broader stock Shizuku and Axeron client testing, certificate-lineage rotation,
+   and physical Android 16/17 acceptance including OEM `su` prompts.
+2. Axeron PTY, native socket/file service and a wider range of actual third-party
+   module installers and WebUIs.
+3. SU bridge, automation/watchdog and Device Owner/Dhizuku integration.

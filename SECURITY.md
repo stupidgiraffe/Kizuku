@@ -30,8 +30,9 @@ recovery requires the owner UI or a connection authorized to reveal those record
 This does not block builds using the encrypted GitHub secrets. Never regenerate this identity or use another
 project's key. No private signing material is in the repository.
 
-Signed release publication is manual and depends on build/lint/unit checks plus
-runtime acceptance of the same signed APKs as UID 2000 and UID 0 on Android 17.
+Signed release publication is manual and depends on build, lint, unit tests,
+and runtime acceptance of the same signed APKs as UID 2000 and UID 0 on
+Android 16 and 17, including an in-place upgrade from the published Preview 2.
 The compatibility APK is built with the same certificate and bundled byte-for-byte.
 
 Report vulnerabilities privately through the repository owner's GitHub contact.

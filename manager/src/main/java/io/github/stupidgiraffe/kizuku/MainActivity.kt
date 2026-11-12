@@ -30,7 +30,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
@@ -137,22 +136,33 @@ private enum class Destination(val title: String, val heading: String, val icon:
     val clipboard = LocalClipboardManager.current
     var showAdb by remember { mutableStateOf(false) }
     var showAdbControls by remember { mutableStateOf(false) }
+    val status = state.status
     Glass {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(if (state.status != null) Icons.Outlined.VerifiedUser else Icons.Outlined.PowerSettingsNew, null, tint = Cyan, modifier = Modifier.size(28.dp))
-            Text(state.phase, color = Cyan, style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(start = 10.dp))
+            Icon(if (status != null) Icons.Outlined.VerifiedUser else Icons.Outlined.PowerSettingsNew, null, tint = Cyan, modifier = Modifier.size(28.dp))
+            Text(
+                status?.getString("transport")?.let { "${state.phase} · $it" } ?: state.phase,
+                color = Cyan, style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(start = 10.dp),
+            )
         }
-        Text(if (state.status != null) "Kizuku is running" else "Start Kizuku to connect your apps", style = MaterialTheme.typography.headlineSmall)
-        Text("Existing Shizuku clients and native Kizuku capabilities share one controller, with independent permissions.", color = Muted, style = MaterialTheme.typography.bodyMedium)
-        state.status?.let { status ->
-            HorizontalDivider()
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Metric("PRIVILEGE", status.getString("transport") ?: "Unknown")
-                Metric("UID", status.getInt("uid").toString())
-                Metric("NATIVE API", "v${status.getInt("protocol")}")
-            }
-            OutlinedButton(onClick = controller::stop, modifier = Modifier.fillMaxWidth()) { Text("Stop core") }
+        HorizontalDivider()
+        HomeStatus("Shizuku compatibility", when {
+            state.safeMode -> "Client access paused in Safe Mode."
+            status != null -> "Ready for authorized apps."
+            else -> "Offline."
+        })
+        HomeStatus("Axeron runtime", when {
+            state.safeMode -> "Suspended in Safe Mode."
+            status?.getBoolean("axeron_runtime") == true -> "Ready for commands and modules."
+            status != null -> status.getString("runtime_error") ?: "Unavailable on this host."
+            else -> "Offline."
+        })
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            HomeStatus("Compatibility companion", companion.text, Modifier.weight(1f))
+            TextButton(onClick = openSettings) { Text("Manage") }
         }
+        if (status != null) OutlinedButton(onClick = controller::stop, modifier = Modifier.fillMaxWidth()) { Text("Stop service") }
     }
     Glass {
         Text("Activate Kizuku", style = MaterialTheme.typography.titleMedium)
@@ -165,25 +175,6 @@ private enum class Destination(val title: String, val heading: String, val icon:
         Text("Pair using the notification while Settings stays open. Previously paired devices can start over Wi-Fi; custom TCP ports are supported.", color = Muted, style = MaterialTheme.typography.bodySmall)
         if (state.busy) OutlinedButton(onClick = controller::cancelActivation) { Text("Cancel activation") }
     }
-    Glass {
-
-        Text("Shizuku compatibility", style = MaterialTheme.typography.titleSmall)
-        Text(when {
-            state.safeMode -> "Client access paused in Safe Mode."
-            state.status != null -> "Shizuku endpoint connected."
-            else -> "Start Kizuku to connect Shizuku apps."
-        })
-        Text(companion.text, style = MaterialTheme.typography.bodySmall, color = Muted)
-        TextButton(onClick = openSettings) { Text("Manage companion") }
-        HorizontalDivider()
-        Text("Axeron runtime", style = MaterialTheme.typography.titleSmall)
-        Text(when {
-            state.safeMode -> "Suspended in Safe Mode."
-            state.status?.getBoolean("axeron_runtime") == true -> "Active as ${state.status.getString("transport")}. Axeron apps require separate authorization."
-            state.status != null -> state.status.getString("runtime_error") ?: "Unavailable on this host."
-            else -> "Offline. Start Kizuku to use commands and plugins."
-        }, style = MaterialTheme.typography.bodySmall, color = Muted)
-    }
     if (showAdbControls) AdbControls(controller) { showAdbControls = false }
     if (showAdb) AlertDialog(onDismissRequest = { showAdb = false }, title = { Text("Computer ADB activation") }, text = {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -194,7 +185,12 @@ private enum class Destination(val title: String, val heading: String, val icon:
     }, confirmButton = { TextButton(onClick = { clipboard.setText(AnnotatedString(ActivationController.pcCommand)); showAdb = false }) { Text("Copy command") } })
 }
 
-@Composable private fun Metric(label: String, value: String) { Column { Text(label, color = Muted, fontSize = 10.sp); Text(value, fontWeight = FontWeight.SemiBold, fontSize = 14.sp) } }
+@Composable private fun HomeStatus(title: String, value: String, modifier: Modifier = Modifier) {
+    Column(modifier) {
+        Text(title, style = MaterialTheme.typography.titleSmall)
+        Text(value, color = Muted, style = MaterialTheme.typography.bodyMedium)
+    }
+}
 
 @Composable private fun SettingsScreen(state: CoreState, controller: ActivationController) {
     val context = LocalContext.current
