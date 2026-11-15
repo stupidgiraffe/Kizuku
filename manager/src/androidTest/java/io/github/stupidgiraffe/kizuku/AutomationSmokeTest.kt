@@ -1,7 +1,6 @@
 package io.github.stupidgiraffe.kizuku
 
 import android.app.Activity
-import android.content.Context
 import android.os.SystemClock
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -21,7 +20,9 @@ class AutomationSmokeTest {
 
     @Test fun lifecycleCommandsRequireTheCurrentKeyAndAnIntentionalStopDoesNotRecover() {
         val hostUid = InstrumentationRegistry.getArguments().getString("host_uid")?.toInt() ?: 2000
-        assertEquals(hostUid, requireNotNull(CoreConnection.service).status().getInt("uid"))
+        await("Host UID $hostUid did not attach to the manager") {
+            CoreConnection.service?.status()?.getInt("uid") == hostUid
+        }
         val recoveryEnabled = controller.recoveryDiagnostics().enabled
         try {
             AutomationCommands.setEnabled(context, true)
@@ -58,8 +59,10 @@ class AutomationSmokeTest {
         ).use { descriptor ->
             android.os.ParcelFileDescriptor.AutoCloseInputStream(descriptor).bufferedReader().use { it.readText() }
         }
-        assertTrue("Unexpected result from ${command.label} broadcast",
-            output.contains("Broadcast completed: result=$result, data=\"$message\""))
+        val completion = output.lineSequence().lastOrNull { "Broadcast completed:" in it }
+            ?.substringAfter("Broadcast completed: ")?.trim()
+        assertEquals("${command.label} broadcast result", "result=$result, data=\"$message\"",
+            completion?.substringBefore(", extras:"))
     }
 
     private fun await(message: String, condition: () -> Boolean) {

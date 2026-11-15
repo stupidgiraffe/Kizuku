@@ -52,7 +52,7 @@ internal object AutomationCommands {
             edit.putString(GENERATION, UUID.randomUUID().toString())
         }
         check(edit.commit()) { "Could not save automation settings." }
-        cancel(context)
+        scheduler(context).cancel(JOB_ID)
     }
 
     fun authenticate(context: Context, supplied: String?): String? {

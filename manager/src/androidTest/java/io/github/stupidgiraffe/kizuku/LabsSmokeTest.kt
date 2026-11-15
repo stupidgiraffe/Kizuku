@@ -27,14 +27,13 @@ class LabsSmokeTest {
     private val app = instrumentation.targetContext
 
     @Test fun serviceDoctorReportsTheCurrentHostAndAndroidSettings() {
+        awaitHost()
         val diagnostics = runBlocking(Dispatchers.Main) { runServiceDoctor(app, ActivationController.get(app)) }
         val report = diagnostics.associate { it.label to it.evidence }
-        val host = CoreConnection.service?.status()
-        assertEquals(if (host == null) "No host attached" else "Responded", report["Host Binder"])
-        if (host != null) {
-            assertTrue(report.getValue("Host identity").contains("UID ${host.getInt("uid")}"))
-            assertTrue(report.getValue("Host identity").contains("PID ${host.getInt("pid")}"))
-        } else assertFalse(report.containsKey("Host identity"))
+        val host = checkNotNull(CoreConnection.service).status()
+        assertEquals("Responded", report["Host Binder"])
+        assertTrue(report.getValue("Host identity").contains("UID ${host.getInt("uid")}"))
+        assertTrue(report.getValue("Host identity").contains("PID ${host.getInt("pid")}"))
         assertTrue(report.containsKey("Automatic recovery"))
         assertTrue(report.containsKey("Pairing notifications"))
         assertTrue(report.containsKey("Battery optimization"))
@@ -56,12 +55,15 @@ class LabsSmokeTest {
         val fixture = ComponentName(instrumentation.context.packageName, FixtureAccessibilityService::class.java.name)
         assertTrue("The test APK declares a real accessibility service", fixture in installed)
         assertFalse(fixture in before)
+        awaitHost()
         try {
             runBlocking { setAccessibilityServiceEnabled(app, fixture.flattenToShortString(), true) }
             assertEquals(before + fixture, configured())
             assertTrue(readAccessibilityInventory(app).single { it.component == fixture.flattenToShortString() }.enabled)
         } finally {
-            runBlocking { setAccessibilityServiceEnabled(app, fixture.flattenToShortString(), false) }
+            if (fixture in configured()) {
+                runBlocking { setAccessibilityServiceEnabled(app, fixture.flattenToShortString(), false) }
+            }
         }
         assertEquals(before, configured())
     }
@@ -85,6 +87,14 @@ class LabsSmokeTest {
             instrumentation.runOnMainSync { activity?.finish() }
             assertTrue(prefs.edit().putBoolean("protect_labs", previous).commit())
         }
+    }
+
+    private fun awaitHost() {
+        val deadline = SystemClock.elapsedRealtime() + 15000
+        while (CoreConnection.service == null && SystemClock.elapsedRealtime() < deadline) {
+            SystemClock.sleep(75)
+        }
+        checkNotNull(CoreConnection.service) { "The running Kizuku host did not reattach" }
     }
 
     private fun awaitText(text: String): AccessibilityNodeInfo {
