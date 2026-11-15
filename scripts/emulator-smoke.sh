@@ -27,17 +27,17 @@ instrument() {
   if [[ "${4:-}" == RuntimeSmokeTest && "${KIZUKU_TEST_THIRD_PARTY:-false}" == true ]]; then
     extras=(-e shevery_fixture /data/local/tmp/kizuku-sysinfo.zip)
   fi
-  timeout 95 adb shell am instrument -w -e class "$class" -e host_uid "$host_uid" -e "$argument" "$value" "${extras[@]}" "$package.test/androidx.test.runner.AndroidJUnitRunner" | tee "$output"
+  timeout 95 adb shell am instrument -w -e class "$class" -e host_uid "$host_uid" -e "$argument" "$value" "${extras[@]}" "$package.test/androidx.test.runner.AndroidJUnitRunner" | tee "$output" || return 1
   local count=1
   if [[ "${4:-}" == LabsSmokeTest ]]; then count=3; fi
   grep -E "OK \($count tests?\)" "$output"
 }
 probe() { adb shell am force-stop "$client"; instrument "$client" stage "$1"; }
 axeron_probe() { adb shell am force-stop "$client"; instrument "$client" stage "$1" AxeronWireSmokeTest; }
-companion_status=0
+extra_status=0
 if [[ "$host_uid" == 2000 ]]; then
   adb shell appops set "$manager" REQUEST_INSTALL_PACKAGES allow
-  instrument "$manager" action companion CompanionLifecycleTest || companion_status=1
+  instrument "$manager" action companion CompanionLifecycleTest || extra_status=1
 fi
 while IFS= read -r apk; do adb install -r -t "$apk"; done < <(find "$artifact_root" -name '*.apk' -type f -path '*/compat/*' | sort)
 if [[ "${KIZUKU_TEST_ADB:-false}" == true && "$host_uid" == 2000 ]]; then
@@ -55,8 +55,8 @@ instrument "$manager" action connected
 if [[ "${KIZUKU_TEST_THIRD_PARTY:-false}" == true ]]; then
   scripts/prepare-shevery-module-test.sh
 fi
-instrument "$manager" action runtime RuntimeSmokeTest
-instrument "$manager" action labs LabsSmokeTest
+instrument "$manager" action runtime RuntimeSmokeTest || extra_status=1
+instrument "$manager" action labs LabsSmokeTest || extra_status=1
 instrument "$manager" action stale
 probe denied
 axeron_probe denied
@@ -94,14 +94,14 @@ sleep 1
 adb shell screencap -p /data/local/tmp/kizuku-core.png
 adb pull /data/local/tmp/kizuku-core.png "$evidence"/core.png
 if [[ "${KIZUKU_TEST_THIRD_PARTY:-false}" == true ]]; then
-  scripts/hail-client-acceptance.sh
+  scripts/hail-client-acceptance.sh || extra_status=1
 fi
 instrument "$manager" action automation AutomationSmokeTest
 launch
 instrument "$manager" action connected
 adb uninstall "$manager"
 for attempt in $(seq 1 40); do
-  if ! adb shell pidof kizuku_server >/dev/null; then echo 'Manager removal terminated its privileged host'; exit "$companion_status"; fi
+  if ! adb shell pidof kizuku_server >/dev/null; then echo 'Manager removal terminated its privileged host'; exit "$extra_status"; fi
   sleep 0.25
 done
 echo 'Privileged host survived removal of its manager'

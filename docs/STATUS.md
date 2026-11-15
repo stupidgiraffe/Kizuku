@@ -1,7 +1,24 @@
 # Implementation state
 
-Updated 2026-11-12 JST. Canonical Plane mainline #3:
+Updated 2026-11-16 JST. Canonical Plane mainline #3:
 `68ff91b5-1e6c-4a37-b755-8d284b4fffb4`.
+
+## Shevery 14.6.5 integration
+
+The [official APK comparison](https://github.com/stupidgiraffe/Kizuku/actions/runs/43746124198)
+verified the release archive and signer, opened the official Shevery Home screen,
+and started its native computer-ADB path as shell UID 2000 on Android 16.
+The artifact retains stopped and running Home screenshots. Shevery gives the
+connected service and app manager one card. Kizuku keeps the Shizuku interface,
+Axeron runtime and companion status visible together and puts bulk controls
+at the top of Apps. [Feature comparison and source evidence](UPSTREAMS.md#shevery-1465-comparison)
+
+The candidate includes the bulk controls, local Shevery module compatibility,
+authenticated lifecycle intents, app and companion authentication, accessibility
+toggles, structured Service Doctor export and opt-in Device Owner controls.
+Signed release acceptance must confirm the update and runtime on Android 16
+and 17. External Dhizuku, network WebUI APIs and Shevery's full module catalog
+and automation integration remain outstanding.
 
 ## Published 0.2.0 Preview 1
 

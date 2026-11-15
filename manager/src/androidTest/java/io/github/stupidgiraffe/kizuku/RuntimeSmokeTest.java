@@ -103,12 +103,12 @@ public final class RuntimeSmokeTest {
             host.controlRuntimePlugin(id, "background-off");
             assertFalse(findPlugin(host, id).getBoolean("background"));
             String readOnly = host.controlRuntimePlugin(id, "web-read").getString("web_session");
-            assertThrows(IllegalStateException.class, () -> host.runtimeWebSessionCommand(id, readOnly, "id -u", ""));
+            assertThrows(SecurityException.class, () -> host.runtimeWebSessionCommand(id, readOnly, "id -u", ""));
             String shell = host.controlRuntimePlugin(id, "web-shell").getString("web_session");
             assertEquals(Integer.toString(uid), host.runtimeWebSessionCommand(id, shell, "id -u", "").getString("stdout").trim());
             assertThrows(IllegalStateException.class, () -> host.runtimeWebSessionCommand(id, shell, "pwd", "{\"cwd\":\"../\"}"));
             host.controlRuntimePlugin(id, "disable");
-            assertThrows(IllegalStateException.class, () -> host.openRuntimeWebSessionAsset(id, shell, "index.html"));
+            assertThrows(SecurityException.class, () -> host.openRuntimeWebSessionAsset(id, shell, "index.html"));
         } finally {
             if (installed) host.controlRuntimePlugin(id, "remove");
         }
