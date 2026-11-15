@@ -132,6 +132,10 @@ jobs:
           if [[ "$version" == *-* ]]; then flags+=(--prerelease); fi
           gh release create "v${version}" dist/* --target "$GITHUB_SHA" --title "Kizuku ${version}" "${flags[@]}" --notes-file docs/RELEASE_NOTES.md
           mkdir published
-          gh release download "v${version}" --pattern "$asset" --pattern SHA256SUMS.txt --dir published
+          public_url="https://github.com/$GITHUB_REPOSITORY/releases/download/v${version}"
+          for file in "$asset" SHA256SUMS.txt; do
+            curl --fail --silent --show-error --location --retry 3 --retry-all-errors --max-time 90 \
+              "$public_url/$file" --output "published/$file"
+          done
           cmp dist/SHA256SUMS.txt published/SHA256SUMS.txt
           (cd published && sha256sum --strict -c ../dist/SHA256SUMS.txt)

@@ -194,24 +194,31 @@ class AdbActivationTest {
                 }
                 return@await false
             }
-            val pair = settingsNodes.firstOrNull { it.isEnabled && it.hasLabel("Pair device with pairing code") }
+            val pair = settingsNodes.firstOrNull {
+                it.isEnabled && it.isVisibleToUser && it.hasLabel("Pair device with pairing code")
+            }
             if (pair != null && tryClick(pair)) return@await true
             val switch = settingsNodes.firstOrNull { it.hasLabel("Use wireless debugging") }
             val developerEntry = settingsNodes.firstOrNull { it.isEnabled && it.hasLabel("Wireless debugging") }
             when {
                 switch != null -> {
-                    val toggle = settingsNodes.firstOrNull { it.isCheckable && it.isEnabled && !it.isChecked }
-                    if (toggle != null && tryClick(toggle)) {
-                        // Android can temporarily reset the switch while it opens the trust prompt.
-                        nextAction = now + 2500
+                    val toggle = settingsNodes.firstOrNull {
+                        it.viewIdResourceName == "android:id/switch_widget" && it.isCheckable && it.isEnabled
+                    }
+                    if (toggle?.isChecked == false) {
+                        if (tryClick(toggle)) {
+                            // Android can temporarily reset the switch while it opens the trust prompt.
+                            nextAction = now + 2500
+                        }
+                    } else {
+                        // The enabled switch is pinned above the scrollable device and pairing list.
+                        scroll(settingsNodes, AccessibilityNodeInfo.ACTION_SCROLL_FORWARD)
                     }
                 }
                 developerEntry != null -> {
                     if (tryClick(developerEntry)) nextAction = now + 1000
                 }
-                settingsNodes.isNotEmpty() -> settingsNodes.firstOrNull { node ->
-                    node.actionList.any { it.id == AccessibilityNodeInfo.ACTION_SCROLL_FORWARD }
-                }?.performAction(AccessibilityNodeInfo.ACTION_SCROLL_FORWARD)
+                settingsNodes.isNotEmpty() -> scroll(settingsNodes, AccessibilityNodeInfo.ACTION_SCROLL_FORWARD)
                 !leftSettings && visible.any { it.packageName?.toString() == "com.google.android.apps.nexuslauncher" } -> {
                     leftSettings = true
                     app.startActivity(settings)
@@ -297,7 +304,9 @@ class AdbActivationTest {
         return false
     }
     private fun scroll(visible: List<AccessibilityNodeInfo>, action: Int) {
-        visible.firstOrNull { node -> node.actionList.any { it.id == action } }?.performAction(action)
+        visible.firstOrNull { node ->
+            node.isVisibleToUser && node.actionList.any { it.id == action }
+        }?.performAction(action)
     }
 
     private fun clickText(text: String, scrollAction: Int? = null) {
