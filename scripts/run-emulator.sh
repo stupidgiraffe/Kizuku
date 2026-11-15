@@ -61,6 +61,10 @@ adb shell input keyevent 82
 adb shell settings put global window_animation_scale 0
 adb shell settings put global transition_animation_scale 0
 adb shell settings put global animator_duration_scale 0
+if [[ "${KIZUKU_TEST_SHEVERY_COMPARISON:-false}" == true ]]; then
+  scripts/shevery-comparison.sh
+  exit
+fi
 if [[ "${KIZUKU_TEST_SIGNED_UPDATE:-false}" == true ]]; then
   scripts/signed-update-acceptance.sh "${1:-artifacts}"
 fi
