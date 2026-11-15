@@ -16,7 +16,7 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: android-${{ github.ref }}
+  group: android-${{ github.ref }}${{ inputs.shevery && !inputs.smoke && '-shevery' || '' }}
   cancel-in-progress: true
 jobs:
   build:
