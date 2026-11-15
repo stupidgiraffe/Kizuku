@@ -1,7 +1,9 @@
 package io.github.stupidgiraffe.kizuku
 
 import android.app.admin.DevicePolicyManager
+import android.content.ComponentName
 import android.os.Build
+import android.os.SystemClock
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertEquals
@@ -53,6 +55,14 @@ class DeviceOwnerPolicyTest {
                     policies.removeOwner()
                 }
                 assertFalse(policies.enrolled)
+                // Android clears ownership before its ordered admin-disabled broadcast completes.
+                // Keep the instrumentation process alive to receive that broadcast.
+                val admin = ComponentName(context, KizukuDeviceAdminReceiver::class.java)
+                val deadline = SystemClock.elapsedRealtime() + 15000
+                while (dpm.isAdminActive(admin) && SystemClock.elapsedRealtime() < deadline) {
+                    SystemClock.sleep(100)
+                }
+                assertFalse("Android finished deactivating the admin receiver", dpm.isAdminActive(admin))
                 if (Build.VERSION.SDK_INT >= 29) {
                     assertFalse("Android released the app suspension", context.packageManager.isPackageSuspended(app.packageName))
                 }
