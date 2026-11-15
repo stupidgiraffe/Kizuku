@@ -53,7 +53,11 @@ class AutomationSmokeTest {
 
     private fun assertBroadcast(command: AutomationCommand, key: String?, result: Int, message: String) {
         val component = "${context.packageName}/.AutomationReceiver"
-        val credential = key?.let { " --es token '$it'" }.orEmpty()
+        val credential = key?.let {
+            // UiAutomation starts the command directly. Its arguments must not include shell quotes.
+            require(it.matches(Regex("[A-Za-z0-9_-]{43}")))
+            " --es token $it"
+        }.orEmpty()
         val output = instrumentation.uiAutomation.executeShellCommand(
             "am broadcast -n $component -a ${command.action}$credential"
         ).use { descriptor ->
