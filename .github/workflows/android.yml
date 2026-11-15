@@ -86,6 +86,8 @@ jobs:
           KIZUKU_EMULATOR_TARGET: android-${{ matrix.sdk }}
           KIZUKU_TEST_ADB: 'true'
           KIZUKU_TEST_ROOT: 'true'
+          KIZUKU_TEST_THIRD_PARTY: 'true'
+          KIZUKU_TEST_DEVICE_OWNER: 'true'
         run: scripts/run-emulator.sh artifacts
       - uses: actions/upload-artifact@v4
         if: always()

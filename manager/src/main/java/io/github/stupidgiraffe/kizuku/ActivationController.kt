@@ -14,12 +14,13 @@ import io.github.stupidgiraffe.kizuku.adb.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.util.concurrent.TimeUnit
 
-data class CoreState(val phase:String="Not connected",val status:Bundle?=null,val apps:List<Bundle> = emptyList(),val message:String?=null,val busy:Boolean=false,val safeMode:Boolean=false,val appsLoaded:Boolean=false,val appsError:String?=null)
+data class CoreState(val phase:String="Not connected",val status:Bundle?=null,val apps:List<Bundle> = emptyList(),val message:String?=null,val busy:Boolean=false,val safeMode:Boolean=false,val appsLoaded:Boolean=false,val appsError:String?=null,val liveAppsUnavailable:Boolean=false,val unverifiedApps:Int=0)
 data class AdbState(val stage:String="Idle",val pairing:AdbEndpoint?=null,val message:String?=null,val paired:Boolean=false)
 internal data class RecoveryDiagnostics(
     val enabled: Boolean,
@@ -28,6 +29,11 @@ internal data class RecoveryDiagnostics(
     val transportEligible: Boolean,
 )
 
+internal enum class ManagedTransport(val label: String, val uid: Int) {
+    ROOT("Root", 0),
+    WIRELESS("Wireless ADB", 2000),
+}
+
 internal enum class ShizukuBatchAction { GRANT, REVOKE }
 internal data class ShizukuBatchResult(
     val action: ShizukuBatchAction,
@@ -35,7 +41,12 @@ internal data class ShizukuBatchResult(
     val offlineUpdates: Int,
     val failures: List<Pair<String, String>>,
 )
-internal data class ShizukuBatchState(val running: Boolean = false, val result: ShizukuBatchResult? = null)
+internal data class ShizukuBatchState(
+    val running: Boolean = false,
+    val attempted: Int = 0,
+    val total: Int = 0,
+    val result: ShizukuBatchResult? = null,
+)
 
 /** One application-scoped activation owner shared by the UI and pairing notification service. */
 class ActivationController private constructor(private val app:Application) {
@@ -48,16 +59,16 @@ class ActivationController private constructor(private val app:Application) {
     internal val shizukuBatch = batchMutable.asStateFlow()
     private val adbMutable=MutableStateFlow(AdbState(paired=app.getSharedPreferences("adb",0).getBoolean("paired",false)))
     val adb=adbMutable.asStateFlow()
+    private val startupPreferences = app.getSharedPreferences("startup", Context.MODE_PRIVATE)
     private var wanted=false
-    private var recovery=false
+    private var recovery=startupPreferences.getBoolean("recover", false)
     private var attempts=0
     private var operation:Job?=null
     private var operationVersion=0
     private var recoveryJob:Job?=null
     private var cancelIo:(()->Unit)?=null
     private var cancelLateHostUntil=0L
-    private var mode="external"
-    private var tcp:AdbEndpoint?=null
+    private var mode: ManagedTransport? = null
     private val key by lazy { AdbKey(PreferenceAdbKeyStore(app.getSharedPreferences("adb",0))) }
     init { scope.launch {
         CoreConnection.revision.collect {
@@ -75,19 +86,24 @@ class ActivationController private constructor(private val app:Application) {
             var snapshot: Bundle? = null
             var live = emptyList<Bundle>()
             var connectionError: String? = null
+            var liveAppsUnavailable = false
             if (server != null) {
                 try {
-                    live = server.applications().toList()
                     snapshot = server.status()
                     attempts = 0
                 } catch (_: Exception) {
-                    live = emptyList()
                     connectionError = "Cannot read the core's current status. Check the connection."
                 }
+                try {
+                    live = server.applications().toList()
+                } catch (_: Exception) {
+                    liveAppsUnavailable = true
+                }
             }
-            var appsError = connectionError
+            var appsError: String? = null
+            var unverifiedApps = 0
             val apps = try {
-                InstalledClients.list(app, live, snapshot != null)
+                InstalledClients.list(app, live, snapshot != null) { unverifiedApps++ }
             } catch (e: Exception) {
                 appsError = "Cannot load installed apps: ${e.message ?: "package or authorization lookup failed"}"
                 emptyList()
@@ -101,10 +117,12 @@ class ActivationController private constructor(private val app:Application) {
                     else -> "Not connected"
                 }
                 current.copy(phase = phase, status = snapshot, apps = apps, message = connectionError ?: current.message,
-                    safeMode = safe, appsLoaded = appsError == null, appsError = appsError)
+                    safeMode = safe, appsLoaded = appsError == null, appsError = appsError,
+                    liveAppsUnavailable = liveAppsUnavailable, unverifiedApps = unverifiedApps)
             }
         }
     }
+    internal fun reloadApps() { scope.launch { refresh() } }
     private fun runOperation(label:String,refreshAfter:Boolean=true,block:suspend CoroutineScope.()->Unit):Job? {
         if(mutable.value.busy)return null
         cancelLateHostUntil=0
@@ -131,7 +149,7 @@ class ActivationController private constructor(private val app:Application) {
     }
     fun startRoot(recovering:Boolean=false):Job? {
         if(CoreConnection.service!=null || mutable.value.busy)return null
-        wanted=true;mode="root";if(!recovering)attempts=0
+        wanted=true;mode=ManagedTransport.ROOT;if(!recovering)attempts=0
         return runOperation("Starting root") {
             withContext(Dispatchers.IO) {
                 val command=launchCommand(app.applicationInfo.sourceDir)+" >/dev/null 2>&1 </dev/null &"
@@ -142,22 +160,30 @@ class ActivationController private constructor(private val app:Application) {
                     check(process.exitValue()==0){"Root access was denied or su is unavailable."}
                 } finally {process.destroy()}
             }
-            awaitHost()
+            awaitHost(ManagedTransport.ROOT.uid)
+            rememberTransport(ManagedTransport.ROOT)
         }
     }
-    fun startWireless(recovering:Boolean=false):Job? {
+    fun startWireless(recovering:Boolean=false):Job? = startWireless(recovering, shellOnly = recovering)
+
+    private fun startWireless(recovering: Boolean, shellOnly: Boolean): Job? {
         if(CoreConnection.service!=null || mutable.value.busy)return null
-        wanted=true;mode="wireless";if(!recovering)attempts=0
+        wanted=true;mode=ManagedTransport.WIRELESS;if(!recovering)attempts=0
         return runOperation("Finding Wireless ADB") {
             check(Build.VERSION.SDK_INT>=30){"Wireless pairing requires Android 11 or later. Use TCP or computer ADB on this Android version."}
             adbMutable.value=adbMutable.value.copy(stage="Finding connection",message=null)
-            connectWireless()
+            val uid = connectWireless(shellOnly)
+            if (uid != ManagedTransport.WIRELESS.uid) mode = null
+            rememberTransport(mode)
         }
     }
     fun startTcp(host:String,port:Int,tls:Boolean=false):Job? {
         if(CoreConnection.service!=null || mutable.value.busy)return null
-        wanted=true;mode=if(tls)"wireless" else "tcp";tcp=AdbEndpoint(host,port);attempts=0
-        return runOperation("Connecting ADB") {startAdb(requireNotNull(tcp),tls)}
+        wanted=true;mode=null;attempts=0
+        return runOperation("Connecting ADB") {
+            startAdb(AdbEndpoint(host, port), tls)
+            rememberTransport(null)
+        }
     }
     // Discovery does not change the host. Finish on main without suspending for a
     // host refresh after making the notification's reply action available.
@@ -183,21 +209,23 @@ class ActivationController private constructor(private val app:Application) {
             check(app.getSharedPreferences("adb",0).edit().putBoolean("paired",true).commit())
             adbMutable.value=adbMutable.value.copy(stage=if(CoreConnection.service!=null)"Paired" else "Finding connection",paired=true,message="Pairing succeeded")
             if(CoreConnection.service==null) {
-                wanted=true;mode="wireless";attempts=0
+                wanted=true;mode=ManagedTransport.WIRELESS;attempts=0
                 adbMutable.value=adbMutable.value.copy(stage="Finding connection")
-                connectWireless()
+                if (connectWireless() != ManagedTransport.WIRELESS.uid) mode = null
+                rememberTransport(mode)
             }
         }
     }
-    private suspend fun connectWireless() {
+    private suspend fun connectWireless(shellOnly: Boolean = false): Int {
         val failed=mutableSetOf<AdbEndpoint>()
         repeat(3) { attempt ->
             val endpoint=AdbDiscovery(app).find(AdbDiscovery.CONNECT,exclude=failed)
-            try {startAdb(endpoint,true);return}
+            try {return startAdb(endpoint, true, shellOnly)}
             catch(e:AdbTransportUnavailable) {failed+=endpoint;if(attempt==2)throw e}
         }
+        error("No local Wireless Debugging connection.")
     }
-    private suspend fun startAdb(endpoint:AdbEndpoint,tls:Boolean) {
+    private suspend fun startAdb(endpoint: AdbEndpoint, tls: Boolean, shellOnly: Boolean = false): Int {
         AdbDiscovery.checkLocalNetworkPermission(app)
         adbMutable.value=adbMutable.value.copy(stage="Connecting")
         withContext(Dispatchers.IO) {
@@ -206,16 +234,27 @@ class ActivationController private constructor(private val app:Application) {
                 ensureActive();try {client.connect()}catch(e:java.io.IOException){throw AdbTransportUnavailable(e)};ensureActive()
                 // Legacy ADB shell allocates a PTY even for commands. Ignore its hangup
                 // before forking so the host survives closure of the startup stream.
-                client.command("shell:trap '' HUP; "+launchCommand(app.applicationInfo.sourceDir)+" >/data/local/tmp/kizuku-start.log 2>&1 </dev/null &")
+                val checkUid = if (shellOnly) {
+                    "if [ \"\$(id -u)\" != 2000 ]; then echo KIZUKU_NOT_ADB_SHELL; exit 1; fi; "
+                } else ""
+                val output = client.command("shell:trap '' HUP; " + checkUid +
+                    launchCommand(app.applicationInfo.sourceDir) + " >/data/local/tmp/kizuku-start.log 2>&1 </dev/null &")
+                check("KIZUKU_NOT_ADB_SHELL" !in output) { "Wireless ADB would start with a different privilege level." }
             }
         }
-        awaitHost()
+        val uid = awaitHost(ManagedTransport.WIRELESS.uid.takeIf { shellOnly })
         adbMutable.value=adbMutable.value.copy(stage="Connected",message="Kizuku core connected")
+        return uid
     }
-    private suspend fun awaitHost() {
+    private suspend fun awaitHost(expectedUid: Int? = null): Int {
         withTimeoutOrNull(15000) {while(CoreConnection.service==null)delay(100)}
             ?: error("ADB connected, but the core did not attach. Check the startup log in diagnostics.")
-        check(CoreConnection.service?.asBinder()?.pingBinder()==true){"Core died during startup"}
+        val server = checkNotNull(CoreConnection.service) { "Core died during startup" }
+        val uid = withContext(Dispatchers.IO) { server.status().getInt("uid", -1) }
+        check(uid >= 0 && (expectedUid == null || uid == expectedUid)) {
+            "A core using a different privilege level connected during startup."
+        }
+        return uid
     }
     fun cancelActivation() {
         if(CoreConnection.service==null) {
@@ -226,26 +265,106 @@ class ActivationController private constructor(private val app:Application) {
         mutable.value=mutable.value.copy(busy=false,phase=if(CoreConnection.service!=null)"Connected" else "Not connected")
         adbMutable.value=adbMutable.value.copy(stage="Cancelled",pairing=null,message="Cancelled")
     }
-    fun stop(){wanted=false;recovery=false;recoveryJob?.cancel();cancelActivation();CoreConnection.service?.let {scope.launch(Dispatchers.IO){runCatching{it.shutdown()}}}}
-    fun setRecovery(enabled:Boolean){recovery=enabled;attempts=0;if(!enabled)recoveryJob?.cancel()}
+    fun stop() {
+        AutomationCommands.cancel(app)
+        scope.launch { stopCore()?.let(::notice) }
+    }
+
+    private suspend fun stopCore(): String? {
+        wanted = false
+        recoveryJob?.cancel()
+        cancelActivation()
+        val server = CoreConnection.service ?: return null
+        val failure = withContext(Dispatchers.IO) {
+            try {
+                server.shutdown()
+                null
+            } catch (e: Exception) {
+                e.message?.take(160) ?: "The core rejected the stop request."
+            }
+        }
+        val stopped = withTimeoutOrNull(5000) {
+            CoreConnection.revision.first { CoreConnection.service == null }
+        } != null
+        return if (stopped) null else failure ?: "The core did not stop. Check Service Doctor."
+    }
+
+    fun setRecovery(enabled: Boolean) {
+        recovery = enabled
+        startupPreferences.edit().putBoolean("recover", enabled).apply()
+        attempts = 0
+        if (!enabled) recoveryJob?.cancel()
+        else if (wanted && CoreConnection.service == null && !mutable.value.busy) scheduleRecovery()
+    }
+
+    private fun rememberTransport(transport: ManagedTransport?) {
+        val preferences = startupPreferences.edit()
+        if (transport == null) preferences.remove("last_started")
+        else preferences.putString("last_started", transport.name)
+        preferences.apply()
+    }
+
+    internal fun automationTransport(): ManagedTransport? =
+        ManagedTransport.entries.firstOrNull { it.name == startupPreferences.getString("last_started", null) }
+
+    internal suspend fun runAutomation(command: AutomationCommand, authorized: () -> Boolean): String? {
+        if (!authorized()) return "Cancelled."
+        val server = CoreConnection.service
+        if (command == AutomationCommand.STOP ||
+            (command == AutomationCommand.TOGGLE && (server != null || mutable.value.busy))
+        ) return stopCore()
+        if (mutable.value.busy) return "Kizuku is busy."
+        if (server != null && command == AutomationCommand.START) return null
+        val transport = automationTransport() ?: return "Start Kizuku with root or paired Wireless ADB first."
+        if (!transportAvailable(transport)) return "Enable Wireless debugging before starting Kizuku."
+        if (server != null) {
+            // Restart must never replace a shell host with root or silently switch away from root.
+            val uid = withContext(Dispatchers.IO) { server.status().getInt("uid", -1) }
+            if (!authorized()) return "Cancelled."
+            if (uid != transport.uid) return "The current privilege level differs from the saved startup method."
+            stopCore()?.let { return it }
+        }
+
+        if (!authorized()) return "Cancelled."
+        val startup = when (transport) {
+            ManagedTransport.ROOT -> startRoot()
+            ManagedTransport.WIRELESS -> startWireless(recovering = false, shellOnly = true)
+        } ?: return "Kizuku is already starting."
+        try {
+            startup.join()
+        } catch (e: CancellationException) {
+            if (operation === startup && startup.isActive) cancelActivation()
+            throw e
+        }
+        return if (CoreConnection.service != null && mutable.value.status?.getInt("uid", -1) == transport.uid) null
+        else mutable.value.message ?: "Kizuku did not start."
+    }
     internal fun recoveryDiagnostics() = RecoveryDiagnostics(
         enabled = recovery,
         wanted = wanted,
         retryInProgress = recoveryJob?.isActive == true,
         transportEligible = recoveryTransportEligible(),
     )
-    private fun recoveryTransportEligible() = mode == "root" || (mode == "wireless" &&
-        Build.VERSION.SDK_INT >= 30 && Settings.Global.getInt(app.contentResolver, "adb_wifi_enabled", 0) == 1)
+    private fun transportAvailable(transport: ManagedTransport?) = transport == ManagedTransport.ROOT ||
+        (transport == ManagedTransport.WIRELESS && adbMutable.value.paired && Build.VERSION.SDK_INT >= 30 &&
+            Settings.Global.getInt(app.contentResolver, "adb_wifi_enabled", 0) == 1)
+
+    private fun recoveryTransportEligible() = transportAvailable(mode)
     private fun scheduleRecovery() {
         if(recoveryJob?.isActive==true)return
         recoveryJob=scope.launch {
             while(wanted && recovery && CoreConnection.service==null && !mutable.value.busy) {
                 val transport=recoveryTransportEligible()
-                val wait=RecoveryPolicy.retryDelay(wanted,false,transport,attempts++)
+                val wait=RecoveryPolicy.retryDelay(wanted,false,transport,attempts)
                 if(wait<0)break
                 delay(wait)
-                if(wanted && recovery && CoreConnection.service==null) {
-                    if(mode=="root")startRoot(true)?.join() else if(mode=="wireless")startWireless(true)?.join()
+                if(wanted && recovery && CoreConnection.service==null && !mutable.value.busy && recoveryTransportEligible()) {
+                    attempts++
+                    when (mode) {
+                        ManagedTransport.ROOT -> startRoot(true)?.join()
+                        ManagedTransport.WIRELESS -> startWireless(true)?.join()
+                        null -> break
+                    }
                 }
             }
         }
@@ -267,7 +386,7 @@ class ActivationController private constructor(private val app:Application) {
     internal fun changeAllShizuku(action: ShizukuBatchAction, snapshots: List<Bundle>) {
         val previousBatch = batchMutable.value
         if (snapshots.isEmpty() || previousBatch.running ||
-            !batchMutable.compareAndSet(previousBatch, ShizukuBatchState(running = true))) return
+            !batchMutable.compareAndSet(previousBatch, ShizukuBatchState(running = true, total = snapshots.size))) return
         scope.launch(Dispatchers.IO) {
             permissionMutex.withLock {
                 var coreUpdates = 0
@@ -275,13 +394,14 @@ class ActivationController private constructor(private val app:Application) {
                 val failures = mutableListOf<Pair<String, String>>()
                 val granting = action == ShizukuBatchAction.GRANT
                 val lifetime = GrantLedger.Lifetime.PERMANENT.ordinal.takeIf { granting }
-                snapshots.forEach { snapshot ->
+                snapshots.forEachIndexed { index, snapshot ->
                     try {
                         if (applyPermission(snapshot, Capability.SHIZUKU, lifetime, requireShizukuManifest = granting)) coreUpdates++
                         else offlineUpdates++
                     } catch (e: Exception) {
                         failures += snapshot.getString("package").orEmpty() to (e.message?.take(240) ?: "Authorization failed")
                     }
+                    batchMutable.update { it.copy(attempted = index + 1) }
                 }
                 refresh()
                 batchMutable.value = ShizukuBatchState(result = ShizukuBatchResult(action, coreUpdates, offlineUpdates, failures))

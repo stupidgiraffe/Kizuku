@@ -85,3 +85,30 @@ contains components with separate GPL and MIT licenses. The attached APKs were
 inspected for manifest identity and bundled companion/native files. The uploaded
 Shevery is 14.6.1 and the uploaded Next is 14.0.31-next. Those binaries are
 reference material and are not packaged in Kizuku.
+
+## Shevery 14.6.5 comparison
+
+[Official release](https://github.com/HmnDev-Tech/shevery/releases/tag/14.6.5) ·
+[Pinned source](https://github.com/HmnDev-Tech/shevery/tree/f1f45543e16f98ae4c729721226893c32be130a5) ·
+[Release changes](https://github.com/HmnDev-Tech/shevery/compare/14.6.4...14.6.5)
+
+The uploaded APK matches the official asset SHA-256
+`b793b2ecbdbed943c1df6819057d472c461b67ff94011c092b9c9c67b3626bb9`.
+Its embedded assets include separate Shizuku and Dhizuku stubs, the rish launcher
+and DEX, and native ADB, rish, and starter libraries for four ABIs. The reviewed
+tag is Apache-2.0. Kizuku implements the selected behaviors through its existing
+host. The Shevery APK and test modules are used on disposable emulators.
+
+| Area | Shevery 14.6.5 source reviewed | Kizuku coverage |
+| --- | --- | --- |
+| App manager | `management/ApplicationManagementActivity.kt`, `authorization/AuthorizationManager.kt`; search, granted/denied, session access, manual inclusion and app details | **Implemented** for discovered Shizuku clients. Visible All ON/OFF with counts, mixed state, confirmation, progress and per-app failures. Uses installed manifest declarations and current signer/UID evidence. Runtime Android permission toggles, manual inclusion and cross-profile listing remain missing. |
+| Startup and manager UI | `home/`, `adb/`, `native/starter/`; root, wireless and custom TCP, optional diagnostics, autoscale | **Implemented** root/shell startup, pairing, saved-key reconnect and manual TCP through one controller. Autoscale remains absent. |
+| Compatibility stubs and IPC | `stub/src/shizuku/`, `stub/src/dhizuku/`, `dhizuku/DhizukuProvider.kt`, server client checks | **Partial.** Kizuku bundles its same-signed Shizuku companion and stock rish export. Axeron remains independently authorized. No Shevery SDK namespace or Dhizuku stub is installed. |
+| Module ZIPs and local WebUI | `module/AdbModuleManager.kt`, `module/ModuleWebViewActivity.kt`, `docs/adb-modules-api.md`; nested packages, action and service paths, WebUI bridge and policy | **Partial.** ZIPs, local assets, actions, opt-in services and the local Shizuku JavaScript bridge run in the same host as Axeron modules. Privileged WebUI commands need per-open consent. Network, WebUI downloads and the catalog are outside this implementation. |
+| Automation and recovery | `tasker/`, `service/WatchdogManager.kt`, `errorprotect/`, `native/starter/`; authenticated intents, boot and watchdog restart | **Partial.** Opt-in authenticated start, stop, restart, toggle and status, plus bounded Binder-driven recovery and saved transport. Tasker and MacroDroid can send explicit intents. Native plugin picker, boot startup and a separate supervisor remain absent. |
+| Device protection and diagnostics | `security/AuthManager.kt`, `security/SecuritySettings.kt`, `home/SheverySmartLogsDialog.kt` | **Partial.** Optional system authentication for Apps decisions, companion changes and Labs. Service Doctor exports a structured status snapshot. Broad logcat capture and the donor's reusable biometric timeout session remain absent. |
+| Accessibility and system tools | `accessibility/AccessibilityManager.kt`, `accessibility/AccessibilityDaemonService.kt`, `settings/NetworkFirewallManager.kt` | **Partial.** Confirmed primary-user accessibility toggles, app controls and system settings editing with readback. Persistent accessibility pinning and the firewall remain absent. |
+| Device Owner | `deviceowner/DeviceOwnerManager.kt`, `settings/DeviceOwnerScreen.kt`, `docs/device-owner.md` | **Partial.** Explicit ADB enrollment and Android owner readback. Manager-only app suspension and uninstall protection, with reversal and role removal. Profile Owner, transfers, delegation and external Dhizuku remain missing. |
+| Dhizuku binder relay and UserService | `dhizuku/DhizukuProvider.kt`, `DhizukuAuthManager.kt`, `DhizukuUserServiceHostService.kt` | **Unsuitable for direct port.** The reviewed relay dispatch accepts caller-supplied Binder transactions, the grant store relies on numeric UIDs, and donor UserService code runs with the owner app UID. External Dhizuku needs independently verified client identities and a constrained policy API. |
+| Stealth and foreground hiding | `stealth/StealthApkGenerator.kt`, `settings/UsbDebuggingHideService.kt`, `settings/DeveloperOptionsHideService.kt` | **Unsuitable.** Package rewriting would disrupt Kizuku's update identity. Per-second foreground polling modifies global debugging state that Kizuku needs for ADB recovery. |
+| Comput and native Rust rewrite | `comput/`, `commandium/`, `native/` | **Partial.** Kizuku has local commands and saved scripts. Cloud AI and a native toolchain replacement are outside this phase. The release fixes were reviewed for their IPC and lifecycle implications. |

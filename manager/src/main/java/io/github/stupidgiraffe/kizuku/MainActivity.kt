@@ -113,6 +113,7 @@ private enum class Destination(val title: String, val heading: String, val icon:
                             Destination.Labs -> LabsScreen(controller) {
                                 if (state.status?.getBoolean("axeron_runtime") == true) Glass { SystemSettingsTool() }
                                 NativeDiagnosticsPermissions(state, controller)
+                                DeviceOwnerPanel()
                             }
                             Destination.Settings -> SettingsScreen(state, controller)
                         }
@@ -199,6 +200,7 @@ private enum class Destination(val title: String, val heading: String, val icon:
     var resumed by remember { mutableIntStateOf(0) }
     var removing by rememberSaveable { mutableStateOf(false) }
     var removalNotice by rememberSaveable { mutableStateOf<String?>(null) }
+    val protectCompanion = rememberProtectedAction(DeviceProtection.Companion) { removalNotice = it }
     val remove = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         removing = false
         removalNotice = CompanionInstaller.removalResult(context, result.resultCode, result.data)
@@ -214,16 +216,20 @@ private enum class Destination(val title: String, val heading: String, val icon:
         Text("The companion provides the package identity that Shizuku apps look for.", color = Muted, style = MaterialTheme.typography.bodySmall)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Button(enabled = !installing && !removing && !companion.conflict, onClick = {
-                removalNotice = null
-                runCatching { CompanionInstaller.install(context) }.onFailure { controller.notice(it.message ?: "Install failed") }
+                protectCompanion {
+                    removalNotice = null
+                    runCatching { CompanionInstaller.install(context) }.onFailure { controller.notice(it.message ?: "Install failed") }
+                }
             }) { Text(if (companion.installed) "Reinstall" else "Install") }
             OutlinedButton(enabled = !installing && !removing && companion.installed, onClick = {
-                runCatching {
-                    val intent = CompanionInstaller.removalIntent(context)
-                    removing = true
-                    removalNotice = null
-                    remove.launch(intent)
-                }.onFailure { removing = false; removalNotice = it.message ?: "Cannot open Android’s uninstaller." }
+                protectCompanion {
+                    runCatching {
+                        val intent = CompanionInstaller.removalIntent(context)
+                        removing = true
+                        removalNotice = null
+                        remove.launch(intent)
+                    }.onFailure { removing = false; removalNotice = it.message ?: "Cannot open Android’s uninstaller." }
+                }
             }) { Text("Remove") }
         }
         if (installing) {
@@ -235,6 +241,7 @@ private enum class Destination(val title: String, val heading: String, val icon:
         }
     }
     Glass { RishExport() }
+    DeviceProtectionSettings()
     Glass {
         Text("Protection & recovery", style = MaterialTheme.typography.titleMedium)
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -247,5 +254,6 @@ private enum class Destination(val title: String, val heading: String, val icon:
         }
         Text("No telemetry. Authorization stays on your device. Release builds use Kizuku’s permanent signing identity.", color = Muted, style = MaterialTheme.typography.bodySmall)
     }
+    Glass { AutomationSettings(controller) }
     TextButton(onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/stupidgiraffe/Kizuku"))) }) { Text("Source & licenses") }
 }

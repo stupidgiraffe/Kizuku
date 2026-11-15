@@ -16,6 +16,11 @@ Architecture references (no wholesale code import): Porter by darken and
 contributors; Nightzuku by kerneldroid and contributors; Shevery by HmnDev-Tech
 and contributors; AxManager by fahrez182 and contributors. See docs/UPSTREAMS.md.
 
+Shevery 14.6.5 (HmnDev-Tech/shevery f1f45543e16f98ae4c729721226893c32be130a5,
+Apache-2.0) is the reference for the Shevery module ZIP/WebUI contract, lifecycle
+automation, diagnostics, device protection and Device Owner controls. The
+implementations in Kizuku use its own host, consent and authorization paths.
+
 Runtime/build dependencies retain their own licenses, including AndroidX
 (Apache-2.0), Kotlin (Apache-2.0), Rikka Hidden API and Refine (Apache-2.0), and Shizuku SDK
 (Apache-2.0; test-client only). JUnit (EPL-1.0) is test-only.

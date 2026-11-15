@@ -1,11 +1,13 @@
 package io.github.stupidgiraffe.kizuku
 
+import android.accessibilityservice.AccessibilityService
 import android.app.Activity
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.os.SystemClock
 import android.provider.Settings
+import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityManager
 import android.view.accessibility.AccessibilityNodeInfo
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -25,9 +27,8 @@ class LabsSmokeTest {
     private val app = instrumentation.targetContext
 
     @Test fun serviceDoctorReportsTheCurrentHostAndAndroidSettings() {
-        val report = runBlocking(Dispatchers.Main) {
-            runServiceDoctor(app, ActivationController.get(app)).associate { it.label to it.evidence }
-        }
+        val diagnostics = runBlocking(Dispatchers.Main) { runServiceDoctor(app, ActivationController.get(app)) }
+        val report = diagnostics.associate { it.label to it.evidence }
         val host = CoreConnection.service?.status()
         assertEquals(if (host == null) "No host attached" else "Responded", report["Host Binder"])
         if (host != null) {
@@ -37,18 +38,32 @@ class LabsSmokeTest {
         assertTrue(report.containsKey("Automatic recovery"))
         assertTrue(report.containsKey("Pairing notifications"))
         assertTrue(report.containsKey("Battery optimization"))
+        assertTrue(report.containsKey("Axeron runtime"))
+        assertTrue(formatServiceDoctorReport(diagnostics).contains("Compatibility companion"))
     }
 
     @Test fun accessibilityInventoryMatchesTheInstalledAndConfiguredServices() {
-        val configured = Settings.Secure.getString(app.contentResolver, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES)
+        fun configured() = Settings.Secure.getString(app.contentResolver, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES)
             .orEmpty().split(':').mapNotNull(ComponentName::unflattenFromString).toSet()
+        val before = configured()
         val installed = app.getSystemService(AccessibilityManager::class.java).installedAccessibilityServiceList
             .map { it.resolveInfo.serviceInfo }
             .map { ComponentName(it.packageName, it.name) }
             .toSet()
         val entries = readAccessibilityInventory(app)
         assertEquals(installed, entries.mapNotNull { ComponentName.unflattenFromString(it.component) }.toSet())
-        assertEquals(configured intersect installed, entries.filter { it.enabled }.mapNotNull { ComponentName.unflattenFromString(it.component) }.toSet())
+        assertEquals(before intersect installed, entries.filter { it.enabled }.mapNotNull { ComponentName.unflattenFromString(it.component) }.toSet())
+        val fixture = ComponentName(instrumentation.context.packageName, FixtureAccessibilityService::class.java.name)
+        assertTrue("The test APK declares a real accessibility service", fixture in installed)
+        assertFalse(fixture in before)
+        try {
+            runBlocking { setAccessibilityServiceEnabled(app, fixture.flattenToShortString(), true) }
+            assertEquals(before + fixture, configured())
+            assertTrue(readAccessibilityInventory(app).single { it.component == fixture.flattenToShortString() }.enabled)
+        } finally {
+            runBlocking { setAccessibilityServiceEnabled(app, fixture.flattenToShortString(), false) }
+        }
+        assertEquals(before, configured())
     }
 
     @Test fun enabledProtectionKeepsToolsHiddenUntilAuthentication() {
@@ -92,4 +107,9 @@ class LabsSmokeTest {
         }
         return instrumentation.uiAutomation.rootInActiveWindow?.let(::search)
     }
+}
+
+class FixtureAccessibilityService : AccessibilityService() {
+    override fun onAccessibilityEvent(event: AccessibilityEvent?) = Unit
+    override fun onInterrupt() = Unit
 }

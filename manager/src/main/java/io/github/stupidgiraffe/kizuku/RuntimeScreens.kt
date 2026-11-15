@@ -124,7 +124,13 @@ private fun PluginsPanel(ready: Boolean) {
     var output by remember { mutableStateOf<Bundle?>(null) }
     var archive by remember { mutableStateOf<Uri?>(null) }
     var remove by remember { mutableStateOf<String?>(null) }
+    var webShell by remember { mutableStateOf<String?>(null) }
+    var background by remember { mutableStateOf<String?>(null) }
+    var log by remember { mutableStateOf<String?>(null) }
     val choose = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { archive = it }
+    fun openWeb(id: String, shell: Boolean) {
+        context.startActivity(Intent(context, PluginWebActivity::class.java).putExtra("plugin", id).putExtra("shell", shell))
+    }
     fun operate(work: () -> Bundle? = { null }) {
         busy = true
         message = null
@@ -133,6 +139,7 @@ private fun PluginsPanel(ready: Boolean) {
                 val (result, rows) = withContext(Dispatchers.IO) { work() to runtime().runtimePlugins().toList() }
                 plugins = rows; loaded = true
                 if (result?.containsKey("exit") == true) output = result
+                result?.getString("module_log")?.let { log = it }
                 result?.getString("startup_error")?.let { message = "Installed and disabled after startup failed. $it" }
             } catch (failure: Exception) {
                 if (failure is CancellationException) throw failure
@@ -145,7 +152,8 @@ private fun PluginsPanel(ready: Boolean) {
         if (ready) operate()
         else { plugins = emptyList(); loaded = false }
     }
-    Button(onClick = { choose.launch(arrayOf("application/zip", "application/octet-stream")) }, enabled = ready && !busy) { Text("Install plugin ZIP") }
+    Button(onClick = { choose.launch(arrayOf("application/zip", "application/octet-stream")) }, enabled = ready && !busy) { Text("Install module ZIP") }
+    Text("Supports Axeron plugins and Shevery ADB modules.", style = MaterialTheme.typography.bodySmall)
     if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())
     if (ready && loaded && plugins.isEmpty()) Text("No plugins installed for this privilege level.")
     message?.let { Text(it) }
@@ -153,10 +161,11 @@ private fun PluginsPanel(ready: Boolean) {
     for (plugin in plugins) {
         val id = plugin.getString("id").orEmpty()
         val enabled = plugin.getBoolean("enabled")
+        val shevery = plugin.getString("format") == "shevery"
         Card(Modifier.fillMaxWidth()) {
             Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(plugin.getString("name").orEmpty(), style = MaterialTheme.typography.titleMedium)
-                Text("$id · ${plugin.getString("version").orEmpty()} · ${if (enabled) "Enabled" else "Disabled"}")
+                Text("${if (shevery) "Shevery" else "Axeron"} · ${plugin.getString("version").orEmpty()} · ${if (enabled) "Enabled" else "Disabled"}")
                 plugin.getString("description")?.takeIf(String::isNotBlank)?.let { Text(it) }
                 plugin.getString("error")?.let { Text(it, color = MaterialTheme.colorScheme.error) }
                 Row {
@@ -166,27 +175,76 @@ private fun PluginsPanel(ready: Boolean) {
                     if (enabled && plugin.getBoolean("action")) TextButton(enabled = !busy,
                         onClick = { operate { runtime().controlRuntimePlugin(id, "action") } }) { Text("Run action") }
                     if (enabled && plugin.getBoolean("webui")) TextButton(enabled = !busy, onClick = {
-                        context.startActivity(Intent(context, PluginWebActivity::class.java).putExtra("plugin", id))
+                        if (shevery && plugin.getBoolean("declares_shell")) webShell = id
+                        else openWeb(id, shell = !shevery)
                     }) { Text("WebUI") }
                 }
+                if (shevery && plugin.getBoolean("service")) {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Column(Modifier.weight(1f)) {
+                            Text("Start service automatically")
+                            Text("Runs once when this host connects.", style = MaterialTheme.typography.bodySmall)
+                        }
+                        Switch(
+                            checked = plugin.getBoolean("background"),
+                            enabled = enabled && !busy,
+                            onCheckedChange = {
+                                if (it) background = id
+                                else operate { runtime().controlRuntimePlugin(id, "background-off") }
+                            },
+                        )
+                    }
+                    Row {
+                        TextButton(enabled = enabled && !busy, onClick = { operate { runtime().controlRuntimePlugin(id, "run-service") } }) { Text("Run service") }
+                        TextButton(enabled = !busy, onClick = { operate { runtime().controlRuntimePlugin(id, "service-log") } }) { Text("Service log") }
+                    }
+                }
                 Row {
-                    if (enabled) TextButton(enabled = !busy, onClick = { operate { runtime().controlRuntimePlugin(id, "restart") } }) { Text("Restart") }
+                    if (enabled && !shevery) TextButton(enabled = !busy, onClick = { operate { runtime().controlRuntimePlugin(id, "restart") } }) { Text("Restart") }
+                    if (shevery && plugin.getBoolean("action")) TextButton(enabled = !busy, onClick = {
+                        operate { runtime().controlRuntimePlugin(id, "action-log") }
+                    }) { Text("Action log") }
                     TextButton(enabled = !busy, onClick = { remove = id }) { Text("Uninstall") }
                 }
             }
         }
     }
     archive?.let { uri ->
-        ConfirmRuntime("Install plugin?", "Installer and service scripts run with the active shell or root privileges.", {
+        ConfirmRuntime("Install module?", "Only install ZIPs you trust. Axeron installers and scripts can execute with the active shell or root privileges.", {
             archive = null
             operate { requireNotNull(context.contentResolver.openFileDescriptor(uri, "r")).use { runtime().installRuntimePlugin(it) } }
         }) { archive = null }
     }
     remove?.let { id ->
-        ConfirmRuntime("Uninstall $id?", "Stops the plugin, runs its uninstall script, and removes its files.", {
+        ConfirmRuntime("Uninstall $id?", "Stops the module and removes its files. Axeron plugins may also run an uninstall script.", {
             remove = null
             operate { runtime().controlRuntimePlugin(id, "remove") }
         }) { remove = null }
+    }
+    webShell?.let { id ->
+        AlertDialog(
+            onDismissRequest = { webShell = null },
+            title = { Text("Give this WebUI shell access?") },
+            text = { Text("This session can run commands with Kizuku’s current shell or root privileges. Open read-only to view the module without allowing commands.") },
+            confirmButton = { TextButton(onClick = { webShell = null; openWeb(id, true) }) { Text("Allow this session") } },
+            dismissButton = { TextButton(onClick = { webShell = null; openWeb(id, false) }) { Text("Open read-only") } },
+        )
+    }
+    background?.let { id ->
+        ConfirmRuntime("Start $id in the background?", "Its service script runs now and once when this host connects. Updating the module clears this permission.", {
+            background = null
+            operate { runtime().controlRuntimePlugin(id, "background-on") }
+        }) { background = null }
+    }
+    log?.let { lines ->
+        AlertDialog(
+            onDismissRequest = { log = null },
+            title = { Text("Module log") },
+            text = {
+                Text(lines, modifier = Modifier.heightIn(max = 340.dp).verticalScroll(rememberScrollState()), fontFamily = FontFamily.Monospace)
+            },
+            confirmButton = { TextButton(onClick = { log = null }) { Text("Close") } },
+        )
     }
 }
 

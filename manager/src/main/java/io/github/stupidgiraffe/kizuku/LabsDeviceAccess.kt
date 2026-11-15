@@ -38,129 +38,203 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 
-private const val PROTECT_LABS = "protect_labs"
-private enum class AuthAction { Unlock, Enable, Disable }
-private class AuthAttempt(val action: AuthAction)
+internal enum class DeviceProtection(val key: String, val promptTitle: String) {
+    Labs("protect_labs", "Unlock Labs tools"),
+    AppPermissions("protect_app_permissions", "Confirm app permission change"),
+    Companion("protect_companion", "Confirm companion change"),
+}
 
-/** A foreground UI lock. Android and the host independently enforce privileges. */
+private fun protectionPreferences(context: Context) = context.getSharedPreferences("labs", Context.MODE_PRIVATE)
+
+/** A device prompt at the point of use. Each protected operation requires its own authentication. */
+@Composable
+internal fun rememberProtectedAction(scope: DeviceProtection, onFailure: (String) -> Unit): (() -> Unit) -> Unit {
+    val preferences = protectionPreferences(LocalContext.current)
+    val auth = rememberDeviceAuthentication(onFailure)
+    return { action ->
+        if (preferences.getBoolean(scope.key, false)) auth.request(scope.promptTitle, action)
+        else action()
+    }
+}
+
+@Composable
+internal fun DeviceProtectionSettings() {
+    val context = LocalContext.current
+    val preferences = remember(context) { protectionPreferences(context) }
+    var permissions by remember(preferences) { mutableStateOf(preferences.getBoolean(DeviceProtection.AppPermissions.key, false)) }
+    var companion by remember(preferences) { mutableStateOf(preferences.getBoolean(DeviceProtection.Companion.key, false)) }
+    var feedback by remember { mutableStateOf<String?>(null) }
+    val auth = rememberDeviceAuthentication { feedback = it }
+    fun change(scope: DeviceProtection, label: String, enabled: Boolean, committed: () -> Unit) {
+        feedback = null
+        auth.request(if (enabled) "Protect $label" else "Stop protecting $label") {
+            preferences.edit().putBoolean(scope.key, enabled).apply()
+            committed()
+        }
+    }
+
+    LabsPanel("Device authentication") {
+        LabsDetail(if (Build.VERSION.SDK_INT >= 30) {
+            "Require your Android screen lock or a strong biometric for selected changes. Labs has its own lock."
+        } else "Require your Android screen lock for selected changes. Labs has its own lock.")
+        ProtectionSwitch("Protect app permissions", "Require authentication when granting or revoking Shizuku, Axeron or diagnostics access.",
+            permissions, !auth.busy) { enabled ->
+            change(DeviceProtection.AppPermissions, "app permissions", enabled) { permissions = enabled }
+        }
+        ProtectionSwitch("Protect companion management", "Require authentication before installing or removing the compatibility companion.",
+            companion, !auth.busy) { enabled ->
+            change(DeviceProtection.Companion, "companion management", enabled) { companion = enabled }
+        }
+        if (!auth.available) DeviceAuthenticationSettingsLink(context) { feedback = it }
+        feedback?.let { LabsError(it) }
+    }
+}
+
+/** Labs has a foreground visit lock. Android and the host independently enforce privileges. */
 @Composable
 internal fun LabsDeviceAccess(active: Boolean, content: @Composable () -> Unit) {
     val context = LocalContext.current
-    val preferences = remember(context) { context.getSharedPreferences("labs", Context.MODE_PRIVATE) }
-    val keyguard = remember(context) { context.getSystemService(KeyguardManager::class.java) }
+    val preferences = remember(context) { protectionPreferences(context) }
     val currentActive by rememberUpdatedState(active)
-    var protectionEnabled by remember(preferences) { mutableStateOf(preferences.getBoolean(PROTECT_LABS, false)) }
-    var available by remember(context) { mutableStateOf(deviceAuthenticationAvailable(context, keyguard)) }
+    var protectionEnabled by remember(preferences) { mutableStateOf(preferences.getBoolean(DeviceProtection.Labs.key, false)) }
     var unlocked by remember { mutableStateOf(false) }
+    var feedback by remember { mutableStateOf<String?>(null) }
+    val auth = rememberDeviceAuthentication { feedback = it }
+
+    fun authenticate(title: String, onSuccess: () -> Unit) {
+        feedback = null
+        auth.request(title) {
+            if (currentActive) {
+                onSuccess()
+                unlocked = true
+            }
+        }
+    }
+
+    LaunchedEffect(active) {
+        if (!active) {
+            auth.cancel()
+            unlocked = false
+            feedback = null
+        }
+    }
+    LifecycleEventEffect(Lifecycle.Event.ON_STOP) { unlocked = false }
+
+    if (!active) return
+    LabsPanel("Device authentication") {
+        ProtectionSwitch("Protect Labs tools", "Require device authentication to open Labs. Labs locks again when you leave.",
+            protectionEnabled, !auth.busy) { enabled ->
+            authenticate(if (enabled) "Enable Labs protection" else "Disable Labs protection") {
+                preferences.edit().putBoolean(DeviceProtection.Labs.key, enabled).apply()
+                protectionEnabled = enabled
+            }
+        }
+        if (protectionEnabled && !unlocked) {
+            Button(
+                onClick = { authenticate(DeviceProtection.Labs.promptTitle) {} },
+                enabled = !auth.busy && auth.available,
+            ) { Text("Unlock Labs tools") }
+        }
+        if (!auth.available) DeviceAuthenticationSettingsLink(context) { feedback = it }
+        feedback?.let { LabsError(it) }
+    }
+    if (!protectionEnabled || unlocked) content()
+}
+
+@Composable
+private fun ProtectionSwitch(label: String, detail: String, checked: Boolean, enabled: Boolean, change: (Boolean) -> Unit) {
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(label, style = MaterialTheme.typography.titleSmall)
+            LabsDetail(detail)
+        }
+        Switch(checked = checked, enabled = enabled, onCheckedChange = change,
+            modifier = Modifier.semantics { contentDescription = label })
+    }
+}
+
+@Composable
+private fun DeviceAuthenticationSettingsLink(context: Context, onFailure: (String) -> Unit) {
+    LabsDetail("Set a PIN, pattern or password to use device authentication.")
+    TextButton(onClick = {
+        if (!openLabsSettings(context, Settings.ACTION_SECURITY_SETTINGS)) {
+            onFailure("Android security settings could not be opened.")
+        }
+    }) { Text("Open Android security settings") }
+}
+
+private class DeviceAuthentication(
+    val available: Boolean,
+    val busy: Boolean,
+    val request: (String, () -> Unit) -> Unit,
+    val cancel: () -> Unit,
+)
+
+private class AuthAttempt(val onSuccess: () -> Unit)
+
+@Composable
+@Suppress("DEPRECATION") // Android 8–10 use the device credential activity.
+private fun rememberDeviceAuthentication(onFailure: (String) -> Unit): DeviceAuthentication {
+    val context = LocalContext.current
+    val keyguard = remember(context) { context.getSystemService(KeyguardManager::class.java) }
+    val reportFailure by rememberUpdatedState(onFailure)
+    var available by remember(context) { mutableStateOf(deviceAuthenticationAvailable(context, keyguard)) }
     var pending by remember { mutableStateOf<AuthAttempt?>(null) }
     var legacyAttempt by remember { mutableStateOf<AuthAttempt?>(null) }
     var signal by remember { mutableStateOf<CancellationSignal?>(null) }
-    var feedback by remember { mutableStateOf<String?>(null) }
 
-    fun completeAuthentication(attempt: AuthAttempt, success: Boolean) {
+    fun complete(attempt: AuthAttempt, success: Boolean) {
         if (pending !== attempt) return
         pending = null
         signal = null
-        if (!currentActive) return
-        if (!success) {
-            feedback = "Device authentication did not complete. Try again."
-            return
-        }
-        if (attempt.action != AuthAction.Unlock) {
-            protectionEnabled = attempt.action == AuthAction.Enable
-            preferences.edit().putBoolean(PROTECT_LABS, protectionEnabled).apply()
-        }
-        unlocked = true
-        feedback = null
+        if (success) attempt.onSuccess()
+        else reportFailure("Device authentication did not complete. Try again.")
     }
 
     val credentialLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
         val attempt = legacyAttempt
         legacyAttempt = null
-        if (attempt != null) completeAuthentication(attempt, it.resultCode == Activity.RESULT_OK)
+        if (attempt != null) complete(attempt, it.resultCode == Activity.RESULT_OK)
     }
 
-    @Suppress("DEPRECATION") // Android 8–10 use the device credential activity.
-    fun authenticate(action: AuthAction) {
-        if (!currentActive || pending != null || legacyAttempt != null) return
+    fun request(title: String, onSuccess: () -> Unit) {
+        if (pending != null || legacyAttempt != null) return
         available = deviceAuthenticationAvailable(context, keyguard)
         if (!available) {
-            feedback = "Set a PIN, pattern or password in Android Settings first."
+            reportFailure("Device authentication is unavailable. Set a PIN, pattern or password in Android Settings.")
             return
         }
-        feedback = null
-        val attempt = AuthAttempt(action)
+        val attempt = AuthAttempt(onSuccess)
         pending = attempt
-        val title = when (action) {
-            AuthAction.Unlock -> "Unlock Labs tools"
-            AuthAction.Enable -> "Enable Labs protection"
-            AuthAction.Disable -> "Disable Labs protection"
-        }
         try {
             if (Build.VERSION.SDK_INT >= 30) {
                 val cancellation = CancellationSignal()
                 signal = cancellation
-                showDevicePrompt(context, title, cancellation) { completeAuthentication(attempt, it) }
+                showDevicePrompt(context, title, cancellation) { complete(attempt, it) }
             } else {
                 val intent = keyguard?.createConfirmDeviceCredentialIntent(title, "Confirm your Android screen lock")
-                if (intent == null) completeAuthentication(attempt, false) else {
+                if (intent == null) complete(attempt, false) else {
                     legacyAttempt = attempt
                     credentialLauncher.launch(intent)
                 }
             }
         } catch (_: RuntimeException) {
             legacyAttempt = null
-            completeAuthentication(attempt, false)
+            complete(attempt, false)
         }
     }
 
-    fun resetVisit() {
+    fun cancel() {
         pending = null
         signal?.cancel()
         signal = null
-        unlocked = false
-        feedback = null
     }
 
-    LaunchedEffect(active) { if (!active) resetVisit() }
-    DisposableEffect(Unit) { onDispose { resetVisit() } }
+    DisposableEffect(Unit) { onDispose { cancel() } }
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
         available = deviceAuthenticationAvailable(context, keyguard)
     }
-    LifecycleEventEffect(Lifecycle.Event.ON_STOP) { unlocked = false }
-
-    if (!active) return
-    if (!protectionEnabled || unlocked) content()
-    LabsPanel("Device authentication") {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text("Protect Labs tools", style = MaterialTheme.typography.titleSmall)
-                LabsDetail(if (Build.VERSION.SDK_INT >= 30) {
-                    "Require your Android screen lock or a strong biometric. Labs locks again when you leave."
-                } else "Require your Android screen lock. Labs locks again when you leave.")
-            }
-            Switch(
-                checked = protectionEnabled,
-                enabled = pending == null && legacyAttempt == null,
-                onCheckedChange = { authenticate(if (it) AuthAction.Enable else AuthAction.Disable) },
-                modifier = Modifier.semantics { contentDescription = "Protect Labs tools" },
-            )
-        }
-        if (protectionEnabled && !unlocked) {
-            Button(onClick = { authenticate(AuthAction.Unlock) }, enabled = pending == null && legacyAttempt == null && available) {
-                Text("Unlock Labs tools")
-            }
-        }
-        if (!available) {
-            LabsDetail("Set a PIN, pattern or password to use this protection.")
-            TextButton(onClick = {
-                if (!openLabsSettings(context, Settings.ACTION_SECURITY_SETTINGS)) {
-                    feedback = "Android security settings could not be opened."
-                }
-            }) { Text("Open Android security settings") }
-        }
-        feedback?.let { LabsError(it) }
-    }
+    return DeviceAuthentication(available, pending != null || legacyAttempt != null, ::request, ::cancel)
 }
 
 private fun deviceAuthenticationAvailable(context: Context, keyguard: KeyguardManager?): Boolean =

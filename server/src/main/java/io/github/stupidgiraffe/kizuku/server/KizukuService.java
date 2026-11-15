@@ -243,7 +243,10 @@ final class KizukuService extends IKizukuService.Stub {
             safeMode = enabled;
             if (enabled) legacy.stopAllProcesses();
             if (runtime != null) {
-                if (enabled) runtime.pause();
+                if (enabled) {
+                    runtime.pause();
+                    runtime.plugins.closeWebSessions();
+                }
                 else {
                     runtime.resume();
                     runtimeLifecycle.execute(runtime.plugins::startEnabled);
@@ -281,6 +284,12 @@ final class KizukuService extends IKizukuService.Stub {
     }
     @Override public Bundle runtimeWebCommand(String id, String command, String directory) {
         return managerRuntime(runtime -> runtime.plugins.webCommand(id, command, directory));
+    }
+    @Override public ParcelFileDescriptor openRuntimeWebSessionAsset(String id, String session, String path) {
+        return managerRuntime(runtime -> runtime.plugins.webSessionAsset(id, session, path));
+    }
+    @Override public Bundle runtimeWebSessionCommand(String id, String session, String command, String options) {
+        return managerRuntime(runtime -> runtime.plugins.webSessionCommand(id, session, command, options));
     }
     @Override public Bundle systemSetting(String table, String key, String value, String operation) {
         return managerRuntime(runtime -> runtime.setting(table, key, value, operation));

@@ -95,6 +95,8 @@ jobs:
         env:
           KIZUKU_EMULATOR_TARGET: android-${{ matrix.sdk }}
           KIZUKU_TEST_ROOT: 'true'
+          KIZUKU_TEST_THIRD_PARTY: 'true'
+          KIZUKU_TEST_DEVICE_OWNER: 'true'
           KIZUKU_TEST_ADB: 'true'
           KIZUKU_TEST_SIGNED_UPDATE: 'true'
           KIZUKU_REQUIRE_NEWER_VERSION: ${{ inputs.publish }}

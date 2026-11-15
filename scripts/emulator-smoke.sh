@@ -18,12 +18,16 @@ launch() {
 instrument() {
   local package=$1 argument=$2 value=$3
   local class="$package.ManagerSmokeTest" output="$evidence/$argument-$value.txt"
+  local extras=()
   if [[ "$package" == "$client" ]]; then class="$package.ProtocolSmokeTest"; fi
   if [[ -n "${4:-}" ]]; then
     class="$package.$4"
     if [[ "$4" == AxeronWireSmokeTest ]]; then output="$evidence/axeron-$value.txt"; fi
   fi
-  timeout 95 adb shell am instrument -w -e class "$class" -e host_uid "$host_uid" -e "$argument" "$value" "$package.test/androidx.test.runner.AndroidJUnitRunner" | tee "$output"
+  if [[ "${4:-}" == RuntimeSmokeTest && "${KIZUKU_TEST_THIRD_PARTY:-false}" == true ]]; then
+    extras=(-e shevery_fixture /data/local/tmp/kizuku-sysinfo.zip)
+  fi
+  timeout 95 adb shell am instrument -w -e class "$class" -e host_uid "$host_uid" -e "$argument" "$value" "${extras[@]}" "$package.test/androidx.test.runner.AndroidJUnitRunner" | tee "$output"
   local count=1
   if [[ "${4:-}" == LabsSmokeTest ]]; then count=3; fi
   grep -E "OK \($count tests?\)" "$output"
@@ -45,6 +49,9 @@ adb shell screencap -p /data/local/tmp/kizuku-stopped.png
 adb pull /data/local/tmp/kizuku-stopped.png "$evidence"/stopped.png
 launch
 instrument "$manager" action connected
+if [[ "${KIZUKU_TEST_THIRD_PARTY:-false}" == true ]]; then
+  scripts/prepare-shevery-module-test.sh
+fi
 instrument "$manager" action runtime RuntimeSmokeTest
 instrument "$manager" action labs LabsSmokeTest
 instrument "$manager" action stale
@@ -83,7 +90,10 @@ adb shell am start -W -n "$manager/.MainActivity"
 sleep 1
 adb shell screencap -p /data/local/tmp/kizuku-core.png
 adb pull /data/local/tmp/kizuku-core.png "$evidence"/core.png
-instrument "$manager" action stop
+if [[ "${KIZUKU_TEST_THIRD_PARTY:-false}" == true ]]; then
+  scripts/hail-client-acceptance.sh
+fi
+instrument "$manager" action automation AutomationSmokeTest
 launch
 instrument "$manager" action connected
 adb uninstall "$manager"

@@ -108,11 +108,25 @@ final class AxRuntime {
     }
 
     Bundle run(String plugin, String[] argv, File directory, Map<String, String> env, int seconds) throws Exception {
+        return run(plugin, argv, directory, env, seconds, new byte[0]);
+    }
+
+    Bundle run(String plugin, String[] argv, File directory, Map<String, String> env, int seconds, byte[] stdin) throws Exception {
+        return prepare(plugin, argv, directory, env, seconds, stdin).call();
+    }
+
+    java.util.concurrent.Callable<Bundle> prepare(String plugin, String[] argv, File directory,
+            Map<String, String> env, int seconds, byte[] stdin) throws IOException {
         Job job = start(null, plugin, argv, directory, env);
+        return () -> complete(job, seconds, stdin);
+    }
+
+    private Bundle complete(Job job, int seconds, byte[] stdin) throws Exception {
         try {
-            job.child.getOutputStream().close();
             Future<byte[]> out = io.submit(() -> capture(job.child.getInputStream()));
             Future<byte[]> err = io.submit(() -> capture(job.child.getErrorStream()));
+            if (stdin.length == 0) job.child.getOutputStream().close();
+            else io.execute(() -> copy(new java.io.ByteArrayInputStream(stdin), job.child.getOutputStream()));
             boolean completed = job.child.waitFor(seconds, TimeUnit.SECONDS);
             if (!completed) job.stop();
             byte[] stdout = collect(out);
@@ -134,6 +148,22 @@ final class AxRuntime {
         job.child.getOutputStream().close();
         io.execute(() -> copy(job.child.getInputStream(), DISCARD));
         io.execute(() -> copy(job.child.getErrorStream(), DISCARD));
+    }
+
+    void moduleService(String id, String[] argv, File directory, Map<String, String> env,
+            java.util.function.Consumer<Bundle> result) throws IOException {
+        Job job = start(null, id, argv, directory, env);
+        io.execute(() -> {
+            Bundle completed;
+            try { completed = complete(job, 60, new byte[0]); }
+            catch (Exception failure) {
+                if (failure instanceof InterruptedException) Thread.currentThread().interrupt();
+                completed = new Bundle();
+                completed.putInt("exit", -1);
+                completed.putString("stderr", failure.toString());
+            }
+            result.accept(completed);
+        });
     }
 
     IAxshProcess launch(ClientIdentity owner, String[] argv, String[] env, String dir,

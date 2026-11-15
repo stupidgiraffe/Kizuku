@@ -2,6 +2,8 @@ package io.github.stupidgiraffe.kizuku;
 
 import android.os.Bundle;
 import android.os.ParcelFileDescriptor;
+import android.content.Intent;
+import android.webkit.WebView;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.platform.app.InstrumentationRegistry;
 import io.github.stupidgiraffe.kizuku.api.IKizukuService;
@@ -10,6 +12,9 @@ import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 import org.junit.Test;
@@ -68,10 +73,103 @@ public final class RuntimeSmokeTest {
             assertEquals(0, service.controlRuntimePlugin(id, "action").getInt("exit"));
             service.controlRuntimePlugin(id, "remove");
             for (Bundle plugin : service.runtimePlugins()) assertNotEquals(id, plugin.getString("id"));
+            exerciseShevery(service, file, id + "_sv", status.getInt("uid"));
         } finally {
             for (Bundle plugin : service.runtimePlugins())
                 if (id.equals(plugin.getString("id"))) service.controlRuntimePlugin(id, "remove");
             Files.deleteIfExists(file.toPath());
+        }
+    }
+
+    private static void exerciseShevery(IKizukuService host, File file, String id, int uid) throws Exception {
+        try (var zip = new ZipOutputStream(Files.newOutputStream(file.toPath()))) {
+            write(zip, "wrapped/module.prop", "id=" + id + "\nname=Shevery lifecycle\nusesShellBridge=true\n");
+            write(zip, "wrapped/common/action.sh", "printf action-ok\n");
+            write(zip, "wrapped/common/service.sh", "printf service-ok\n");
+            write(zip, "wrapped/web/index.html", "<!doctype html><title>Shevery lifecycle</title>");
+        }
+        boolean installed = false;
+        try {
+            Bundle module = install(host, file);
+            installed = true;
+            assertEquals("shevery", module.getString("format"));
+            assertEquals(id, module.getString("id"));
+            assertFalse(module.getBoolean("background"));
+            assertEquals("action-ok", host.controlRuntimePlugin(id, "action").getString("stdout"));
+            assertTrue(host.controlRuntimePlugin(id, "action-log").getString("module_log").contains("action-ok"));
+            assertEquals("service-ok", host.controlRuntimePlugin(id, "run-service").getString("stdout"));
+            host.controlRuntimePlugin(id, "background-on");
+            assertTrue(findPlugin(host, id).getBoolean("background"));
+            host.controlRuntimePlugin(id, "background-off");
+            assertFalse(findPlugin(host, id).getBoolean("background"));
+            String readOnly = host.controlRuntimePlugin(id, "web-read").getString("web_session");
+            assertThrows(IllegalStateException.class, () -> host.runtimeWebSessionCommand(id, readOnly, "id -u", ""));
+            String shell = host.controlRuntimePlugin(id, "web-shell").getString("web_session");
+            assertEquals(Integer.toString(uid), host.runtimeWebSessionCommand(id, shell, "id -u", "").getString("stdout").trim());
+            assertThrows(IllegalStateException.class, () -> host.runtimeWebSessionCommand(id, shell, "pwd", "{\"cwd\":\"../\"}"));
+            host.controlRuntimePlugin(id, "disable");
+            assertThrows(IllegalStateException.class, () -> host.openRuntimeWebSessionAsset(id, shell, "index.html"));
+        } finally {
+            if (installed) host.controlRuntimePlugin(id, "remove");
+        }
+
+        String fixture = InstrumentationRegistry.getArguments().getString("shevery_fixture");
+        if (fixture == null) return;
+        assertEquals("/data/local/tmp/kizuku-sysinfo.zip", fixture);
+        final String sysinfo = "sysinfo";
+        try (var archive = new ParcelFileDescriptor.AutoCloseInputStream(InstrumentationRegistry.getInstrumentation()
+                .getUiAutomation().executeShellCommand("cat " + fixture));
+             var out = Files.newOutputStream(file.toPath())) {
+            archive.transferTo(out);
+        }
+        assertEquals(sysinfo, install(host, file).getString("id"));
+        try {
+            Bundle output = host.controlRuntimePlugin(sysinfo, "action");
+            assertEquals(output.getString("stderr"), 0, output.getInt("exit"));
+            assertTrue(output.getString("stdout").contains("module=sysinfo"));
+            assertTrue(output.getString("stdout").contains("MemTotal"));
+            verifySysInfoWebView(uid);
+        } finally {
+            host.controlRuntimePlugin(sysinfo, "remove");
+        }
+    }
+
+    private static Bundle findPlugin(IKizukuService host, String id) throws Exception {
+        for (Bundle row : host.runtimePlugins()) if (id.equals(row.getString("id"))) return row;
+        throw new AssertionError("Module is missing: " + id);
+    }
+
+    private static void verifySysInfoWebView(int uid) throws Exception {
+        var tests = InstrumentationRegistry.getInstrumentation();
+        var intent = new Intent(tests.getTargetContext(), PluginWebActivity.class)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                .putExtra("plugin", "sysinfo")
+                .putExtra("shell", true);
+        var activity = tests.startActivitySync(intent);
+        try {
+            long deadline = android.os.SystemClock.elapsedRealtime() + 15_000;
+            while (android.os.SystemClock.elapsedRealtime() < deadline) {
+                var completed = new CountDownLatch(1);
+                var answer = new AtomicReference<String>();
+                tests.runOnMainSync(() -> {
+                    android.view.ViewGroup page = activity.findViewById(android.R.id.content);
+                    if (page == null || !(page.getChildAt(0) instanceof WebView view)) {
+                        completed.countDown();
+                        return;
+                    }
+                    view.evaluateJavascript("document.title === 'Sys Info' && typeof Shizuku !== 'undefined' && "
+                            + "JSON.parse(Shizuku.getModuleInfo()).id === 'sysinfo' && "
+                            + "JSON.parse(Shizuku.exec('id -u')).stdout.trim() === '" + uid + "'", value -> {
+                                answer.set(value);
+                                completed.countDown();
+                            });
+                });
+                if (completed.await(3, TimeUnit.SECONDS) && "true".equals(answer.get())) return;
+                android.os.SystemClock.sleep(250);
+            }
+            fail("Sys Info did not render and execute through its original Shizuku bridge");
+        } finally {
+            tests.runOnMainSync(activity::finish);
         }
     }
 

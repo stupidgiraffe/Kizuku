@@ -6,11 +6,14 @@ import android.content.ComponentName
 import android.content.Context
 import android.os.Build
 import android.os.PowerManager
+import android.os.UserManager
 import android.provider.Settings
 import android.view.accessibility.AccessibilityManager
 import androidx.annotation.MainThread
 import io.github.stupidgiraffe.kizuku.adb.AdbDiscovery
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 internal data class DiagnosticCheck(val label: String, val evidence: String)
@@ -57,6 +60,13 @@ internal suspend fun runServiceDoctor(context: Context, controller: ActivationCo
                 add(DiagnosticCheck("Safe mode", if (status.getBoolean("safe_mode")) "On" else "Off"))
             }
             add(DiagnosticCheck("Last controller state", core.phase))
+            add(DiagnosticCheck("Compatibility companion", CompanionInstaller.packageState(context).text))
+            add(DiagnosticCheck("Axeron runtime", when {
+                status == null -> "Offline"
+                status.getBoolean("safe_mode") -> "Paused by Safe Mode"
+                status.getBoolean("axeron_runtime") -> "Ready"
+                else -> "Unavailable for this connection"
+            }))
             add(DiagnosticCheck("Automatic recovery", when {
                 !recovery.enabled -> "Off"
                 !recovery.wanted -> "On · no automatic restart requested"
@@ -92,6 +102,39 @@ internal suspend fun runServiceDoctor(context: Context, controller: ActivationCo
 }
 
 internal data class AccessibilityEntry(val label: String, val component: String, val enabled: Boolean)
+private val accessibilityChanges = Mutex()
+
+internal fun isPrimarySystemUser(context: Context) =
+    context.getSystemService(UserManager::class.java)?.isSystemUser == true
+
+/** System settings are written by the existing manager-only runtime RPC for user 0. */
+internal suspend fun setAccessibilityServiceEnabled(context: Context, component: String, enabled: Boolean) =
+    withContext(Dispatchers.IO) {
+        accessibilityChanges.withLock {
+            check(isPrimarySystemUser(context)) { "Accessibility changes require Android's system user." }
+            val target = checkNotNull(ComponentName.unflattenFromString(component)) { "Invalid accessibility service." }
+            check(readAccessibilityInventory(context).any { it.component == target.flattenToShortString() }) {
+                "This accessibility service is no longer installed."
+            }
+            val host = checkNotNull(CoreConnection.service) { "Start Kizuku before changing accessibility services." }
+            val key = Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
+            fun setting(operation: String, value: String = ""): String {
+                val result = host.systemSetting("secure", key, value, operation)
+                check(result.getInt("exit", -1) == 0 && !result.getBoolean("timed_out") && !result.getBoolean("truncated")) {
+                    result.getString("stderr").orEmpty().trim().take(240).ifBlank { "Android could not $operation the accessibility setting." }
+                }
+                return result.getString("stdout").orEmpty().trim().takeUnless { it == "null" }.orEmpty()
+            }
+            fun entries(): List<String> = setting("get").split(':').filter(String::isNotBlank)
+            fun matches(entry: String) = ComponentName.unflattenFromString(entry) == target
+            val current = entries()
+            if (current.any(::matches) == enabled) return@withLock
+            val next = if (enabled) current + target.flattenToShortString() else current.filterNot(::matches)
+            setting("put", next.joinToString(":"))
+            check(entries().any(::matches) == enabled) { "Android did not confirm the accessibility change." }
+            // Android's AccessibilityManagerService observes this list and derives its master setting.
+        }
+    }
 
 internal fun readAccessibilityInventory(context: Context): List<AccessibilityEntry> {
     val manager = checkNotNull(context.getSystemService(AccessibilityManager::class.java))

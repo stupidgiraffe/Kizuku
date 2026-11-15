@@ -66,9 +66,9 @@ internal fun AppsManagementScreen(
 ) {
     val batch by controller.shizukuBatch.collectAsStateWithLifecycle()
     val keyboard = LocalSoftwareKeyboardController.current
+    val protect = rememberProtectedAction(DeviceProtection.AppPermissions) { controller.notice(it) }
     var search by rememberSaveable { mutableStateOf("") }
     var filter by rememberSaveable { mutableStateOf(AppFilter.ALL) }
-    var menuOpen by remember { mutableStateOf(false) }
     var approval by remember { mutableStateOf<Pair<Bundle, AppPermission>?>(null) }
     var bulkApproval by remember { mutableStateOf<Pair<ShizukuBatchAction, List<Bundle>>?>(null) }
     var showFailures by remember { mutableStateOf(false) }
@@ -84,10 +84,11 @@ internal fun AppsManagementScreen(
                 }
         }
     }
-    val eligibleForGrant = remember(clients) {
-        clients.filter { it.hasScope("manifest_scopes", Capability.SHIZUKU) && !it.hasScope("remembered", Capability.SHIZUKU) }
+    val shizukuClients = remember(clients) { clients.filter { it.hasScope("available_scopes", Capability.SHIZUKU) } }
+    val eligibleForGrant = remember(shizukuClients) {
+        shizukuClients.filter { it.hasScope("manifest_scopes", Capability.SHIZUKU) && !it.hasScope("remembered", Capability.SHIZUKU) }
     }
-    val eligibleForRevoke = remember(clients) { clients.filter { it.hasPermission(Capability.SHIZUKU) } }
+    val eligibleForRevoke = remember(shizukuClients) { shizukuClients.filter { it.hasPermission(Capability.SHIZUKU) } }
     val actionsEnabled = state.appsLoaded && !state.busy && !batch.running
     val availability = when {
         state.safeMode -> "Safe Mode pauses all client access."
@@ -100,6 +101,13 @@ internal fun AppsManagementScreen(
         verticalArrangement = Arrangement.spacedBy(8.dp),
         contentPadding = PaddingValues(bottom = 16.dp),
     ) {
+        item {
+            ShizukuMasterControls(state, batch, shizukuClients.size, eligibleForGrant.size, eligibleForRevoke.size,
+                actionsEnabled, controller::reloadApps, onFailures = { showFailures = true }) { action ->
+                keyboard?.hide()
+                bulkApproval = action to if (action == ShizukuBatchAction.GRANT) eligibleForGrant else eligibleForRevoke
+            }
+        }
         item {
             Column {
                 OutlinedTextField(
@@ -120,39 +128,19 @@ internal fun AppsManagementScreen(
                         FilterChip(selected = filter == option, onClick = { filter = option; keyboard?.hide() }, label = { Text(option.label) })
                     }
                 }
-                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    val summary = when {
-                        !state.appsLoaded -> "Compatible clients"
-                        visible.size == 1 && clients.size == 1 -> "1 client"
-                        visible.size == clients.size -> "${visible.size} clients"
-                        else -> "${visible.size} of ${clients.size} clients"
-                    }
-                    Text(summary, style = MaterialTheme.typography.labelLarge, modifier = Modifier.weight(1f))
-                    Box {
-                        TextButton(enabled = actionsEnabled && (eligibleForGrant.isNotEmpty() || eligibleForRevoke.isNotEmpty()), onClick = {
-                            menuOpen = true
-                            keyboard?.hide()
-                        }) { Text("Shizuku actions") }
-                        DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-                            DropdownMenuItem(text = { Text("Grant All Shizuku") }, enabled = actionsEnabled && eligibleForGrant.isNotEmpty(), onClick = {
-                                menuOpen = false
-                                bulkApproval = ShizukuBatchAction.GRANT to eligibleForGrant
-                            })
-                            DropdownMenuItem(text = { Text("Revoke All Shizuku") }, enabled = actionsEnabled && eligibleForRevoke.isNotEmpty(), onClick = {
-                                menuOpen = false
-                                bulkApproval = ShizukuBatchAction.REVOKE to eligibleForRevoke
-                            })
-                        }
-                    }
+                val summary = when {
+                    !state.appsLoaded -> "Compatible clients"
+                    visible.size == 1 && clients.size == 1 -> "1 client"
+                    visible.size == clients.size -> "${visible.size} clients"
+                    else -> "${visible.size} of ${clients.size} clients"
                 }
+                Text(summary, style = MaterialTheme.typography.labelLarge)
                 availability?.let { SecondaryText(it) }
             }
         }
         if (packageControls != null) item { packageControls() }
-        if (batch.running) item { AnnouncedText("Updating Shizuku permissions…") }
-        batch.result?.let { result -> item { BatchFeedback(result) { showFailures = true } } }
         when {
-            state.appsError != null -> item { AnnouncedText(state.appsError, error = true) }
+            state.appsError != null -> Unit
             !state.appsLoaded -> item { AnnouncedText("Loading installed clients…") }
             clients.isEmpty() -> item { SecondaryText("No Shizuku or Axeron clients installed. Compatible apps appear here after installation.") }
             visible.isEmpty() -> item { SecondaryText("No clients match the current search and filter.") }
@@ -160,18 +148,18 @@ internal fun AppsManagementScreen(
         items(visible, key = { it.packageName }) { app ->
             AppPermissionCard(app, state, appScopes, actionsEnabled) { permission, enabled ->
                 if (enabled) approval = app to permission
-                else controller.decide(app, permission.scope, null)
+                else protect { controller.decide(app, permission.scope, null) }
             }
         }
     }
 
     approval?.let { (app, permission) ->
-        PermissionDialog(app, permission, state.status != null, actionsEnabled, controller) { approval = null }
+        PermissionDialog(app, permission, state.status != null, actionsEnabled, controller, protect) { approval = null }
     }
     bulkApproval?.let { (action, apps) ->
         BulkShizukuDialog(action, apps, enabled = actionsEnabled, onDismiss = { bulkApproval = null }) {
-            controller.changeAllShizuku(action, apps)
             bulkApproval = null
+            protect { controller.changeAllShizuku(action, apps) }
         }
     }
     batch.result?.takeIf { showFailures }?.let { result ->
@@ -193,9 +181,60 @@ internal fun AppsManagementScreen(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun ShizukuMasterControls(
+    state: CoreState,
+    batch: ShizukuBatchState,
+    known: Int,
+    grantable: Int,
+    granted: Int,
+    enabled: Boolean,
+    reload: () -> Unit,
+    onFailures: () -> Unit,
+    onAction: (ShizukuBatchAction) -> Unit,
+) {
+    Surface(shape = MaterialTheme.shapes.large, color = MaterialTheme.colorScheme.surfaceContainer) {
+        Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+            Text("Shizuku access", style = MaterialTheme.typography.titleMedium)
+            val summary = when {
+                state.appsError != null -> state.appsError
+                !state.appsLoaded -> "Checking installed apps…"
+                known == 0 -> "No eligible apps found. Install a Shizuku-compatible app and refresh."
+                state.liveAppsUnavailable -> "$granted of $known known apps have remembered access. Live grants are unavailable."
+                granted == 0 -> "All off · $known known apps"
+                granted == known -> "All on · $granted of $known apps"
+                else -> "Mixed · $granted of $known apps have access"
+            }
+            AnnouncedText(summary, error = state.appsError != null || state.liveAppsUnavailable)
+            if (state.liveAppsUnavailable) SecondaryText("Refresh to include session grants in All OFF.")
+            if (state.unverifiedApps > 0) AnnouncedText("Could not verify ${state.unverifiedApps} client(s). Those apps were excluded.", error = true)
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(onClick = { onAction(ShizukuBatchAction.GRANT) }, enabled = enabled && grantable > 0) {
+                    Text("All ON ($grantable)")
+                }
+                OutlinedButton(onClick = { onAction(ShizukuBatchAction.REVOKE) },
+                    enabled = enabled && granted > 0 && !state.liveAppsUnavailable) {
+                    Text("All OFF ($granted)")
+                }
+                if (state.appsError != null || state.liveAppsUnavailable || state.unverifiedApps > 0 || known == 0) {
+                    TextButton(onClick = reload, enabled = !batch.running) { Text("Refresh apps") }
+                }
+            }
+            if (batch.running) {
+                LinearProgressIndicator(progress = { batch.attempted.toFloat() / batch.total },
+                    modifier = Modifier.fillMaxWidth())
+                AnnouncedText("Processed ${batch.attempted} of ${batch.total} apps")
+            }
+            batch.result?.let { BatchFeedback(it, onFailures) }
+        }
+    }
+}
+
 @Composable
 internal fun NativeDiagnosticsPermissions(state: CoreState, controller: ActivationController) {
     val batch by controller.shizukuBatch.collectAsStateWithLifecycle()
+    val protect = rememberProtectedAction(DeviceProtection.AppPermissions) { controller.notice(it) }
     var approval by remember { mutableStateOf<Bundle?>(null) }
     val clients = remember(state.apps) { state.apps.filter { it.hasScope("available_scopes", Capability.DIAGNOSTICS) } }
     val actionsEnabled = state.appsLoaded && !state.busy && !batch.running
@@ -207,11 +246,11 @@ internal fun NativeDiagnosticsPermissions(state: CoreState, controller: Activati
     }
     clients.forEach { app ->
         AppPermissionCard(app, state, Capability.DIAGNOSTICS, actionsEnabled) { _, enabled ->
-            if (enabled) approval = app else controller.decide(app, Capability.DIAGNOSTICS, null)
+            if (enabled) approval = app else protect { controller.decide(app, Capability.DIAGNOSTICS, null) }
         }
     }
     approval?.let {
-        PermissionDialog(it, AppPermission.DIAGNOSTICS, state.status != null, actionsEnabled, controller) { approval = null }
+        PermissionDialog(it, AppPermission.DIAGNOSTICS, state.status != null, actionsEnabled, controller, protect) { approval = null }
     }
 }
 
@@ -285,6 +324,7 @@ private fun PermissionDialog(
     connected: Boolean,
     enabled: Boolean,
     controller: ActivationController,
+    protect: (() -> Unit) -> Unit,
     onDismiss: () -> Unit,
 ) {
     val title = if (permission == AppPermission.DIAGNOSTICS) "native diagnostics" else permission.label
@@ -310,14 +350,17 @@ private fun PermissionDialog(
                     "Remember this certificate" to GrantLedger.Lifetime.PERMANENT,
                 ).forEach { (label, lifetime) ->
                     TextButton(enabled = enabled && (connected || lifetime == GrantLedger.Lifetime.PERMANENT), onClick = {
-                        controller.decide(app, permission.scope, lifetime.ordinal)
                         onDismiss()
+                        protect { controller.decide(app, permission.scope, lifetime.ordinal) }
                     }) { Text(label) }
                 }
             }
         },
         dismissButton = {
-            TextButton(enabled = enabled, onClick = { controller.decide(app, permission.scope, null); onDismiss() }) { Text("Deny") }
+            TextButton(enabled = enabled, onClick = {
+                onDismiss()
+                protect { controller.decide(app, permission.scope, null) }
+            }) { Text("Deny") }
         },
     )
 }
@@ -356,7 +399,7 @@ private fun BulkShizukuDialog(
 }
 
 @Composable
-private fun ProtectPermissionDialog() {
+internal fun ProtectPermissionDialog() {
     val view = LocalView.current
     DisposableEffect(view) {
         view.filterTouchesWhenObscured = true
@@ -368,7 +411,7 @@ private fun ProtectPermissionDialog() {
 
 @Composable
 private fun BatchFeedback(result: ShizukuBatchResult, onReviewFailures: () -> Unit) {
-    val title = if (result.action == ShizukuBatchAction.GRANT) "Grant All Shizuku" else "Revoke All Shizuku"
+    val title = if (result.action == ShizukuBatchAction.GRANT) "All ON results" else "All OFF results"
     val summary = buildList {
         if (result.coreUpdates != 0) add("${result.coreUpdates} confirmed on core")
         if (result.offlineUpdates != 0) add(if (result.action == ShizukuBatchAction.GRANT)

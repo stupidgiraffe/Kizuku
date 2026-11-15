@@ -32,7 +32,7 @@ project's key. No private signing material is in the repository.
 
 Signed release publication is manual and depends on build, lint, unit tests,
 and runtime acceptance of the same signed APKs as UID 2000 and UID 0 on
-Android 16 and 17, including an in-place upgrade from the published Preview 2.
+Android 16 and 17, including an in-place upgrade from the previous signed preview.
 The compatibility APK is built with the same certificate and bundled byte-for-byte.
 
 Report vulnerabilities privately through the repository owner's GitHub contact.

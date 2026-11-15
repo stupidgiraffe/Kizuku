@@ -22,4 +22,6 @@ interface IKizukuService {
     Bundle systemSetting(String namespace, String key, String value, String operation);
     Bundle setPackageEnabled(String packageName, boolean enabled);
     void requestAxeronAccess(String packageName, int uid);
+    ParcelFileDescriptor openRuntimeWebSessionAsset(String id, String session, String path);
+    Bundle runtimeWebSessionCommand(String id, String session, String command, String options);
 }

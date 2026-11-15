@@ -23,10 +23,17 @@
             </intent-filter>
         </activity>
         <service android:name=".AdbPairingService" android:exported="false" android:foregroundServiceType="shortService" />
+        <service android:name=".AutomationJobService" android:exported="true" android:permission="android.permission.BIND_JOB_SERVICE" />
+        <receiver android:name=".AutomationReceiver" android:exported="true" />
         <provider android:name=".CoreProvider" android:authorities="io.github.stupidgiraffe.kizuku.core" android:exported="true" />
         <receiver android:name=".InstallResultReceiver" android:exported="false" />
         <receiver android:name=".LegacyBinderRequestReceiver" android:exported="true">
             <intent-filter><action android:name="io.github.stupidgiraffe.kizuku.REQUEST_LEGACY" /></intent-filter>
+        </receiver>
+        <receiver android:name=".KizukuDeviceAdminReceiver"
+            android:exported="true" android:permission="android.permission.BIND_DEVICE_ADMIN">
+            <meta-data android:name="android.app.device_admin" android:resource="@xml/kizuku_device_admin" />
+            <intent-filter><action android:name="android.app.action.DEVICE_ADMIN_ENABLED" /></intent-filter>
         </receiver>
     </application>
 </manifest>

@@ -18,7 +18,8 @@ object InstalledClients {
     private val packageFlags = PackageManager.GET_PERMISSIONS or PackageManager.GET_META_DATA or PackageManager.GET_PROVIDERS
 
     @Suppress("DEPRECATION")
-    fun list(context: Context, live: List<Bundle>, connected: Boolean): List<Bundle> {
+    @JvmOverloads
+    fun list(context: Context, live: List<Bundle>, connected: Boolean, onUnverified: () -> Unit = {}): List<Bundle> {
         val pm = context.packageManager
         val attached = live.filter { it.getBoolean("verified") }.associateBy { it.getString("package") to it.getInt("uid") }
         val remembered = AuthorizationStore.rememberedGrants(context).associateBy { it.first.packageName() }
@@ -35,6 +36,7 @@ object InstalledClients {
             val identity = try {
                 AndroidIdentity.resolve(pm, application.uid, pkg)
             } catch (_: Exception) {
+                onUnverified()
                 return@mapNotNull null
             }
             val identityJson = AndroidIdentity.encode(identity).toString()

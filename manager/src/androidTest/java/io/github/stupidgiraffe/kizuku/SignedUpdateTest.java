@@ -2,9 +2,13 @@ package io.github.stupidgiraffe.kizuku;
 
 import android.content.Context;
 import android.os.Bundle;
+import android.content.SharedPreferences;
+import android.util.Base64;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.platform.app.InstrumentationRegistry;
 import io.github.stupidgiraffe.kizuku.api.AndroidIdentity;
+import io.github.stupidgiraffe.kizuku.adb.AdbKey;
+import io.github.stupidgiraffe.kizuku.adb.PreferenceAdbKeyStore;
 import io.github.stupidgiraffe.kizuku.core.Capability;
 import io.github.stupidgiraffe.kizuku.core.ClientIdentity;
 import io.github.stupidgiraffe.kizuku.core.GrantLedger;
@@ -13,26 +17,38 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 @RunWith(AndroidJUnit4.class)
 public class SignedUpdateTest {
     private static final String CLIENT = "io.github.stupidgiraffe.kizuku.testclient";
+    private static final long SCOPES = Capability.SHIZUKU | Capability.AXERON;
 
-    @Test public void rememberedGrantSurvivesPackageReplacement() throws Exception {
+    @Test public void grantsAndAdbIdentitySurvivePackageReplacement() throws Exception {
         Context app = InstrumentationRegistry.getInstrumentation().getTargetContext();
         String stage = InstrumentationRegistry.getArguments().getString("stage", "");
         int uid = app.getPackageManager().getApplicationInfo(CLIENT, 0).uid;
-        // These calls are shared by Preview 2 and the candidate. Only Preview 2 writes the grant.
+        SharedPreferences adb = app.getSharedPreferences("adb", Context.MODE_PRIVATE);
+        SharedPreferences evidence = InstrumentationRegistry.getInstrumentation().getContext()
+                .getSharedPreferences("signed_update", Context.MODE_PRIVATE);
+        String adbIdentity = Base64.encodeToString(
+                new AdbKey(new PreferenceAdbKeyStore(adb), "Kizuku").getAdbPublicKey(), Base64.NO_WRAP);
+        // The previous signed release creates these through the same production stores.
         if (stage.equals("before")) {
             assertEquals("Fixture starts without a grant", 0L, grantedScope(app, uid));
             ClientIdentity identity = AndroidIdentity.resolve(app.getPackageManager(), uid, CLIENT);
-            AuthorizationStore.INSTANCE.decide(app, identity, Capability.SHIZUKU,
+            AuthorizationStore.INSTANCE.decide(app, identity, SCOPES,
                     GrantLedger.Lifetime.PERMANENT.ordinal());
-        } else if (!stage.equals("after")) {
+            assertTrue("Saved the generated public ADB identity", evidence.edit().putString("adb", adbIdentity).commit());
+            assertTrue("Saved the pairing preference", adb.edit().putBoolean("paired", true).commit());
+        } else if (stage.equals("after")) {
+            assertEquals("Keystore-backed ADB key survives the update", evidence.getString("adb", null), adbIdentity);
+            assertTrue("Pairing preference survives the update", adb.getBoolean("paired", false));
+        } else {
             fail("Unknown signed update stage: " + stage);
         }
-        assertEquals("Remembered grant for the installed probe", Capability.SHIZUKU, grantedScope(app, uid));
+        assertEquals("Both remembered grants for the installed probe", SCOPES, grantedScope(app, uid));
     }
 
     private static long grantedScope(Context app, int uid) {

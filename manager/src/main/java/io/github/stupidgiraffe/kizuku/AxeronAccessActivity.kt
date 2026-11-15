@@ -50,6 +50,7 @@ class AxeronAccessActivity : ComponentActivity() {
                 var ready by remember { mutableStateOf(false) }
                 var busy by remember { mutableStateOf(true) }
                 var problem by remember { mutableStateOf<String?>(null) }
+                val protect = rememberProtectedAction(DeviceProtection.AppPermissions) { problem = it }
                 LaunchedEffect(Unit) {
                     try {
                         val granted = withContext(Dispatchers.IO) {
@@ -66,6 +67,7 @@ class AxeronAccessActivity : ComponentActivity() {
                     } finally { busy = false }
                 }
                 AlertDialog(onDismissRequest = { if (!busy) finish() }, title = { Text("Allow Axeron access?") }, text = {
+                    ProtectPermissionDialog()
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(caller, style = MaterialTheme.typography.titleSmall)
                         Text("Allows commands as Android shell. If you later start Kizuku as root, this saved grant also allows root commands.")
@@ -75,16 +77,19 @@ class AxeronAccessActivity : ComponentActivity() {
                     }
                 }, confirmButton = {
                     TextButton(enabled = ready && !busy, onClick = {
-                        busy = true
-                        scope.launch {
-                            try {
-                                controller.approveAxeronRequest(snapshot)
-                                setResult(RESULT_OK)
-                                finish()
-                            } catch (failure: Exception) {
-                                if (failure is CancellationException) throw failure
-                                problem = failure.message ?: "Cannot save Axeron access."
-                            } finally { busy = false }
+                        protect {
+                            busy = true
+                            problem = null
+                            scope.launch {
+                                try {
+                                    controller.approveAxeronRequest(snapshot)
+                                    setResult(RESULT_OK)
+                                    finish()
+                                } catch (failure: Exception) {
+                                    if (failure is CancellationException) throw failure
+                                    problem = failure.message ?: "Cannot save Axeron access."
+                                } finally { busy = false }
+                            }
                         }
                     }) { Text("Remember access") }
                 }, dismissButton = { TextButton(enabled = !busy, onClick = { finish() }) { Text("Cancel") } })

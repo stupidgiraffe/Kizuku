@@ -14,7 +14,7 @@ apk="$temp/shevery-release.apk"
 curl --fail --silent --show-error --location --retry 3 --max-time 90   "https://github.com/HmnDev-Tech/shevery/releases/download/$version/shevery-release.apk" -o "$apk"
 printf '%s  %s\n' b793b2ecbdbed943c1df6819057d472c461b67ff94011c092b9c9c67b3626bb9 "$apk"   | sha256sum -c | tee "$evidence/apk.txt"
 "${ANDROID_HOME:?Set ANDROID_HOME}/build-tools/37.0.0/apksigner" verify --print-certs "$apk"   | tee "$evidence/certificate.txt"
-timeout 100 adb install "$apk"
+timeout 100 adb install -g "$apk"
 timeout 25 adb shell am start -W -n "$package/moe.shizuku.manager.MainActivity"   | tee "$evidence/launcher.txt"
 
 capture_home() {

@@ -71,6 +71,10 @@ class AdbActivationTest {
         val both = Capability.SHIZUKU or Capability.AXERON
         assertEquals("Both manifest contracts are detected independently", both, row().getLong("manifest_scopes") and both)
         clickText("Apps")
+        val eligible = controller.state.value.apps.count { it.getLong("manifest_scopes") and Capability.SHIZUKU != 0L }
+        assertTrue(eligible > 0)
+        clickText("All ON ($eligible)")
+        clickText("Cancel")
         clickProbeBinderSwitch(checked = false)
         clickText("Remember this certificate")
         await("remembered Binder grant") { row().getLong("granted") == Capability.SHIZUKU }
@@ -90,11 +94,11 @@ class AdbActivationTest {
                     controller.state.value.apps.any { it.getString("package") == nativeOnly && it.getLong("granted") == Capability.DIAGNOSTICS }
             }
 
-            clickText("Shizuku actions")
-            clickText("Grant All Shizuku")
+            clickText("All ON ($eligible)", AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD)
             await("confirmation identifies the target package", 8000) {
                 val visible = nodes()
-                if (visible.none { it.hasLabel("Grant Shizuku to 1 app?") }) return@await false
+                val targetCount = if (eligible == 1) "1 app" else "$eligible apps"
+                if (visible.none { it.hasLabel("Grant Shizuku to $targetCount?") }) return@await false
                 if (visible.any { it.hasLabel(client) && it.isVisibleToUser }) return@await true
                 visible.firstOrNull { node ->
                     node.actionList.any { it.id == AccessibilityNodeInfo.ACTION_SCROLL_FORWARD }
@@ -104,8 +108,7 @@ class AdbActivationTest {
             clickText("Cancel")
             assertEquals("Dismissing confirmation preserves the current grants", Capability.AXERON, row().getLong("granted"))
 
-            clickText("Shizuku actions")
-            clickText("Grant All Shizuku")
+            clickText("All ON ($eligible)")
             clickText("Grant Shizuku")
             await("offline bulk grant") {
                 row().getLong("granted") == both && controller.shizukuBatch.value.result?.action == ShizukuBatchAction.GRANT
@@ -113,8 +116,7 @@ class AdbActivationTest {
             assertEquals("Bulk grant requires the installed Shizuku declaration", Capability.DIAGNOSTICS,
                 controller.state.value.apps.first { it.getString("package") == nativeOnly }.getLong("granted"))
 
-            clickText("Shizuku actions")
-            clickText("Revoke All Shizuku")
+            clickText("All OFF ($eligible)")
             clickText("Revoke Shizuku")
             await("offline bulk revoke preserves Axeron") {
                 row().getLong("granted") == Capability.AXERON && controller.shizukuBatch.value.result?.action == ShizukuBatchAction.REVOKE
@@ -123,13 +125,18 @@ class AdbActivationTest {
 
             val stale = Bundle(row()).apply { putString("certificate", "stale-certificate") }
             val nativeRow = controller.state.value.apps.first { it.getString("package") == nativeOnly }
-            main { controller.changeAllShizuku(ShizukuBatchAction.GRANT, listOf(stale, nativeRow)) }
-            await("stale and ineligible bulk decisions fail") {
+            main { controller.changeAllShizuku(ShizukuBatchAction.GRANT, listOf(stale, nativeRow, row())) }
+            await("valid decisions succeed alongside stale and ineligible targets") {
                 controller.shizukuBatch.value.result?.failures?.map { it.first } == listOf(client, nativeOnly)
             }
             val rejected = requireNotNull(controller.shizukuBatch.value.result)
-            assertEquals(0, rejected.offlineUpdates + rejected.coreUpdates)
-            assertEquals(Capability.AXERON, row().getLong("granted"))
+            assertEquals(1, rejected.offlineUpdates + rejected.coreUpdates)
+            assertEquals(both, row().getLong("granted"))
+            if (eligible > 1) {
+                await("mixed grant indication") { findText("Mixed · 1 of $eligible apps have access") != null }
+            }
+            clickText("Review affected apps", AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD)
+            clickText("Close")
         } finally {
             AuthorizationStore.decide(app, nativeIdentity, Capability.DIAGNOSTICS, null)
             main { controller.decide(row(), both, null) }
@@ -183,30 +190,24 @@ class AdbActivationTest {
             val trustPrompt = systemNodes.any { it.hasLabel("Allow wireless debugging on this network?") }
             if (trustPrompt) {
                 systemNodes.firstOrNull { it.isEnabled && it.hasLabel("Allow") }?.let {
-                    click(it)
-                    nextAction = now + 1800
+                    if (tryClick(it)) nextAction = now + 1800
                 }
                 return@await false
             }
             val pair = settingsNodes.firstOrNull { it.isEnabled && it.hasLabel("Pair device with pairing code") }
-            if (pair != null) {
-                click(pair)
-                return@await true
-            }
+            if (pair != null && tryClick(pair)) return@await true
             val switch = settingsNodes.firstOrNull { it.hasLabel("Use wireless debugging") }
             val developerEntry = settingsNodes.firstOrNull { it.isEnabled && it.hasLabel("Wireless debugging") }
             when {
                 switch != null -> {
                     val toggle = settingsNodes.firstOrNull { it.isCheckable && it.isEnabled && !it.isChecked }
-                    if (toggle != null) {
-                        click(toggle)
+                    if (toggle != null && tryClick(toggle)) {
                         // Android can temporarily reset the switch while it opens the trust prompt.
                         nextAction = now + 2500
                     }
                 }
                 developerEntry != null -> {
-                    click(developerEntry)
-                    nextAction = now + 1000
+                    if (tryClick(developerEntry)) nextAction = now + 1000
                 }
                 settingsNodes.isNotEmpty() -> settingsNodes.firstOrNull { node ->
                     node.actionList.any { it.id == AccessibilityNodeInfo.ACTION_SCROLL_FORWARD }
@@ -236,7 +237,12 @@ class AdbActivationTest {
                     "checkable=${node.isCheckable}, checked=${node.isChecked}"
             }
         }) {
-            val node = nodes().firstOrNull { it.viewIdResourceName == tag } ?: return@await false
+            val visible = nodes()
+            val node = visible.firstOrNull { it.viewIdResourceName == tag && it.isVisibleToUser }
+            if (node == null) {
+                scroll(visible, AccessibilityNodeInfo.ACTION_SCROLL_FORWARD)
+                return@await false
+            }
             if (!node.isEnabled || node.isChecked != checked) return@await false
             click(node)
             true
@@ -277,16 +283,32 @@ class AdbActivationTest {
 
     private fun findText(text: String) = nodes().firstOrNull { it.hasLabel(text) }
     private fun click(node: AccessibilityNodeInfo) {
-        var target: AccessibilityNodeInfo? = node
-        while (target != null && !target.isClickable) target = target.parent
-        check(target?.performAction(AccessibilityNodeInfo.ACTION_CLICK) == true) { "UI control was not clickable" }
+        check(tryClick(node)) { "UI control was not clickable" }
         SystemClock.sleep(300)
     }
-    private fun clickText(text: String) {
+
+    private fun tryClick(node: AccessibilityNodeInfo): Boolean {
+        var target: AccessibilityNodeInfo? = node
+        while (target != null) {
+            if (target.isVisibleToUser && target.isEnabled && target.isClickable &&
+                target.performAction(AccessibilityNodeInfo.ACTION_CLICK)) return true
+            target = target.parent
+        }
+        return false
+    }
+    private fun scroll(visible: List<AccessibilityNodeInfo>, action: Int) {
+        visible.firstOrNull { node -> node.actionList.any { it.id == action } }?.performAction(action)
+    }
+
+    private fun clickText(text: String, scrollAction: Int? = null) {
         await("UI control $text", 8000) {
-            val node = findText(text) ?: return@await false
-            click(node)
-            true
+            val visible = nodes()
+            val node = visible.firstOrNull { it.hasLabel(text) && it.isEnabled && it.isVisibleToUser }
+            if (node == null) {
+                scrollAction?.let { scroll(visible, it) }
+                return@await false
+            }
+            tryClick(node)
         }
     }
 }

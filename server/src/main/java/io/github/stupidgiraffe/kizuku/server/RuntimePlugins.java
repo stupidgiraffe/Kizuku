@@ -21,14 +21,20 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.UUID;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
+import org.json.JSONObject;
 
 /** ZIP modules have explicit install, enable, action and uninstall lifecycles. */
 final class RuntimePlugins {
     private static final int MAX_PLUGINS = 96;
     private static final long MAX_ARCHIVE = 128L * 1024 * 1024;
     private static final long MAX_EXPANDED = 384L * 1024 * 1024;
+    private static final String BACKGROUND = ".kizuku-background";
+    private static final Set<String> RESERVED_WEB_ENV = new HashSet<>(Arrays.asList(
+        "PATH", "IFS", "ENV", "BASH_ENV", "MODDIR", "MODPATH", "ASH_STANDALONE", "ARCH", "KIZUKU_AXERON_PROCESS"));
+    private static final String SHEVERY_SCRIPT = "ui_print() { printf '%s\\n' \"$*\"; }; . \"$0\"";
     private static final String CUSTOMIZE = """
         ui_print() { printf '%s\n' "$*"; }
         abort() { ui_print "$*"; exit 1; }
@@ -41,6 +47,10 @@ final class RuntimePlugins {
         """;
     private final AxRuntime runtime;
     private final File root;
+    private final Map<String, WebSession> webSessions = new HashMap<>();
+    private final Map<String, String> serviceRuns = new HashMap<>();
+
+    private record WebSession(String token, boolean shell) {}
 
     RuntimePlugins(AxRuntime runtime) throws Exception {
         this.runtime = runtime;
@@ -69,8 +79,7 @@ final class RuntimePlugins {
                 if (!file.getName().equals(row.getString("id"))) throw new IOException("Module ID changed");
                 row.putString("moduleDir", file.getPath());
                 row.putBoolean("enabled", enabled(file));
-                row.putBoolean("action", new File(file, "action.sh").isFile());
-                row.putBoolean("webui", new File(file, "webroot/index.html").isFile());
+                row.putBoolean("background", isShevery(row) && new File(file, BACKGROUND).isFile());
                 rows.add(row);
             } catch (IOException | IllegalArgumentException failure) {
                 Bundle row = new Bundle();
@@ -89,9 +98,10 @@ final class RuntimePlugins {
             try {
                 File zip = new File(stage, "source.zip");
                 try (OutputStream out = Files.newOutputStream(zip.toPath())) { copy(source, out, MAX_ARCHIVE); }
-                File module = new File(stage, "module");
-                AxRuntime.secureDirectory(module);
-                unpack(zip, module);
+                File extracted = new File(stage, "module");
+                AxRuntime.secureDirectory(extracted);
+                unpack(zip, extracted);
+                File module = payloadRoot(extracted);
                 Bundle row = info(module);
                 String id = row.getString("id");
                 File target = new File(root, id);
@@ -99,7 +109,14 @@ final class RuntimePlugins {
                 if (!update && list().length >= MAX_PLUGINS) throw new IOException("Plugin limit reached");
                 if (update && !target.equals(target.getCanonicalFile())) throw new IOException("Invalid existing plugin directory");
                 File setup = new File(module, "customize.sh");
-                if (setup.isFile()) {
+                if (isShevery(row)) {
+                    if (!row.getBoolean("action") && !row.getBoolean("service") && !row.getBoolean("webui"))
+                        throw new IOException("No compatible action, service or WebUI found");
+                    try (var paths = Files.find(module.toPath(), 64, (path, attrs) ->
+                            attrs.isRegularFile() && path.getFileName().toString().endsWith(".sh"))) {
+                        for (Path path : paths.toArray(Path[]::new)) Os.chmod(path.toString(), 0700);
+                    }
+                } else if (setup.isFile()) {
                     if (setup.length() > 128 * 1024) throw new IOException("Plugin installer is too large");
                     String script = new String(Files.readAllBytes(setup.toPath()), StandardCharsets.UTF_8);
                     if (java.util.regex.Pattern.compile("(?m)^\\s*(?:export\\s+)?SKIPUNZIP\\s*=\\s*1\\b").matcher(script).find())
@@ -118,6 +135,7 @@ final class RuntimePlugins {
                 }
                 if (update && !enabled(target)) new File(module, "disable").createNewFile();
                 File previous = new File(root, ".previous-" + id);
+                invalidate(id);
                 runtime.stopPlugin(id);
                 if (update) Os.rename(target.getPath(), previous.getPath());
                 try { Os.rename(module.getPath(), target.getPath()); }
@@ -145,6 +163,7 @@ final class RuntimePlugins {
     synchronized Bundle control(String id, String action) throws Exception {
         File directory = plugin(id);
         File disabled = new File(directory, "disable");
+        Bundle row = info(directory);
         switch (action) {
             case "enable" -> {
                 boolean changed = Files.deleteIfExists(disabled.toPath());
@@ -154,23 +173,70 @@ final class RuntimePlugins {
             }
             case "disable" -> {
                 if (enabled(directory) && !disabled.createNewFile()) throw new IOException("Cannot disable plugin");
+                invalidate(id);
                 runtime.stopPlugin(id);
                 updatePath();
             }
             case "restart" -> {
                 requireEnabled(directory);
+                serviceRuns.remove(id);
                 runtime.stopPlugin(id);
                 start(id, directory);
             }
             case "action" -> {
                 requireEnabled(directory);
-                Bundle result = script(id, directory, "action.sh");
+                Bundle result = isShevery(row)
+                    ? moduleScript(id, directory, row, "action")
+                    : script(id, directory, "action.sh");
                 if (result == null) throw new IOException("No action script for this plugin");
                 return result;
             }
-            case "remove" -> {
+            case "run-service" -> {
+                requireEnabled(directory);
+                if (!isShevery(row)) throw new IOException("Use Restart for Axeron services");
+                serviceRuns.remove(id);
                 runtime.stopPlugin(id);
-                Bundle result = script(id, directory, "uninstall.sh");
+                Bundle result = moduleScript(id, directory, row, "service");
+                if (result == null) throw new IOException("No service script for this module");
+                return result;
+            }
+            case "background-on" -> {
+                requireEnabled(directory);
+                if (!isShevery(row) || !row.getBoolean("service")) throw new IOException("No service script for this module");
+                File approval = child(directory, BACKGROUND);
+                if (approval.createNewFile()) {
+                    try { start(id, directory); }
+                    catch (Exception failure) { Files.deleteIfExists(approval.toPath()); throw failure; }
+                }
+            }
+            case "background-off" -> {
+                if (!isShevery(row)) throw new IOException("Background policy is for Shevery modules");
+                Files.deleteIfExists(child(directory, BACKGROUND).toPath());
+                serviceRuns.remove(id);
+                runtime.stopPlugin(id);
+            }
+            case "action-log" -> { return lastLog(directory, "action"); }
+            case "service-log" -> { return lastLog(directory, "service"); }
+            case "web-read", "web-shell" -> {
+                requireEnabled(directory);
+                if (!row.getBoolean("webui")) throw new IOException("This plugin has no WebUI");
+                boolean shell = action.equals("web-shell");
+                if (shell && isShevery(row) && !row.getBoolean("declares_shell"))
+                    throw new SecurityException("This module did not declare WebUI shell support");
+                WebSession session = new WebSession(UUID.randomUUID().toString(), shell);
+                webSessions.put(id, session);
+                row.putString("web_session", session.token());
+                row.putInt("hostUid", android.os.Process.myUid());
+                row.putString("moduleDir", directory.getPath());
+                row.putString("webRoot", child(directory, row.getString("web_path")).getPath());
+                row.putBoolean("enabled", true);
+                row.putBoolean("background", isShevery(row) && new File(directory, BACKGROUND).isFile());
+                return row;
+            }
+            case "remove" -> {
+                invalidate(id);
+                runtime.stopPlugin(id);
+                Bundle result = isShevery(row) ? null : script(id, directory, "uninstall.sh");
                 if (result != null) requireSuccess(result);
                 delete(directory.toPath());
                 updatePath();
@@ -194,8 +260,9 @@ final class RuntimePlugins {
     synchronized ParcelFileDescriptor asset(String id, String relative) throws Exception {
         File directory = plugin(id);
         requireEnabled(directory);
-        File web = child(directory, "webroot");
-        if (web.equals(directory)) throw new SecurityException("Invalid WebUI directory");
+        Bundle row = info(directory);
+        if (!row.getBoolean("webui")) return null;
+        File web = child(directory, row.getString("web_path"));
         File resource = child(web, relative);
         if (!resource.isFile() || resource.length() > 16 * 1024 * 1024) return null;
         // A regular file under the root host's data directory cannot be passed to
@@ -206,6 +273,7 @@ final class RuntimePlugins {
     synchronized Bundle webCommand(String id, String command, String cwd) throws Exception {
         File directory = plugin(id);
         requireEnabled(directory);
+        if (isShevery(info(directory))) throw new SecurityException("Open the module WebUI with shell access first");
         File work = directory;
         if (cwd != null && !cwd.isEmpty()) {
             File requested = new File(cwd);
@@ -216,7 +284,86 @@ final class RuntimePlugins {
         return runtime.run(id, new String[]{AxRuntime.SHELL, "-c", AxRuntime.validate(command)}, work, null, 15);
     }
 
+    synchronized void closeWebSessions() { webSessions.clear(); }
+
+    synchronized ParcelFileDescriptor webSessionAsset(String id, String token, String resource) throws Exception {
+        requireSession(id, token);
+        return asset(id, resource);
+    }
+
+    Bundle webSessionCommand(String id, String token, String command, String rawOptions) throws Exception {
+        return prepareWebSessionCommand(id, token, command, rawOptions).call();
+    }
+
+    private synchronized java.util.concurrent.Callable<Bundle> prepareWebSessionCommand(
+            String id, String token, String command, String rawOptions) throws Exception {
+        if (!requireSession(id, token).shell()) throw new SecurityException("This WebUI was opened without shell access");
+        File directory = plugin(id);
+        requireEnabled(directory);
+        Bundle row = info(directory);
+        if (isShevery(row) && !row.getBoolean("declares_shell")) throw new SecurityException("WebUI shell support was removed");
+        if (rawOptions != null && rawOptions.length() > 196_608) throw new IllegalArgumentException("WebUI options are too large");
+        JSONObject options = rawOptions == null || rawOptions.trim().isEmpty() ? new JSONObject() : new JSONObject(rawOptions);
+        byte[] stdin = options.optString("stdin", "").getBytes(StandardCharsets.UTF_8);
+        if (stdin.length > 65_536) throw new IllegalArgumentException("WebUI stdin exceeds 64 KiB");
+        int timeout = Math.max(1, Math.min(120, options.optInt("timeoutSeconds", isShevery(row) ? 60 : 15)));
+        String cwd = options.optString("cwd", "");
+        File work = cwd.isEmpty() ? directory
+            : isShevery(row) || !new File(cwd).isAbsolute() ? child(directory, cwd)
+            : new File(cwd).getCanonicalFile();
+        if (!work.toPath().startsWith(directory.toPath()) || !work.isDirectory())
+            throw new SecurityException("WebUI working directory must be inside the plugin");
+        Map<String, String> env = isShevery(row) ? moduleEnv(id, directory, work) : new HashMap<>();
+        JSONObject requested = options.optJSONObject("env");
+        if (requested != null) {
+            if (requested.length() > 32) throw new IllegalArgumentException("Too many WebUI environment values");
+            for (var it = requested.keys(); it.hasNext();) {
+                String key = it.next();
+                String value = requested.getString(key);
+                if (!key.matches("[A-Za-z_][A-Za-z0-9_]{0,63}") || value.length() > 4096 || value.indexOf(0) >= 0)
+                    throw new IllegalArgumentException("Invalid WebUI environment value");
+                String upper = key.toUpperCase(java.util.Locale.ROOT);
+                if (RESERVED_WEB_ENV.contains(upper) || upper.startsWith("LD_") || upper.startsWith("SHIZUKU_"))
+                    throw new SecurityException("Reserved WebUI environment key: " + key);
+                env.put(key, value);
+            }
+        }
+        return runtime.prepare(id, new String[]{AxRuntime.SHELL, "-c", AxRuntime.validate(command)}, work, env, timeout, stdin);
+    }
+
+    private WebSession requireSession(String id, String token) {
+        WebSession session = webSessions.get(id);
+        if (session == null || !session.token().equals(token))
+            throw new SecurityException("This WebUI session ended. Reopen it from Modules.");
+        return session;
+    }
+
+    private void invalidate(String id) {
+        webSessions.remove(id);
+        serviceRuns.remove(id);
+    }
+
     private void start(String id, File directory) throws Exception {
+        Bundle row = info(directory);
+        if (isShevery(row)) {
+            String relative = row.getString("service_path");
+            if (relative == null || !new File(directory, BACKGROUND).isFile()) return;
+            File service = child(directory, relative);
+            String run = UUID.randomUUID().toString();
+            serviceRuns.put(id, run);
+            try {
+                runtime.moduleService(id, moduleArgs(service), directory, moduleEnv(id, directory, directory),
+                    result -> {
+                        synchronized (this) {
+                            if (!run.equals(serviceRuns.get(id))) return;
+                            serviceRuns.remove(id);
+                            try { writeLog(directory, "service", result); }
+                            catch (IOException failure) { Log.w("KizukuRuntime", "Cannot write module service log", failure); }
+                        }
+                    });
+            } catch (Exception failure) { serviceRuns.remove(id); throw failure; }
+            return;
+        }
         Bundle result = script(id, directory, "post-fs-data.sh");
         if (result != null) requireSuccess(result);
         File service = child(directory, "service.sh");
@@ -226,6 +373,50 @@ final class RuntimePlugins {
     private Bundle script(String id, File directory, String name) throws Exception {
         File script = child(directory, name);
         return script.isFile() ? runtime.run(id, new String[]{AxRuntime.SHELL, script.getPath()}, directory, null, 20) : null;
+    }
+
+    private Bundle moduleScript(String id, File directory, Bundle row, String kind) throws Exception {
+        String relative = row.getString(kind + "_path");
+        if (relative == null) return null;
+        Bundle result = runtime.run(id, moduleArgs(child(directory, relative)), directory,
+            moduleEnv(id, directory, directory), 60);
+        writeLog(directory, kind, result);
+        return result;
+    }
+
+    private static String[] moduleArgs(File script) {
+        return new String[]{AxRuntime.SHELL, "-c", SHEVERY_SCRIPT, script.getPath()};
+    }
+
+    private static Map<String, String> moduleEnv(String id, File directory, File working) {
+        Map<String, String> env = new HashMap<>();
+        env.put("MODDIR", directory.getPath());
+        env.put("MODPATH", directory.getPath());
+        env.put("SHIZUKU_EXEC_CWD", working.getPath());
+        env.put("ASH_STANDALONE", "1");
+        env.put("SHIZUKU_MODULE_ID", id);
+        env.put("SHIZUKU_MODULE_MODE", "custom");
+        env.put("SHIZUKU_MODULE_TRUSTED", "0");
+        env.put("SHIZUKU_MODULE_BACKGROUND", new File(directory, BACKGROUND).isFile() ? "1" : "0");
+        env.put("ARCH", android.os.Build.SUPPORTED_ABIS[0]);
+        return env;
+    }
+
+    private static void writeLog(File directory, String kind, Bundle result) throws IOException {
+        File log = child(directory, "logs/" + kind + "-last.log");
+        Files.createDirectories(log.getParentFile().toPath());
+        String message = kind + " · exit " + result.getInt("exit") + "\n"
+            + result.getString("stdout", "") + "\n" + result.getString("stderr", "");
+        Files.write(log.toPath(), message.getBytes(StandardCharsets.UTF_8));
+    }
+
+    private static Bundle lastLog(File directory, String kind) throws IOException {
+        File log = child(directory, "logs/" + kind + "-last.log");
+        Bundle result = new Bundle();
+        if (log.isFile() && log.length() <= 262_144)
+            result.putString("module_log", new String(Files.readAllBytes(log.toPath()), StandardCharsets.UTF_8));
+        else result.putString("module_log", "No " + kind + " output yet.");
+        return result;
     }
 
     private static void requireSuccess(Bundle result) throws IOException {
@@ -254,26 +445,87 @@ final class RuntimePlugins {
         if (!metadata.isFile() || metadata.length() > 8192) throw new IOException("Missing root-level module.prop");
         Properties values = new Properties();
         try (var reader = Files.newBufferedReader(metadata.toPath(), StandardCharsets.UTF_8)) { values.load(reader); }
+        boolean shevery = !values.containsKey("axeronPlugin");
+        if (shevery) {
+            // Shevery treats values as literal UTF-8 strings and does not unescape Java properties.
+            values.clear();
+            for (String line : Files.readAllLines(metadata.toPath(), StandardCharsets.UTF_8)) {
+                String clean = line.trim();
+                int separator = clean.indexOf('=');
+                if (!clean.startsWith("#") && separator > 0)
+                    values.setProperty(clean.substring(0, separator).trim(), clean.substring(separator + 1).trim());
+            }
+        }
         String id = values.getProperty("id", "");
-        if (!validId(id)) throw new IOException("Invalid module ID");
+        if (!validId(id) || shevery && id.length() > 64) throw new IOException("Invalid module ID");
+        long version;
         try {
-            int minimum = Integer.parseInt(values.getProperty("axeronPlugin", ""));
-            if (minimum < 1 || minimum > 30000) throw new IOException("Plugin requires a different Axeron version");
-            if (Integer.parseInt(values.getProperty("versionCode", "")) < 0) throw new NumberFormatException();
-        } catch (NumberFormatException invalid) { throw new IOException("versionCode and axeronPlugin must be numeric"); }
+            if (!shevery) {
+                int minimum = Integer.parseInt(values.getProperty("axeronPlugin", ""));
+                if (minimum < 1 || minimum > 30000) throw new IOException("Plugin requires a different Axeron version");
+            }
+            version = Long.parseLong(values.getProperty("versionCode", shevery ? "1" : ""));
+            if (version < 0) throw new NumberFormatException();
+        } catch (NumberFormatException invalid) { throw new IOException("Invalid module versionCode or Axeron version"); }
         Bundle result = new Bundle();
         result.putString("id", id);
+        result.putString("format", shevery ? "shevery" : "axeron");
+        result.putLong("versionCode", version);
         for (String key : new String[]{"name", "version", "author", "description"}) {
             String value = values.getProperty(key, key.equals("name") ? id : "").replaceAll("[\\p{Cntrl}\\p{Cf}]", " ");
             result.putString(key, value.substring(0, Math.min(value.length(), 240)));
         }
+        String action = shevery
+            ? firstFile(directory, values.getProperty("action"), "action.sh", "common/action.sh", "run.sh", "main.sh", "exec.sh")
+            : firstFile(directory, "action.sh");
+        String service = shevery
+            ? firstFile(directory, values.getProperty("service"), "service.sh", "common/service.sh", "late_start.sh")
+            : firstFile(directory, "service.sh");
+        String web = shevery
+            ? firstWebRoot(directory, values.getProperty("webui"), "webroot", "webui", "web")
+            : firstWebRoot(directory, "webroot");
+        result.putString("action_path", action);
+        result.putString("service_path", service);
+        result.putString("web_path", web);
+        result.putBoolean("action", action != null);
+        result.putBoolean("service", service != null);
+        result.putBoolean("webui", web != null);
+        result.putBoolean("declares_shell", "true".equals(values.getProperty("usesShellBridge", values.getProperty("shellBridge"))));
         return result;
+    }
+
+    private static boolean isShevery(Bundle row) { return "shevery".equals(row.getString("format")); }
+
+    private static String firstFile(File root, String... candidates) throws IOException {
+        for (String candidate : candidates) {
+            if (candidate != null && !candidate.trim().isEmpty() && child(root, candidate).isFile()) return candidate;
+        }
+        return null;
+    }
+
+    private static String firstWebRoot(File root, String... candidates) throws IOException {
+        for (String candidate : candidates) {
+            if (candidate != null && !candidate.trim().isEmpty() && child(root, candidate + "/index.html").isFile()) return candidate;
+        }
+        return null;
+    }
+
+    private static File payloadRoot(File extracted) throws IOException {
+        if (new File(extracted, "module.prop").isFile()) return extracted;
+        try (var metadata = Files.find(extracted.toPath(), 4, (path, attrs) ->
+                attrs.isRegularFile() && "module.prop".equals(path.getFileName().toString()))) {
+            var candidates = metadata.sorted(Comparator.comparingInt(Path::getNameCount)).limit(2).toArray(Path[]::new);
+            if (candidates.length == 0) throw new IOException("Missing module.prop");
+            if (candidates.length > 1 && candidates[0].getNameCount() == candidates[1].getNameCount())
+                throw new IOException("ZIP contains more than one module");
+            return candidates[0].getParent().toFile();
+        }
     }
 
     private void updatePath() throws Exception {
         for (File file : entries(runtime.bins)) Files.deleteIfExists(file.toPath());
         for (Bundle row : list()) {
-            if (!row.getBoolean("enabled")) continue;
+            if (!row.getBoolean("enabled") || isShevery(row)) continue;
             File executables = child(plugin(row.getString("id")), "system/bin");
             for (File file : entries(executables)) {
                 File real = file.getCanonicalFile();
@@ -293,7 +545,9 @@ final class RuntimePlugins {
             for (ZipEntry entry; (entry = zip.getNextEntry()) != null;) {
                 String name = entry.getName();
                 if (entry.isDirectory() && name.endsWith("/")) name = name.substring(0, name.length() - 1);
-                if (!names.add(name) || names.size() > 8192) throw new IOException("Invalid or excessive ZIP entries");
+                if (!names.add(name) || names.size() > 8192 ||
+                        Arrays.stream(name.split("/", -1)).anyMatch(part -> part.startsWith(".kizuku-")))
+                    throw new IOException("Invalid or excessive ZIP entries");
                 File destination = child(directory, name);
                 if (entry.isDirectory()) Files.createDirectories(destination.toPath());
                 else {
