@@ -1,11 +1,10 @@
-Kizuku 0.2.0 Preview 1 adds stock Shizuku process streams, UserService, and rish to the same privilege host used for Axeron command execution.
+Kizuku 0.2.0 Preview 2 adds Shevery 14.6.5 module compatibility and expands app management, automation, and device controls.
 
-- **Shizuku compatibility** covers Binder discovery and forwarding, UserService, process streams, and the stock rish launcher. Install or remove the companion through **Settings → Compatibility**. Android asks for confirmation. The companion package is also used by stock Shizuku and some forks.
-- **Axeron runtime** provides independently authorized command execution, saved commands, scripts, and ZIP modules with actions, service scripts, and local WebUI support. Module state persists separately for shell and root. The manager also includes primary-user app enable/disable and a system settings editor.
-- **Application manager** adds app search, filtering, and individual Shizuku and Axeron grants. Confirmed bulk Shizuku operations identify the affected apps and report errors per app.
-- **Labs** includes Service Doctor, accessibility inventory, and optional device authentication. The main app and companion have distinct adaptive icons.
-- **Home** shows Shizuku, Axeron, companion, and privilege status together. Start with root, Wireless ADB pairing or a saved key, custom local TCP, or computer ADB.
+- **Apps** puts **All ON** and **All OFF** at the top, with mixed-state and affected-app counts. Both show the targets before applying changes, then report progress and individual failures. Shizuku and Axeron grants stay independent.
+- **Modules** accepts Shevery ZIPs alongside Axeron plugins. Run actions and service scripts, review their latest output, or open a local WebUI. Automatic Shevery service startup is optional and updating a module clears that permission. A Shevery WebUI needs fresh consent each time it requests shell or root command access.
+- **Automation** supports authenticated explicit intents for start, stop, restart, toggle, and status. Configure it in Settings for use with automation apps. Recovery uses the existing host and respects a manual stop.
+- **Labs** can enable or disable installed accessibility services with confirmation, export a Service Doctor snapshot, and manage optional device authentication. Explicitly enrolled devices can suspend third-party apps and block their removal using Android Device Owner policies.
 
-The signed release workflow verifies an in-place upgrade from 0.1.0 Preview 2 and exercises the resulting APK on Android 16 and 17 emulators as shell and root. APKs retain the permanent Kizuku signing certificate.
+The signed release checks verify update compatibility from 0.2.0 Preview 1, the permanent certificate, and Android 16/17 emulator acceptance as shell and root.
 
-Axeron interactive PTY and the native socket and file API, the complete plugin WebUI API, BusyBox-specific installers, the SU bridge, and Device Owner/Dhizuku are still outstanding. Physical devices, OEM root-manager prompts, and broader third-party app compatibility remain unverified.
+This preview supports a local subset of Shevery WebUI APIs. The module catalog, remote WebUI resources, the native Tasker plugin picker, Profile Owner and third-party Dhizuku API remain outside this release. See [the Shevery comparison](https://github.com/stupidgiraffe/Kizuku/blob/main/docs/UPSTREAMS.md#shevery-1465-comparison) for the source audit and supported features.

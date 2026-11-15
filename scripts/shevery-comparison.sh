@@ -18,13 +18,41 @@ timeout 100 adb install -g "$apk"
 timeout 25 adb shell am start -W -n "$package/moe.shizuku.manager.MainActivity"   | tee "$evidence/launcher.txt"
 
 capture_home() {
-  local phase=$1 label=$2
+  local phase=$1 label=$2 coords x y
   for attempt in $(seq 1 14); do
     timeout 10 adb shell uiautomator dump /data/local/tmp/shevery-home.xml >/dev/null || continue
     timeout 10 adb shell cat /data/local/tmp/shevery-home.xml >"$evidence/$phase.xml" || continue
     if grep -Fq "text=\"$label\"" "$evidence/$phase.xml"; then
       timeout 10 adb exec-out screencap -p >"$evidence/$phase.png"
       return 0
+    fi
+    # Resolve only the official app's startup suggestion or Android's network
+    # consent on this fresh emulator. Keep the release APK unchanged.
+    if coords=$(python3 - "$evidence/$phase.xml" <<'PY'
+import re
+import sys
+from xml.etree import ElementTree as ET
+
+nodes = list(ET.parse(sys.argv[1]).iter("node"))
+prompts = {
+    "Allow wireless debugging on this network?": ("com.android.systemui", "Allow"),
+    "Enable Persistent TCP Mode?": ("com.hamondev.shevery", "Not Now"),
+}
+for prompt, (package, button) in prompts.items():
+    if not any(n.get("text") == prompt and n.get("package") == package for n in nodes):
+        continue
+    for n in nodes:
+        if n.get("text") != button or n.get("package") != package:
+            continue
+        bounds = tuple(map(int, re.findall(r"\d+", n.get("bounds", ""))))
+        if len(bounds) == 4 and bounds[0] < bounds[2] and bounds[1] < bounds[3]:
+            print((bounds[0] + bounds[2]) // 2, (bounds[1] + bounds[3]) // 2)
+            sys.exit(0)
+sys.exit(1)
+PY
+    ); then
+      read -r x y <<<"$coords"
+      timeout 8 adb shell input tap "$x" "$y"
     fi
     sleep 1
   done

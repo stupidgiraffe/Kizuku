@@ -9,6 +9,10 @@ on:
         description: Run cross-UID privileged Binder acceptance on an emulator
         type: boolean
         default: false
+      shevery:
+        description: Compare the official Shevery 14.6.5 APK on a fresh emulator
+        type: boolean
+        default: false
 permissions:
   contents: read
 concurrency:
@@ -16,6 +20,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   build:
+    if: github.event_name != 'workflow_dispatch' || !inputs.shevery || inputs.smoke
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
@@ -95,7 +100,7 @@ jobs:
           name: emulator-evidence-api-${{ matrix.sdk }}-${{ github.sha }}
           path: smoke-evidence/
   shevery-comparison:
-    if: github.event_name == 'workflow_dispatch' && inputs.smoke
+    if: github.event_name == 'workflow_dispatch' && inputs.shevery
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:

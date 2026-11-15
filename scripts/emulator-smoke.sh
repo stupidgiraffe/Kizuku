@@ -41,6 +41,9 @@ if [[ "$host_uid" == 2000 ]]; then
 fi
 while IFS= read -r apk; do adb install -r -t "$apk"; done < <(find "$artifact_root" -name '*.apk' -type f -path '*/compat/*' | sort)
 if [[ "${KIZUKU_TEST_ADB:-false}" == true && "$host_uid" == 2000 ]]; then
+  if [[ "${KIZUKU_TEST_THIRD_PARTY:-false}" == true ]]; then
+    scripts/hail-client-acceptance.sh prepare
+  fi
   KIZUKU_EVIDENCE_DIR="$evidence/adb" scripts/adb-acceptance.sh
 fi
 adb shell dumpsys package "$manager" >"$evidence"/manager-package.txt

@@ -8,13 +8,17 @@ manager=io.github.stupidgiraffe.kizuku
 probe=$manager.testclient
 hail=com.aistra.hail
 temp=$(mktemp -d)
+trap 'rm -rf "$temp"' EXIT
+if [[ "${1:-}" == prepare ]] || ! adb shell pm path "$hail" | grep -q '^package:'; then
+  apk="$temp/Hail-v1.11.0.apk"
+  curl --fail --silent --show-error --location --retry 3 --max-time 90 \
+    https://github.com/aistra0528/Hail/releases/download/v1.11.0/Hail-v1.11.0.apk -o "$apk"
+  printf '%s  %s\n' 3be0c4a210b0472198ea3b675fcbd5720fa16288dcff119557644ea947003236 "$apk" \
+    | sha256sum -c | tee "$evidence/fixture.txt"
+  timeout 100 adb install -r "$apk"
+fi
+if [[ "${1:-}" == prepare ]]; then exit 0; fi
 trap 'timeout 10 adb logcat -d -s Hail AndroidRuntime KizukuServer >"$evidence/logcat.txt" || true; timeout 20 adb uninstall "$hail" || true; rm -rf "$temp"' EXIT
-apk="$temp/Hail-v1.11.0.apk"
-curl --fail --silent --show-error --location --retry 3 --max-time 90 \
-  https://github.com/aistra0528/Hail/releases/download/v1.11.0/Hail-v1.11.0.apk -o "$apk"
-printf '%s  %s\n' 3be0c4a210b0472198ea3b675fcbd5720fa16288dcff119557644ea947003236 "$apk" \
-  | sha256sum -c | tee "$evidence/fixture.txt"
-timeout 100 adb install "$apk"
 
 wait_for_control() {
   local label=$1 action=$2 screenshot="$evidence/ui.png" coords x y
