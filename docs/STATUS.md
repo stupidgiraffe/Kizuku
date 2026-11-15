@@ -3,22 +3,46 @@
 Updated 2026-11-16 JST. Canonical Plane mainline #3:
 `68ff91b5-1e6c-4a37-b755-8d284b4fffb4`.
 
-## Shevery 14.6.5 integration
+## Published 0.2.0 Preview 2
+
+[Download the signed APK](https://github.com/stupidgiraffe/Kizuku/releases/download/v0.2.0-preview.2/Kizuku-v0.2.0-preview.2.apk) ·
+[Release notes](https://github.com/stupidgiraffe/Kizuku/releases/tag/v0.2.0-preview.2) ·
+[Passed signed workflow](https://github.com/stupidgiraffe/Kizuku/actions/runs/43749949949)
+
+- Source `5df4a477775f4c9f3232d217241e33662d3af526`, version code 5.
+- APK size 17,594,874 bytes. SHA-256
+  `14ab7db569f40f853d18fbd9274995ecdbf135aa99f7df6a8b52a83edff68295`. The public download and published checksum match
+  the signed acceptance artifact.
+- Android 16 and 17 emulators updated in place from Preview 1, preserving
+  the app UID, remembered Shizuku and Axeron grants, wireless pairing preference,
+  and ADB key. The APK verified against the permanent signing certificate.
+- Both emulators passed fresh installs as shell UID 2000 and root UID 0.
+  Tests covered All ON and All OFF with eligible and mixed counts, the companion
+  lifecycle, wireless pairing and reconnect, local TCP and computer ADB,
+  stock Shizuku IPC and rish, and separate Axeron authorization.
+- Hail 1.11.0 exercised a real Shizuku force-stop. Sys Info 2.2 exercised a real
+  Shevery WebUI and its command bridge. Additional tests covered action and service
+  lifecycle, authenticated status and stop, rejected keys, accessibility toggles,
+  the Labs authentication gate, and Device Owner enrollment, suspension,
+  uninstall protection, policy reversal, and ownership removal.
+  Runtime evidence artifacts are 14175987456 for API 36 and 14176845170 for API 37.
+
+### Shevery 14.6.5 integration
 
 The [official APK comparison](https://github.com/stupidgiraffe/Kizuku/actions/runs/43746124198)
-verified the release archive and signer, opened the official Shevery Home screen,
-and started its native computer-ADB path as shell UID 2000 on Android 16.
-The artifact retains stopped and running Home screenshots. Shevery gives the
-connected service and app manager one card. Kizuku keeps the Shizuku interface,
-Axeron runtime and companion status visible together and puts bulk controls
-at the top of Apps. [Feature comparison and source evidence](UPSTREAMS.md#shevery-1465-comparison)
+verified the release archive and signer, captured stopped and running Home screens,
+and started Shevery over computer ADB as shell UID 2000 on Android 16.
+The [feature comparison](UPSTREAMS.md#shevery-1465-comparison) records the exact
+tag and source, plus implemented, partial, missing, and unsuitable features.
 
-The candidate includes the bulk controls, local Shevery module compatibility,
+Preview 2 adds visible bulk controls, local Shevery module compatibility,
 authenticated lifecycle intents, app and companion authentication, accessibility
-toggles, structured Service Doctor export and opt-in Device Owner controls.
-Signed release acceptance must confirm the update and runtime on Android 16
-and 17. External Dhizuku, network WebUI APIs and Shevery's full module catalog
-and automation integration remain outstanding.
+toggles, structured Service Doctor export, and opt-in Device Owner controls.
+External Dhizuku, Profile Owner, network WebUI APIs, the full module catalog,
+and native Tasker integration remain open. Automated startup requires a saved
+root or paired Wireless ADB method. Emulator root uses `adb root`.
+OEM root-manager prompts, physical-device behavior, and successful real
+biometric unlocking still need device acceptance.
 
 ## Published 0.2.0 Preview 1
 
@@ -165,4 +189,4 @@ preserved in git history. No unchanged failure was blindly rerun.
    and physical Android 16/17 acceptance including OEM `su` prompts.
 2. Axeron PTY, native socket/file service and a wider range of actual third-party
    module installers and WebUIs.
-3. SU bridge, automation/watchdog and Device Owner/Dhizuku integration.
+3. SU bridge, boot-time automation, native Tasker integration, and external Dhizuku.

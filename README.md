@@ -5,29 +5,29 @@
 <h1 align="center">Kizuku</h1>
 
 <p align="center">
-  Give compatible apps Shizuku access, run scripts and modules with Axeron,
+  Give compatible apps Shizuku access, run Axeron and Shevery modules,
   and control permissions from one Android app.
 </p>
 
 <p align="center">
-  <strong><a href="https://github.com/stupidgiraffe/Kizuku/releases/download/v0.2.0-preview.1/Kizuku-v0.2.0-preview.1.apk">Download the signed APK ↓</a></strong>
+  <strong><a href="https://github.com/stupidgiraffe/Kizuku/releases/download/v0.2.0-preview.2/Kizuku-v0.2.0-preview.2.apk">Download the signed APK ↓</a></strong>
   &nbsp;·&nbsp;
-  <a href="https://github.com/stupidgiraffe/Kizuku/releases/tag/v0.2.0-preview.1">Release notes</a>
+  <a href="https://github.com/stupidgiraffe/Kizuku/releases/tag/v0.2.0-preview.2">Release notes</a>
   &nbsp;·&nbsp;
   <a href="#quick-start">Quick start</a>
 </p>
 
-<p align="center"><strong>0.2.0 Preview 1</strong> · Android 8+ · Open source under Apache 2.0</p>
+<p align="center"><strong>0.2.0 Preview 2</strong> · Android 8+ · Open source under Apache 2.0</p>
 
 ## What you can do
 
 | Feature | What it gives you |
 | --- | --- |
 | **Shizuku compatibility** | Connect compatible apps using the bundled companion. Supports stock SDK discovery, UserService, process streams, and the stock `rish` launcher. |
-| **Axeron runtime** | Run commands and scripts, save commands for later, and install compatible ZIP modules with actions, service scripts, and local WebUIs. Axeron access has its own permission. |
-| **App controls** | Search and filter clients, remember or revoke individual grants, and review which apps will be affected before bulk Shizuku changes. Enable or disable installed apps for the primary Android user with the runtime active. |
-| **Startup and recovery** | Start with Wireless ADB, a saved pairing key, local TCP, computer ADB, or root. Check service health in Service Doctor and pause client access with Safe Mode. |
-| **System tools** | Edit system settings, inspect installed accessibility services, and enable optional device authentication for sensitive actions. |
+| **Scripts and modules** | Save commands and install compatible Axeron and Shevery ZIPs with actions, service scripts, and local WebUIs. Axeron access has its own permission. |
+| **App controls** | Search and filter clients, remember or revoke individual grants, and see which apps will change before using **All ON** or **All OFF**. Enable or disable installed apps for the primary Android user with the runtime active. |
+| **Startup and recovery** | Start with Wireless ADB, a saved pairing key, local TCP, computer ADB, or root. Use Service Doctor, pause client access with Safe Mode, or trigger startup and shutdown from an automation app. |
+| **System tools** | Edit system settings, manage installed accessibility services, and require device authentication for sensitive actions. With Device Owner enrolled, suspend apps or block their removal. |
 
 ## A look inside
 
@@ -41,14 +41,14 @@
 
 ## Quick start
 
-1. **Install the signed APK.** If the direct link hangs in your chat app, open the [release page](https://github.com/stupidgiraffe/Kizuku/releases/tag/v0.2.0-preview.1) in Chrome and tap the APK under **Assets**.
+1. **Install the signed APK.** If the direct link hangs in your chat app, open the [release page](https://github.com/stupidgiraffe/Kizuku/releases/tag/v0.2.0-preview.2) in Chrome and tap the APK under **Assets**.
 2. **Start Kizuku.** For wireless startup without root, open **Home → Wireless ADB / TCP → Pair with code**, then choose **Pair device with pairing code** in Android’s Wireless debugging settings. Enter the code through Kizuku’s notification while Settings stays open. Use **Start paired device** next time. Wireless debugging requires Android 11 or later. Home also has **Start with root** and **Start from a computer**.
 3. **Connect your apps.** For Shizuku clients, install the companion in **Settings → Compatibility companion**. If stock Shizuku or a fork already owns the companion package, remove that conflicting app before installing the companion. Approve access in Kizuku when your client asks, or manage grants in **Apps**.
 4. **Run your tools.** Open **Runtime** for commands and modules. To use a terminal, choose **Export rish ZIP** in **Settings** and approve Shizuku access for the terminal app.
 
 ## Release verification
 
-The signed preview passed Android 16 and 17 emulator tests as shell and root, including an in-place upgrade from 0.1.0 Preview 2 that preserved remembered Shizuku access. Physical-device and OEM behavior, broader client and module compatibility, interactive Axeron PTY, and parts of the Axeron WebUI API are still being tested or developed. [Signed test run](https://github.com/stupidgiraffe/Kizuku/actions/runs/43200546463) · [APK checksum](https://github.com/stupidgiraffe/Kizuku/releases/download/v0.2.0-preview.1/SHA256SUMS.txt) · [Current status](docs/STATUS.md)
+Preview 2 passed signed Android 16 and 17 emulator tests as shell and root, including Hail, the Sys Info module, and an in-place upgrade from Preview 1 that preserved grants and the ADB key. The public APK matches the tested artifact. External Dhizuku, the full Shevery module catalog, and physical-device acceptance remain open. [Signed test run](https://github.com/stupidgiraffe/Kizuku/actions/runs/43749949949) · [APK checksum](https://github.com/stupidgiraffe/Kizuku/releases/download/v0.2.0-preview.2/SHA256SUMS.txt) · [Current status](docs/STATUS.md)
 
 ## Support development
 
