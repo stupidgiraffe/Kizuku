@@ -12,6 +12,7 @@ import io.github.stupidgiraffe.kizuku.adb.PreferenceAdbKeyStore;
 import io.github.stupidgiraffe.kizuku.core.Capability;
 import io.github.stupidgiraffe.kizuku.core.ClientIdentity;
 import io.github.stupidgiraffe.kizuku.core.GrantLedger;
+import java.security.MessageDigest;
 import java.util.Collections;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -30,25 +31,26 @@ public class SignedUpdateTest {
         String stage = InstrumentationRegistry.getArguments().getString("stage", "");
         int uid = app.getPackageManager().getApplicationInfo(CLIENT, 0).uid;
         SharedPreferences adb = app.getSharedPreferences("adb", Context.MODE_PRIVATE);
-        SharedPreferences evidence = InstrumentationRegistry.getInstrumentation().getContext()
-                .getSharedPreferences("signed_update", Context.MODE_PRIVATE);
-        String adbIdentity = Base64.encodeToString(
-                new AdbKey(new PreferenceAdbKeyStore(adb), "Kizuku").getAdbPublicKey(), Base64.NO_WRAP);
+        byte[] publicKey = new AdbKey(new PreferenceAdbKeyStore(adb), "Kizuku").getAdbPublicKey();
+        String identityDigest = Base64.encodeToString(
+                MessageDigest.getInstance("SHA-256").digest(publicKey), Base64.NO_WRAP);
         // The previous signed release creates these through the same production stores.
         if (stage.equals("before")) {
             assertEquals("Fixture starts without a grant", 0L, grantedScope(app, uid));
             ClientIdentity identity = AndroidIdentity.resolve(app.getPackageManager(), uid, CLIENT);
             AuthorizationStore.INSTANCE.decide(app, identity, SCOPES,
                     GrantLedger.Lifetime.PERMANENT.ordinal());
-            assertTrue("Saved the generated public ADB identity", evidence.edit().putString("adb", adbIdentity).commit());
             assertTrue("Saved the pairing preference", adb.edit().putBoolean("paired", true).commit());
         } else if (stage.equals("after")) {
-            assertEquals("Keystore-backed ADB key survives the update", evidence.getString("adb", null), adbIdentity);
             assertTrue("Pairing preference survives the update", adb.getBoolean("paired", false));
         } else {
             fail("Unknown signed update stage: " + stage);
         }
         assertEquals("Both remembered grants for the installed probe", SCOPES, grantedScope(app, uid));
+        // The runner compares both digests outside the app being upgraded.
+        Bundle status = new Bundle();
+        status.putString("kizuku_adb_identity", identityDigest);
+        InstrumentationRegistry.getInstrumentation().sendStatus(0, status);
     }
 
     private static long grantedScope(Context app, int uid) {

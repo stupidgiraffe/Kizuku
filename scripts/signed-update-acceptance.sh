@@ -55,6 +55,8 @@ instrument() {
   timeout 60 adb shell am instrument -w -e class "$manager.SignedUpdateTest" \
     -e stage "$1" "$manager.test/androidx.test.runner.AndroidJUnitRunner" | tee "$evidence/$1.txt"
   grep -Fq 'OK (1 test)' "$evidence/$1.txt"
+  tr -d '\r' <"$evidence/$1.txt" | sed -n 's/^INSTRUMENTATION_STATUS: kizuku_adb_identity=//p' >"$evidence/$1-adb-identity.txt"
+  grep -Exq '[A-Za-z0-9+/]{43}=' "$evidence/$1-adb-identity.txt"
 }
 
 record_installation() {
@@ -79,6 +81,7 @@ timeout 120 adb install -r "$candidate" | tee "$evidence/replace.txt"
 record_installation after "$candidate_code" "$candidate"
 cmp "$evidence/uid-before.txt" "$evidence/uid-after.txt"
 instrument after
+cmp "$evidence/before-adb-identity.txt" "$evidence/after-adb-identity.txt"
 
 # Run the separate fresh-install smoke suites with an empty app state.
 adb uninstall "$manager.test"
