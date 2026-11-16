@@ -92,10 +92,11 @@ jobs:
       - uses: android-actions/setup-android@v3
         with:
           cmdline-tools-version: '15859902'
-          packages: 'platform-tools emulator build-tools;37.0.0 platforms;android-${{ matrix.sdk }} system-images;android-${{ matrix.sdk }};google_apis;x86_64'
+          packages: "platform-tools emulator build-tools;37.0.0 platforms;android-${{ matrix.sdk }} system-images;android-${{ matrix.sdk }};${{ matrix.suite == 'device-policy' && 'default' || 'google_apis' }};x86_64"
       - name: Exercise signed DPM or privilege-host acceptance
         env:
           KIZUKU_EMULATOR_TARGET: android-${{ matrix.sdk }}
+          KIZUKU_EMULATOR_IMAGE: ${{ matrix.suite == 'device-policy' && 'default' || 'google_apis' }}
           KIZUKU_TEST_ROOT: ${{ matrix.suite == 'runtime' }}
           KIZUKU_TEST_THIRD_PARTY: ${{ matrix.suite == 'runtime' }}
           KIZUKU_TEST_DEVICE_OWNER: ${{ matrix.suite == 'device-policy' && 'only' || 'false' }}
