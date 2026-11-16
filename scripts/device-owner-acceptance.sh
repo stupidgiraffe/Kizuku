@@ -29,6 +29,23 @@ verify_owner() {
 verify_owner unprovisioned
 timeout 30 adb shell dpm set-device-owner --user 0 "$manager/.KizukuDeviceAdminReceiver" \
   | tee "$evidence/provision.txt"
+# Amarok uses the legacy Dhizuku 2.4 provider and real Android package delegation.
+compat="com.rosan.dhizuku"
+amarok="deltazero.amarok.foss"
+apk="$evidence/Amarok-v0.10.1-foss.apk"
+curl --fail --silent --show-error --location --retry 3 --max-time 90 \
+  https://github.com/deltazefiro/Amarok-Hider/releases/download/v0.10.1/Amarok-v0.10.1-foss.apk \
+  --output "$apk"
+printf '%s  %s\n' 821c71eda949d0627393727a6462f2ac573c0381547ed384ce740096bd58a7c8 "$apk" \
+  | sha256sum -c | tee "$evidence/amarok-asset-sha256.txt"
+adb install -t "$artifact_root/dhizuku-compat/build/outputs/apk/$variant/dhizuku-compat-$variant.apk"
+adb install "$apk"
+rm "$apk"
+timeout 90 adb shell am instrument -w -e class "$manager.DhizukuClientTest" \
+  "$manager.test/androidx.test.runner.AndroidJUnitRunner" | tee "$evidence/dhizuku-amarok.txt"
+grep -Fq 'OK (1 test)' "$evidence/dhizuku-amarok.txt"
+adb uninstall "$amarok"
+adb uninstall "$compat"
 verify_owner enrolled
 timeout 15 adb shell dpm list-owners | tee "$evidence/after.txt"
 if grep -Fq "$manager" "$evidence/after.txt"; then

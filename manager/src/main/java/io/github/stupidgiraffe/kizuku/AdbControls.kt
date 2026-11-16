@@ -52,14 +52,14 @@ internal fun wirelessDebuggingSettingsIntent() = Intent(Settings.ACTION_APPLICAT
         Column(Modifier.verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(12.dp)) {
             Text("Wireless debugging · Android 11+")
             Text("Pair once, then reconnect using the current connection port. Pairing and connection ports are different.",style=MaterialTheme.typography.bodySmall)
-            Button(enabled=Build.VERSION.SDK_INT>=30 && !state.busy,onClick={permitted(true){
-                ContextCompat.startForegroundService(context,Intent(context,AdbPairingService::class.java).setAction(AdbPairingService.BEGIN));settings()
-            }},modifier=Modifier.fillMaxWidth()){Text(if(adb.paired)"Pair again with code" else "Pair with code")}
             OutlinedButton(
                 enabled = Build.VERSION.SDK_INT >= 30 && !state.busy,
                 onClick = { showAssistedConsent = true },
                 modifier = Modifier.fillMaxWidth(),
             ) { Text("Pair automatically") }
+            Button(enabled=Build.VERSION.SDK_INT>=30 && !state.busy,onClick={permitted(true){
+                ContextCompat.startForegroundService(context,Intent(context,AdbPairingService::class.java).setAction(AdbPairingService.BEGIN));settings()
+            }},modifier=Modifier.fillMaxWidth()){Text(if(adb.paired)"Pair again with code" else "Pair with code")}
             OutlinedButton(enabled=Build.VERSION.SDK_INT>=30 && !state.busy && state.status==null,onClick={permitted(false){controller.startWireless()}},modifier=Modifier.fillMaxWidth()){Text("Start paired device")}
             TextButton(onClick=::settings){Text("Open debugging settings")}
             Text(adb.message ?: adb.stage,style=MaterialTheme.typography.bodySmall)

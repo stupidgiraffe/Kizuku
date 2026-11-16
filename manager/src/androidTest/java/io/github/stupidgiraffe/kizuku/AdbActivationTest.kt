@@ -188,7 +188,7 @@ class AdbActivationTest {
         assertFalse("A fresh manager has no pairing key", controller.adb.value.paired)
         assertFalse("Accessibility is disabled before opt-in", enabled())
         clickText("ADB options")
-        clickText("Pair automatically")
+        clickText("Pair automatically", AccessibilityNodeInfo.ACTION_SCROLL_FORWARD)
         clickText("Open Accessibility")
         await("one requested accessibility pairing session") { AdbPairingService.assistedSession }
         // A disposable test emulator approves the restricted Settings toggle as shell.

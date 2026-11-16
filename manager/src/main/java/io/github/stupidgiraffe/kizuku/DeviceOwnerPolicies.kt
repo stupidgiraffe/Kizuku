@@ -4,24 +4,44 @@ import android.app.admin.DeviceAdminReceiver
 import android.app.admin.DevicePolicyManager
 import android.content.ComponentName
 import android.content.Context
+import android.content.Intent
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
+import android.os.UserManager
 import io.github.stupidgiraffe.kizuku.api.AndroidIdentity
 import io.github.stupidgiraffe.kizuku.core.ClientIdentity
 
 /** Android calls this receiver after explicit device enrollment. */
-class KizukuDeviceAdminReceiver : DeviceAdminReceiver()
+class KizukuDeviceAdminReceiver : DeviceAdminReceiver() {
+    override fun onDisabled(context: Context, intent: Intent) {
+        DhizukuAuthorization.ownerDisabled(context)
+    }
+}
 
 /** Device Owner operations run under the manager UID using Android's policy APIs. */
 internal class DeviceOwnerPolicies(private val context: Context) {
-    private val admin = ComponentName(context, KizukuDeviceAdminReceiver::class.java)
+    internal val admin = ComponentName(context, KizukuDeviceAdminReceiver::class.java)
     private val dpm get() = context.getSystemService(DevicePolicyManager::class.java)
     private val pm get() = context.packageManager
     private val applied get() = context.getSharedPreferences("device_owner_policies", Context.MODE_PRIVATE)
 
     val enrollmentCommand get() = "adb shell dpm set-device-owner ${admin.flattenToShortString()}"
     val supported get() = pm.hasSystemFeature(PackageManager.FEATURE_DEVICE_ADMIN) && dpm != null
-    val enrolled get() = dpm?.let { it.isDeviceOwnerApp(context.packageName) && it.isAdminActive(admin) } == true
+    enum class Role(val label: String) { DEVICE("Device Owner"), PROFILE("Profile Owner") }
+
+    val role: Role? get() {
+        val manager = dpm ?: return null
+        if (!manager.isAdminActive(admin)) return null
+        return when {
+            manager.isDeviceOwnerApp(context.packageName) -> Role.DEVICE
+            manager.isProfileOwnerApp(context.packageName) -> Role.PROFILE
+            else -> null
+        }
+    }
+    val enrolled get() = role != null
+    val canRemoveOwner get() = role == Role.DEVICE ||
+        (role == Role.PROFILE && context.getSystemService(UserManager::class.java)?.isManagedProfile == false)
+
 
     data class App(val name: String, val packageName: String, val uid: Int)
     data class Target(val app: App, val identity: ClientIdentity)
@@ -78,6 +98,9 @@ internal class DeviceOwnerPolicies(private val context: Context) {
     @Synchronized
     fun removeOwner() {
         val manager = checkOwner()
+        val currentRole = checkNotNull(role)
+        check(canRemoveOwner) { "Android requires managed work profiles to be removed in system Settings." }
+        DhizukuAuthorization.revokeAll(context)
         // Android's owner-removal API only guarantees best-effort cleanup.
         for (policy in Policy.entries) {
             for (packageName in applied.getStringSet(policy.name, emptySet()).orEmpty().toList()) {
@@ -91,8 +114,11 @@ internal class DeviceOwnerPolicies(private val context: Context) {
                 track(policy, packageName, false)
             }
         }
-        manager.clearDeviceOwnerApp(context.packageName)
-        check(!enrolled) { "Android still reports Kizuku as Device Owner." }
+        when (currentRole) {
+            Role.DEVICE -> manager.clearDeviceOwnerApp(context.packageName)
+            Role.PROFILE -> manager.clearProfileOwner(admin)
+        }
+        check(!enrolled) { "Android still reports Kizuku as ${currentRole.label}." }
     }
 
     private fun setPolicy(manager: DevicePolicyManager, policy: Policy, packageName: String, enabled: Boolean) {
@@ -111,7 +137,7 @@ internal class DeviceOwnerPolicies(private val context: Context) {
     }
 
     private fun checkOwner(): DevicePolicyManager {
-        check(enrolled) { "Enroll Kizuku as Device Owner first." }
+        check(enrolled) { "Enroll Kizuku as Device Owner or Profile Owner first." }
         return checkNotNull(dpm)
     }
 

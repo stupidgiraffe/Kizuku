@@ -9,7 +9,7 @@ fingerprint = '83c9b70c57b2666f8eb48f0cfe74013053c804fd0b452addfdeed451629d2bce'
 build_tools = Path(os.environ['ANDROID_HOME']) / 'build-tools/37.0.0'
 packages = {}
 version = dict(line.split('=', 1) for line in Path('release.properties').read_text().splitlines() if '=' in line)
-for module in ('manager', 'compat', 'test-client'):
+for module in ('manager', 'compat', 'dhizuku-compat', 'test-client'):
     apk = Path(f'{module}/build/outputs/apk/release/{module}-release.apk')
     signature = subprocess.check_output([build_tools/'apksigner', 'verify', '--verbose', '--print-certs', apk], text=True)
     if f'certificate SHA-256 digest: {fingerprint}' not in signature:
@@ -23,6 +23,8 @@ for module in ('manager', 'compat', 'test-client'):
 with zipfile.ZipFile(packages['manager']) as archive:
     if archive.read('assets/legacy-compat.apk') != packages['compat'].read_bytes():
         raise SystemExit('Bundled compatibility APK differs from signed build')
+    if archive.read('assets/dhizuku-compat.apk') != packages['dhizuku-compat'].read_bytes():
+        raise SystemExit('Bundled Dhizuku compatibility APK differs from signed build')
     for notice in ('LICENSE', 'NOTICE', 'BORINGSSL-LICENSE.txt', 'BOUNCYCASTLE-LICENSE.txt', 'AXERON-API-LICENSE.txt'):
         if archive.read('assets/'+notice) != Path(notice).read_bytes():
             raise SystemExit(f'{notice} is missing or stale')

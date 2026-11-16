@@ -88,7 +88,7 @@ class AdbPairingService:Service() {
         const val BEGIN="io.github.stupidgiraffe.kizuku.PAIR_BEGIN"
         const val BEGIN_ASSISTED="io.github.stupidgiraffe.kizuku.PAIR_ASSISTED"
         // Accessed by the two services on the application main thread only.
-        internal var assistedSession = false
+        @Volatile internal var assistedSession = false
             private set
         const val SEND="io.github.stupidgiraffe.kizuku.PAIR_CODE"
         const val CANCEL="io.github.stupidgiraffe.kizuku.PAIR_CANCEL"

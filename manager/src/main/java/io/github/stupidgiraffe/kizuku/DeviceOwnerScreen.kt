@@ -36,7 +36,11 @@ internal fun DeviceOwnerPanel() {
     val policies = remember(context) { DeviceOwnerPolicies(context.applicationContext) }
     val coroutine = rememberCoroutineScope()
     var refresh by remember { mutableIntStateOf(0) }
-    var enrolled by remember { mutableStateOf<Boolean?>(null) }
+    var role by remember { mutableStateOf<DeviceOwnerPolicies.Role?>(null) }
+    var checked by remember { mutableStateOf(false) }
+    var dhizuku by remember { mutableStateOf(false) }
+    var revoke by remember { mutableStateOf<String?>(null) }
+    var delegates by remember { mutableStateOf<List<String>>(emptyList()) }
     var manage by remember { mutableStateOf(false) }
     var remove by remember { mutableStateOf(false) }
     var removing by remember { mutableStateOf(false) }
@@ -45,22 +49,27 @@ internal fun DeviceOwnerPanel() {
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { refresh++ }
     LaunchedEffect(policies, refresh) {
         if (policies.supported) {
-            val result = withContext(Dispatchers.IO) { runCatching { policies.enrolled } }
-            enrolled = result.getOrNull()
+            val result = withContext(Dispatchers.IO) { runCatching { policies.role } }
+            role = result.getOrNull()
+            checked = result.isSuccess
+            delegates = DhizukuAuthorization.approvals(context)
             result.exceptionOrNull()?.let { message = it.message ?: "Unable to read Device Owner status." }
         }
     }
-    LabsPanel("Device Owner") {
+    LabsPanel("Device policy") {
         when {
             !policies.supported -> LabsDetail("This Android build does not expose device administration.")
-            enrolled == null -> {
+            !checked -> {
                 LabsDetail("Checking Android enrollment…")
                 message?.let { TextButton(onClick = { message = null; refresh++ }) { Text("Check again") } }
             }
-            enrolled == true -> {
-                LabsDetail("Enrolled. Android enforces these app policies even when Kizuku's privilege service is stopped.")
+            role != null -> {
+                LabsDetail("${role?.label} is active. Android applies policies with the privilege host stopped.")
                 Button(enabled = !removing, onClick = { manage = true }) { Text("Manage app policies") }
-                TextButton(enabled = !removing, onClick = { remove = true }) { Text("Remove Device Owner") }
+                TextButton(onClick = { dhizuku = !dhizuku; refresh++ }) { Text("Dhizuku access") }
+                if (policies.canRemoveOwner) {
+                    TextButton(enabled = !removing, onClick = { remove = true }) { Text("Remove owner role") }
+                }
             }
             else -> {
                 LabsDetail("Optional enrollment on a dedicated Android device. Device Owner has device-wide authority, and Android may refuse enrollment on an already configured device.")
@@ -72,22 +81,54 @@ internal fun DeviceOwnerPanel() {
                         "Enrollment command copied."
                     }
                 }) { Text("Copy ADB enrollment command") }
+                TextButton(onClick = {
+                    val clipboard = context.getSystemService(ClipboardManager::class.java)
+                    clipboard?.setPrimaryClip(ClipData.newPlainText("Profile Owner enrollment",
+                        "adb shell dpm set-profile-owner --user USER_ID ${policies.admin.flattenToShortString()}"))
+                    message = "Use adb shell pm list users to find USER_ID. Android must allow enrollment for that profile."
+                }) { Text("Copy Profile Owner command") }
                 TextButton(onClick = { refresh++ }) { Text("Check enrollment") }
             }
         }
         message?.let { LabsDetail(it) }
     }
-    if (manage && enrolled == true) DeviceOwnerAppsDialog(policies) { manage = false }
+    if (dhizuku && role != null) {
+        CompatibilityCompanionPanel(CompanionInstaller.Kind.DHIZUKU)
+        LabsPanel("Dhizuku package access") {
+            LabsDetail("Android lets approved clients hide and unhide apps. In the client, choose its Dhizuku mode and request access.")
+            if (delegates.isEmpty()) LabsDetail("No apps approved.")
+            delegates.forEach { name -> TextButton(onClick = { revoke = name }) { Text("Revoke $name") } }
+        }
+    }
+    revoke?.let { name ->
+        AlertDialog(
+            onDismissRequest = { revoke = null },
+            title = { Text("Revoke Dhizuku access?") },
+            text = { Text(name) },
+            confirmButton = {
+                TextButton(onClick = {
+                    revoke = null
+                    coroutine.launch {
+                        val result = withContext(Dispatchers.IO) { runCatching { DhizukuAuthorization.revoke(context, name) } }
+                        message = result.exceptionOrNull()?.message ?: "Dhizuku access removed."
+                        refresh++
+                    }
+                }) { Text("Revoke") }
+            },
+            dismissButton = { TextButton(onClick = { revoke = null }) { Text("Cancel") } },
+        )
+    }
+    if (manage && role != null) DeviceOwnerAppsDialog(policies) { manage = false }
     if (remove) AlertDialog(
         onDismissRequest = { if (!removing) remove = false },
-        title = { Text("Remove Device Owner?") },
-        text = { Text("Kizuku will undo the app policies it applied here and give up its Android Device Owner role. You would need to enroll again to manage these policies.") },
+        title = { Text("Remove ${role?.label}?") },
+        text = { Text("Kizuku will undo the app policies it applied here and give up its Android owner role. You would need to enroll again to manage these policies.") },
         confirmButton = {
             TextButton(enabled = !removing, onClick = {
                 removing = true
                 coroutine.launch {
                     val result = withContext(Dispatchers.IO) { runCatching { policies.removeOwner() } }
-                    message = result.fold({ "Device Owner removed." }, { it.message ?: "Unable to remove Device Owner." })
+                    message = result.fold({ "Android owner role removed." }, { it.message ?: "Unable to remove the Android owner role." })
                     removing = false
                     remove = false
                     refresh++
