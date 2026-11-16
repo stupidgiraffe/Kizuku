@@ -68,9 +68,10 @@ fi
 if [[ "${KIZUKU_TEST_SIGNED_UPDATE:-false}" == true ]]; then
   scripts/signed-update-acceptance.sh "${1:-artifacts}"
 fi
-if [[ "${KIZUKU_TEST_DEVICE_OWNER:-false}" == true ]]; then
-  scripts/device-owner-acceptance.sh "${1:-artifacts}"
-fi
+case "${KIZUKU_TEST_DEVICE_OWNER:-false}" in
+  only) scripts/device-owner-acceptance.sh "${1:-artifacts}"; exit 0 ;;
+  true) scripts/device-owner-acceptance.sh "${1:-artifacts}" ;;
+esac
 shell_status=0
 KIZUKU_EVIDENCE_DIR=smoke-evidence/shell scripts/emulator-smoke.sh "${1:-artifacts}" || shell_status=$?
 if [[ "${KIZUKU_TEST_ROOT:-false}" == true ]]; then

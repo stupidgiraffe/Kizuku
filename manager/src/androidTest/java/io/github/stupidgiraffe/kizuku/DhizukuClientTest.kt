@@ -28,6 +28,9 @@ class DhizukuClientTest {
         assertFalse("Amarok starts without Android package delegation", hasPackageAccess(dpm, owner))
         val launch = requireNotNull(app.packageManager.getLaunchIntentForPackage(AMAROK))
         app.startActivity(launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        // Dismiss optional storage access. It is unrelated to app hiding.
+        click("OK")
+        click("Cancel")
         click("Set Hidden Apps")
         click("Switch app-hiding mode")
         click("Dhizuku")

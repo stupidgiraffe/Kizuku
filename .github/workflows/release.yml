@@ -73,6 +73,7 @@ jobs:
       fail-fast: false
       matrix:
         sdk: ['36', '37.0']
+        suite: [runtime, device-policy]
     steps:
       - uses: actions/checkout@v5
       - uses: actions/download-artifact@v4
@@ -92,20 +93,20 @@ jobs:
         with:
           cmdline-tools-version: '15859902'
           packages: 'platform-tools emulator build-tools;37.0.0 platforms;android-${{ matrix.sdk }} system-images;android-${{ matrix.sdk }};google_apis;x86_64'
-      - name: Exercise the signed update and fresh installs as ADB shell and root
+      - name: Exercise signed DPM or privilege-host acceptance
         env:
           KIZUKU_EMULATOR_TARGET: android-${{ matrix.sdk }}
-          KIZUKU_TEST_ROOT: 'true'
-          KIZUKU_TEST_THIRD_PARTY: 'true'
-          KIZUKU_TEST_DEVICE_OWNER: 'true'
-          KIZUKU_TEST_ADB: 'true'
-          KIZUKU_TEST_SIGNED_UPDATE: 'true'
+          KIZUKU_TEST_ROOT: ${{ matrix.suite == 'runtime' }}
+          KIZUKU_TEST_THIRD_PARTY: ${{ matrix.suite == 'runtime' }}
+          KIZUKU_TEST_DEVICE_OWNER: ${{ matrix.suite == 'device-policy' && 'only' || 'false' }}
+          KIZUKU_TEST_ADB: ${{ matrix.suite == 'runtime' }}
+          KIZUKU_TEST_SIGNED_UPDATE: ${{ matrix.suite == 'runtime' }}
           KIZUKU_REQUIRE_NEWER_VERSION: ${{ inputs.publish }}
         run: scripts/run-emulator.sh artifacts
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: signed-runtime-evidence-api-${{ matrix.sdk }}-${{ github.sha }}
+          name: signed-${{ matrix.suite }}-evidence-api-${{ matrix.sdk }}-${{ github.sha }}
           path: smoke-evidence/
   publish:
     if: inputs.publish && github.ref == 'refs/heads/main'

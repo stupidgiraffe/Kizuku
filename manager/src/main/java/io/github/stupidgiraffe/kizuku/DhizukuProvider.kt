@@ -63,7 +63,7 @@ private class DhizukuEndpoint(
 
     override fun onTransact(code: Int, data: Parcel, reply: Parcel?, flags: Int): Boolean {
         if (code == INTERFACE_TRANSACTION) return super.onTransact(code, data, reply, flags)
-        if (reply == null || flags != 0 || data.dataSize() > 8192 || data.hasFileDescriptors()) {
+        if (reply == null || flags and IBinder.FLAG_ONEWAY != 0 || data.dataSize() > 8192 || data.hasFileDescriptors()) {
             throw SecurityException("Invalid Dhizuku request")
         }
         if (Binder.getCallingUid() != identity.uid() || !DhizukuAuthorization.verified(app, identity)) {
