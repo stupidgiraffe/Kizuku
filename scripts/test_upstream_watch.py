@@ -35,6 +35,24 @@ class RadarTests(unittest.TestCase):
         self.assertIn("Initial baseline captured", report)
         self.assertIn("Apache-2.0", report)
 
+    def test_fork_discovery_excludes_clients_and_mirrors(self):
+        included = [
+            "Shizuku fork with Android 17 support",
+            "Fork of thedjchi/Shizuku adding Tasker broadcasts",
+            "Complete Shizuku-Next fork",
+            "This is a modified fork of the official Shizuku application",
+        ]
+        excluded = [
+            "ADB module compatible with Shizuku forks",
+            "Call recorder fork of ShizuCallRecorder using Shizuku",
+            "Private mirror of optimized Shizuku fork",
+            "Pixel IMS fork with Shizuku support",
+        ]
+        for description in included:
+            self.assertTrue(watch.eligible({"description": description}), description)
+        for description in excluded:
+            self.assertFalse(watch.eligible({"description": description}), description)
+
     def test_recent_candidate_score(self):
         item = {"name": "x/Shizuku-Fork", "description": "A Shizuku fork", "pushed_at": "2026-11-15", "release": "v1"}
         self.assertGreaterEqual(watch.rank(item), 5)
