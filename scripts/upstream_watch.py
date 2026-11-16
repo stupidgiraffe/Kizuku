@@ -129,6 +129,20 @@ def inspect(slug, origin, previous=None):
         "fork": repo.get("fork", False),
     }
 
+def eligible(item):
+    """Only surface implementations, not apps that merely use Shizuku."""
+    desc = (item.get("description") or "").lower()
+    if any(word in desc for word in ("mirror of", "private mirror", "compatible with shizuku forks", "fork of shizucallrecorder")):
+        return False
+    expressions = (
+        r"\bshizuku(?:[- ]next|plus|x)?(?:\s+[\w.-]+){0,4}\s+(?:fork|implementation|replacement|manager|server)\b",
+        r"\b(?:fork|variant|implementation|replacement) of (?:the\s+)?(?:official\s+)?(?:rikkaapps/|thedjchi/)?shizuku\b",
+        r"\b(?:fork|version) (?:of |based on )?(?:the official )?shizuku(?:-next)?\b",
+        r"\b(?:axeron|axmanager)\b.{0,45}\b(?:fork|server|runtime|manager|implementation)\b",
+        r"\b(?:fork|implementation)\b.{0,45}\b(?:axeron|axmanager)\b",
+    )
+    return any(re.search(pattern, desc) for pattern in expressions)
+
 def rank(item):
     score = 0
     label = (item.get("name", "") + " " + item.get("description", "")).lower()
@@ -251,7 +265,7 @@ def main():
     for slug, origin in list(pool.items())[:45]:
         try:
             item = inspect(slug, origin, old.get(slug))
-            if not item.get("missing") and rank(item) >= 5:
+            if not item.get("missing") and eligible(item) and rank(item) >= 5:
                 current[slug] = item
         except RuntimeError as ex:
             warnings.append(clean(ex))
