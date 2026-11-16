@@ -8,6 +8,7 @@ on:
     paths:
       - '.github/workflows/upstream-watch.yml'
       - 'scripts/upstream_watch.py'
+      - 'scripts/test_upstream_watch.py'
       - 'tools/upstream-sources.json'
 permissions:
   contents: write
