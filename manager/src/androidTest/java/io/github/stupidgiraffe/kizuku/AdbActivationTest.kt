@@ -187,7 +187,7 @@ class AdbActivationTest {
 
         assertFalse("A fresh manager has no pairing key", controller.adb.value.paired)
         assertFalse("Accessibility is disabled before opt-in", enabled())
-        clickText("ADB options")
+        clickText("Wireless ADB / TCP")
         clickText("Pair automatically", AccessibilityNodeInfo.ACTION_SCROLL_FORWARD)
         clickText("Open Accessibility")
         await("one requested accessibility pairing session") { AdbPairingService.assistedSession }
