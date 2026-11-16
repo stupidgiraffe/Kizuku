@@ -3,6 +3,8 @@ package io.github.stupidgiraffe.kizuku.server;
 import android.os.Bundle;
 import android.os.ParcelFileDescriptor;
 import android.system.Os;
+import android.system.OsConstants;
+import android.os.SystemClock;
 import frb.axeron.server.IAxshProcess;
 import io.github.stupidgiraffe.kizuku.core.ClientIdentity;
 import java.io.ByteArrayOutputStream;
@@ -37,13 +39,16 @@ final class AxRuntime {
     };
     private final ExecutorService io = Executors.newCachedThreadPool();
     private final Set<Job> jobs = new HashSet<>();
+    private final Set<AxTerminalSession> terminals = new HashSet<>();
+    private final File terminalLibrary;
     final File home;
     final File cache;
     final File bins;
     final RuntimePlugins plugins;
     private boolean paused;
 
-    AxRuntime() throws Exception {
+    AxRuntime(String libraryDirectory) throws Exception {
+        terminalLibrary = new File(libraryDirectory, "librish.so");
         home = new File(android.os.Process.myUid() == 0 ? "/data/adb/kizuku" : "/data/user_de/0/com.android.shell/kizuku");
         cache = new File(home, "cache");
         bins = new File(home, "xbin");
@@ -65,13 +70,24 @@ final class AxRuntime {
         for (Job job : new ArrayList<>(jobs)) {
             if (!job.child.isAlive() && !LegacyRemoteProcess.hasMarkedChildren(MARKER + "=" + job.tag)) jobs.remove(job);
         }
-        if (jobs.size() >= 16) throw new IllegalStateException("Runtime process limit reached");
+        if (jobs.size() + terminals.size() >= 16) throw new IllegalStateException("Runtime process limit reached");
+        validateArgv(argv);
+        ProcessBuilder builder = new ProcessBuilder(argv).directory(directory);
+        String tag = ROLE + UUID.randomUUID();
+        configureEnvironment(builder.environment(), extra, plugin, tag);
+        Job job = new Job(owner, plugin, tag, builder.start());
+        jobs.add(job);
+        return job;
+    }
+
+    private static void validateArgv(String[] argv) {
         if (argv == null || argv.length == 0 || argv.length > 256) throw new IllegalArgumentException("Invalid command arguments");
         for (String arg : argv) {
             if (arg == null || arg.length() > 32_768 || arg.indexOf(0) >= 0) throw new IllegalArgumentException("Invalid argument");
         }
-        ProcessBuilder builder = new ProcessBuilder(argv).directory(directory);
-        Map<String, String> env = builder.environment();
+    }
+
+    private void configureEnvironment(Map<String, String> env, Map<String, String> extra, String plugin, String tag) {
         if (extra != null) env.putAll(extra);
         env.put("AXERON", "true");
         env.put("AXERONVER", "30000");
@@ -83,11 +99,7 @@ final class AxRuntime {
         env.put("TMPDIR", cache.getPath());
         env.put("PATH", bins + ":" + new File(home, "bin") + ":/system/bin:/system/xbin");
         if (plugin == null) env.remove("AXERON_PLUGIN"); else env.put("AXERON_PLUGIN", plugin);
-        String tag = ROLE + UUID.randomUUID();
         env.put(MARKER, tag);
-        Job job = new Job(owner, plugin, tag, builder.start());
-        jobs.add(job);
-        return job;
     }
 
     private record Job(ClientIdentity owner, String plugin, String tag, java.lang.Process child) {
@@ -168,8 +180,7 @@ final class AxRuntime {
 
     IAxshProcess launch(ClientIdentity owner, String[] argv, String[] env, String dir,
             ParcelFileDescriptor stdin, ParcelFileDescriptor stdout, ParcelFileDescriptor stderr,
-            boolean pty, long size, ParcelFileDescriptor status) throws IOException {
-        if (pty) throw new UnsupportedOperationException("Interactive Axeron PTY is unavailable");
+            boolean pty, long size, ParcelFileDescriptor status) throws Exception {
         File work = dir == null || dir.isEmpty() ? home : new File(dir);
         if (!work.isAbsolute() || !work.isDirectory()) throw new IllegalArgumentException("Invalid working directory");
         Map<String, String> extra = new HashMap<>();
@@ -179,6 +190,7 @@ final class AxRuntime {
                 throw new IllegalArgumentException("Invalid shell environment");
             extra.put(variable.substring(0, separator), variable.substring(separator + 1));
         }
+        if (pty) return startTerminal(owner, argv, work, extra, stdin, stdout, stderr, status, size);
         Job job = start(owner, null, argv, work, extra);
         var input = new ParcelFileDescriptor.AutoCloseInputStream(stdin);
         io.execute(() -> copy(input, job.child.getOutputStream()));
@@ -215,6 +227,120 @@ final class AxRuntime {
         };
     }
 
+    private synchronized IAxshProcess startTerminal(ClientIdentity owner, String[] argv, File directory,
+            Map<String, String> extra, ParcelFileDescriptor stdin, ParcelFileDescriptor stdout,
+            ParcelFileDescriptor stderr, ParcelFileDescriptor status, long size) throws Exception {
+        if (paused) throw new IllegalStateException("Runtime is suspended");
+        if (jobs.size() + terminals.size() >= 16) throw new IllegalStateException("Runtime process limit reached");
+        validateArgv(argv);
+        if (status != null) LegacyRish.enforcePipe(status, OsConstants.O_WRONLY);
+
+        String tag = ROLE + UUID.randomUUID();
+        Map<String, String> env = new HashMap<>(System.getenv());
+        configureEnvironment(env, extra, null, tag);
+        String[] terminalArgv = argv.clone();
+        if (!new File(argv[0]).isAbsolute()) {
+            if (argv[0].contains("/")) {
+                terminalArgv[0] = new File(directory, argv[0]).getAbsolutePath();
+            } else {
+                terminalArgv[0] = java.util.Arrays.stream(env.get("PATH").split(":"))
+                    .map(path -> new File(path, argv[0])).filter(File::canExecute)
+                    .findFirst().orElseThrow(() -> new IOException("Axeron terminal command was not found")).getPath();
+            }
+        }
+        String[] environment = env.entrySet().stream().map(item -> item.getKey() + "=" + item.getValue())
+            .toArray(String[]::new);
+        long handle = LegacyRish.openTerminal(terminalLibrary, terminalArgv, environment, directory, stdin, stdout, size);
+        closeDescriptor(stdin);
+        closeDescriptor(stdout);
+        closeDescriptor(stderr);
+        var terminal = new AxTerminalSession(owner, handle, status, tag);
+        terminals.add(terminal);
+        io.execute(() -> {
+            try { terminal.collectExit(); }
+            finally { synchronized (this) { terminals.remove(terminal); } }
+        });
+        return terminal;
+    }
+
+    private static final class AxTerminalSession extends IAxshProcess.Stub {
+        private final ClientIdentity owner;
+        private final ParcelFileDescriptor report;
+        private final String tag;
+        private final java.util.concurrent.CountDownLatch complete = new java.util.concurrent.CountDownLatch(1);
+        private long handle;
+        private int exitCode = Integer.MAX_VALUE;
+
+        AxTerminalSession(ClientIdentity owner, long handle, ParcelFileDescriptor report, String tag) {
+            this.owner = owner;
+            this.handle = handle;
+            this.report = report;
+            this.tag = tag;
+        }
+
+        void collectExit() {
+            long drainUntil = 0;
+            try {
+                while (!Thread.currentThread().isInterrupted()) {
+                    synchronized (this) {
+                        if (handle == 0) return;
+                        int status = LegacyRish.status(handle);
+                        if (status != Integer.MAX_VALUE) {
+                            long now = SystemClock.elapsedRealtime();
+                            if (drainUntil == 0) drainUntil = now + 1_000;
+                            if (LegacyRish.outputDone(handle) || now >= drainUntil) {
+                                finish(status);
+                                return;
+                            }
+                        }
+                    }
+                    Thread.sleep(25);
+                }
+            } catch (InterruptedException interrupted) {
+                Thread.currentThread().interrupt();
+            } finally {
+                finish(137);
+            }
+        }
+
+        synchronized void finish(int code) {
+            if (handle == 0) return;
+            exitCode = code;
+            LegacyRish.destroy(handle);
+            handle = 0;
+            try {
+                LegacyRemoteProcess.reapMarkedChildren(MARKER + "=" + tag, false);
+                if (report != null) try (var stream = new ParcelFileDescriptor.AutoCloseOutputStream(report)) {
+                    int flags = Os.fcntlInt(report.getFileDescriptor(), OsConstants.F_GETFL, 0);
+                    Os.fcntlInt(report.getFileDescriptor(), OsConstants.F_SETFL, flags | OsConstants.O_NONBLOCK);
+                    stream.write(ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN).putInt(code).array());
+                }
+            } catch (IOException | android.system.ErrnoException ignored) {
+                // A disconnected reader no longer needs an exit report.
+            } finally {
+                complete.countDown();
+            }
+        }
+
+        private void enforceOwner() {
+            if (android.os.Binder.getCallingUid() != owner.uid())
+                throw new SecurityException("Terminal belongs to another UID");
+        }
+
+        @Override public synchronized void setWindowSize(long size) {
+            enforceOwner();
+            if (handle != 0) LegacyRish.resize(handle, size);
+        }
+
+        @Override public int waitFor() {
+            enforceOwner();
+            try { complete.await(); return exitCode; }
+            catch (InterruptedException interrupted) { Thread.currentThread().interrupt(); return 130; }
+        }
+
+        @Override public void destroy() { enforceOwner(); finish(137); }
+    }
+
     Bundle setting(String table, String key, String value, String operation) throws Exception {
         if (!"system".equals(table) && !"secure".equals(table) && !"global".equals(table))
             throw new IllegalArgumentException("Invalid settings table");
@@ -234,9 +360,17 @@ final class AxRuntime {
         return run(null, new String[]{"/system/bin/pm", enable ? "enable" : "disable-user", "--user", "0", name}, home, null, 8);
     }
 
-    synchronized void pause() { paused = true; stop(job -> true); }
+    synchronized void pause() {
+        paused = true;
+        stop(job -> true);
+        terminals.forEach(terminal -> terminal.finish(137));
+    }
     synchronized void resume() { paused = false; }
-    void stopOwner(ClientIdentity owner) { stop(job -> owner.equals(job.owner)); }
+    synchronized void stopOwner(ClientIdentity owner) {
+        stop(job -> owner.equals(job.owner));
+        for (AxTerminalSession terminal : terminals)
+            if (owner.equals(terminal.owner)) terminal.finish(137);
+    }
     void stopPlugin(String plugin) { stop(job -> plugin.equals(job.plugin)); }
     synchronized void close() { pause(); io.shutdownNow(); }
     private synchronized void stop(Predicate<Job> matches) {
@@ -247,6 +381,7 @@ final class AxRuntime {
         Set<ClientIdentity> owners = new HashSet<>();
         synchronized (this) {
             for (Job job : jobs) if (job.owner != null) owners.add(job.owner);
+            for (AxTerminalSession terminal : terminals) owners.add(terminal.owner);
         }
         for (ClientIdentity owner : owners) if (!installed.test(owner)) stopOwner(owner);
     }

@@ -55,7 +55,7 @@ final class KizukuService extends IKizukuService.Stub {
         safeMode = configuration.getBoolean("safe_mode", false);
         AxRuntime available = null;
         String error = null;
-        try { available = new AxRuntime(); }
+        try { available = new AxRuntime(pi.applicationInfo.nativeLibraryDir); }
         catch (Exception failure) {
             error = failure.getMessage() == null ? "Runtime directory is unavailable" : failure.getMessage();
             Log.w("KizukuRuntime", "Runtime initialization failed", failure);

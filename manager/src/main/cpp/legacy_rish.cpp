@@ -24,6 +24,7 @@ struct Shell {
     int master = -1;
     int status = RUNNING;
     std::shared_ptr<std::atomic_bool> cancelled = std::make_shared<std::atomic_bool>(false);
+    std::shared_ptr<std::atomic_bool> outputDone = std::make_shared<std::atomic_bool>(false);
 
     ~Shell() {
         *cancelled = true;
@@ -81,7 +82,8 @@ bool ready(int fd, short events, const std::atomic_bool& cancelled) {
     return false;
 }
 
-void relay(int from, int to, const std::shared_ptr<std::atomic_bool>& cancelled) {
+void relay(int from, int to, const std::shared_ptr<std::atomic_bool>& cancelled,
+        const std::shared_ptr<std::atomic_bool>& done) {
     sigset_t pipeSignal;
     sigemptyset(&pipeSignal);
     sigaddset(&pipeSignal, SIGPIPE);
@@ -103,6 +105,7 @@ void relay(int from, int to, const std::shared_ptr<std::atomic_bool>& cancelled)
     }
     close(from);
     close(to);
+    if (done) *done = true;
 }
 
 int result(Shell* shell) {
@@ -147,9 +150,9 @@ int rawFd = -1;
 extern "C" JNIEXPORT jlong JNICALL
 Java_io_github_stupidgiraffe_kizuku_server_LegacyRish_start(
         JNIEnv* env, jclass, jobjectArray args, jobjectArray environment, jbyteArray directory,
-        jbyte tty, jint in, jint out, jint err) {
+        jbyte tty, jint in, jint out, jint err, jboolean prefixShell, jlong size) {
     auto command = stringArray(env, args);
-    command.insert(command.begin(), "/system/bin/sh");
+    if (prefixShell) command.insert(command.begin(), "/system/bin/sh");
     auto envStrings = stringArray(env, environment);
     auto dir = stringBytes(env, directory);
     auto argv = pointers(command);
@@ -169,6 +172,13 @@ Java_io_github_stupidgiraffe_kizuku_server_LegacyRish_start(
             fail(env, "Could not open shell terminal");
             return 0;
         }
+    }
+
+    if (tty && size != 0) {
+        winsize window{};
+        static_assert(sizeof(window) == sizeof(size));
+        memcpy(&window, &size, sizeof(window));
+        ioctl(shell->master, TIOCSWINSZ, &window);
     }
 
     int inRelay = pipeIn ? duplicate(in) : -1;
@@ -204,7 +214,7 @@ Java_io_github_stupidgiraffe_kizuku_server_LegacyRish_start(
         closeFd(in); closeFd(out); closeFd(err);
         closeRelays();
         signal(SIGPIPE, SIG_DFL);
-        if (!dir.empty()) chdir(dir.c_str());
+        if (!dir.empty() && chdir(dir.c_str()) < 0 && !prefixShell) _exit(126);
         if (environment) execve(argv[0], argv.data(), envp.data());
         else execv(argv[0], argv.data());
         _exit(127);
@@ -220,12 +230,12 @@ Java_io_github_stupidgiraffe_kizuku_server_LegacyRish_start(
     try {
         if (pipeIn) {
             makeNonblocking(inRelay);
-            std::thread(relay, inRelay, inMaster, shell->cancelled).detach();
+            std::thread(relay, inRelay, inMaster, shell->cancelled, nullptr).detach();
             inRelay = inMaster = -1;
         }
         if (tty) {
             if (tty & TTY_OUT) makeNonblocking(outRelay);
-            std::thread(relay, outMaster, outRelay, shell->cancelled).detach();
+            std::thread(relay, outMaster, outRelay, shell->cancelled, shell->outputDone).detach();
         }
     } catch (const std::system_error&) {
         closeRelays();
@@ -249,6 +259,11 @@ Java_io_github_stupidgiraffe_kizuku_server_LegacyRish_resize(JNIEnv*, jclass, jl
 extern "C" JNIEXPORT jint JNICALL
 Java_io_github_stupidgiraffe_kizuku_server_LegacyRish_status(JNIEnv*, jclass, jlong handle) {
     return result(reinterpret_cast<Shell*>(handle));
+}
+
+extern "C" JNIEXPORT jboolean JNICALL
+Java_io_github_stupidgiraffe_kizuku_server_LegacyRish_outputDone(JNIEnv*, jclass, jlong handle) {
+    return *reinterpret_cast<Shell*>(handle)->outputDone;
 }
 
 extern "C" JNIEXPORT void JNICALL
