@@ -88,7 +88,7 @@ def discover(config, warnings):
             warnings.append(clean(ex))
     return discovered
 
-def inspect(slug, origin):
+def inspect(slug, origin, previous=None):
     if not REPO_PATTERN.fullmatch(slug):
         raise ValueError("Unexpected repository name: " + slug)
     repo = request("/repos/" + slug, optional=True)
@@ -99,10 +99,24 @@ def inspect(slug, origin):
     releases = request("/repos/" + actual + "/releases?per_page=1", optional=True) or []
     commit = commits[0] if commits else {}
     release = releases[0] if releases else {}
+    previous = previous or {}
+    diff_subjects = []
+    if previous.get("head") and commit.get("sha") and previous["head"] != commit["sha"]:
+        try:
+            url = "/repos/" + actual + "/compare/" + previous["head"] + "..." + commit["sha"] + "?per_page=40"
+            compared = request(url, optional=True) or {}
+            for change in compared.get("commits", [])[-30:]:
+                subject = (change.get("commit") or {}).get("message", "").split("\n")[0]
+                if SIGNALS.search(subject):
+                    diff_subjects.append(clean(subject, 160))
+        except RuntimeError:
+            # A force-push can make a comparison unavailable; still report the new HEAD.
+            pass
     return {
         "name": actual, "origin": origin, "url": repo["html_url"],
         "description": clean(repo.get("description")),
         "head": commit.get("sha", ""),
+        "head_changes": diff_subjects[-10:],
         "commit_subject": clean((commit.get("commit") or {}).get("message", "").split("\n")[0]),
         "release": release.get("tag_name", ""),
         "release_url": release.get("html_url", ""),
@@ -158,7 +172,7 @@ def changes_for(current, old):
     return events
 
 def review_area(item):
-    words = " ".join([item.get("commit_subject", ""), *item.get("release_notes", [])]).lower()
+    words = " ".join([item.get("commit_subject", ""), *item.get("head_changes", []), *item.get("release_notes", [])]).lower()
     topics = (
         (r"dhizuku|device.owner|dpm", "Device Owner / Dhizuku interoperability"),
         (r"permission|authoriz|security|certificate|signature|grant", "Capability security and grants"),
@@ -186,16 +200,17 @@ def render(current, events, warnings, config, baseline):
         for kind, slug, item, reason in sorted(events, key=lambda ev: (priority.get(ev[0], 5), -rank(ev[2]), ev[1].lower()))[:30]:
             link = item.get("release_url") if kind == "release" else item.get("url", "https://github.com/" + slug)
             result.append(f"- **[{clean(slug)}]({link})** — {clean(reason)}")
-            if kind == "release":
-                for note in item.get("release_notes", [])[:2]:
-                    result.append("  - " + note)
+            if kind in ("release", "commit"):
+                lines = item.get("release_notes", []) if kind == "release" else item.get("head_changes", [])
+                for note in lines[:3]:
+                    result.append("  - " + clean(note, 180))
     if not baseline:
         result.extend(["", "## Feature opportunities to evaluate", ""])
         meaningful = [e for e in events if e[0] in ("release", "commit") and not e[2].get("missing")]
         if meaningful:
             for kind, slug, item, _ in meaningful[:12]:
                 url = item.get("release_url") if kind == "release" else item.get("url", "https://github.com/" + slug)
-                result.append(f"- **{review_area(item)}** — [{clean(slug)}]({url}): {clean((item.get('release_notes') or [item.get('commit_subject') or 'Inspect upstream diff'])[0], 140)}")
+                result.append(f"- **{review_area(item)}** — [{clean(slug)}]({url}): {clean(((item.get('release_notes') if kind == 'release' else item.get('head_changes')) or [item.get('commit_subject') or 'Inspect upstream diff'])[0], 140)}")
         else:
             result.append("No new release/commit candidates since the previous scan.")
     result.extend(["", "## Tracked projects", "", "| Project | Role | Release | Last push | License |", "|---|---|---|---|---|"])
@@ -227,7 +242,7 @@ def main():
         if value.get("origin") != "curated":
             new_candidates.setdefault(slug, value.get("origin", "previous discovery"))
     pinned = config["curated"]
-    current = {slug: inspect(slug, "curated") for slug in pinned}
+    current = {slug: inspect(slug, "curated", old.get(slug)) for slug in pinned}
     pool = {}
     pinned_lower = {k.lower() for k in pinned}
     for slug, origin in new_candidates.items():
@@ -235,7 +250,7 @@ def main():
             pool[slug] = origin
     for slug, origin in list(pool.items())[:45]:
         try:
-            item = inspect(slug, origin)
+            item = inspect(slug, origin, old.get(slug))
             if not item.get("missing") and rank(item) >= 5:
                 current[slug] = item
         except RuntimeError as ex:
