@@ -41,9 +41,10 @@ printf '%s  %s\n' 821c71eda949d0627393727a6462f2ac573c0381547ed384ce740096bd58a7
 adb install -t "$artifact_root/dhizuku-compat/build/outputs/apk/$variant/dhizuku-compat-$variant.apk"
 adb install "$apk"
 rm "$apk"
+amarok_status=0
 timeout 90 adb shell am instrument -w -e class "$manager.DhizukuClientTest" \
-  "$manager.test/androidx.test.runner.AndroidJUnitRunner" | tee "$evidence/dhizuku-amarok.txt"
-grep -Fq 'OK (1 test)' "$evidence/dhizuku-amarok.txt"
+  "$manager.test/androidx.test.runner.AndroidJUnitRunner" | tee "$evidence/dhizuku-amarok.txt" || amarok_status=1
+grep -Fq 'OK (1 test)' "$evidence/dhizuku-amarok.txt" || amarok_status=1
 adb uninstall "$amarok"
 adb uninstall "$compat"
 verify_owner enrolled
@@ -71,3 +72,4 @@ trap - EXIT
 adb uninstall "$manager.test"
 adb uninstall "$client"
 adb uninstall "$manager"
+exit "$amarok_status"

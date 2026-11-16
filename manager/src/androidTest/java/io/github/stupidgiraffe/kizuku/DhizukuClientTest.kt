@@ -1,6 +1,7 @@
 package io.github.stupidgiraffe.kizuku
 
 import android.app.admin.DevicePolicyManager
+import android.accessibilityservice.AccessibilityServiceInfo
 import android.os.ParcelFileDescriptor
 import android.os.SystemClock
 import android.view.accessibility.AccessibilityNodeInfo
@@ -21,6 +22,9 @@ class DhizukuClientTest {
     private val automation = instrumentation.uiAutomation
 
     @Test fun legacyClientObtainsAndLosesRealAndroidPackageAccess() {
+        val serviceInfo = automation.serviceInfo
+        serviceInfo.flags = serviceInfo.flags or AccessibilityServiceInfo.FLAG_REPORT_VIEW_IDS
+        automation.serviceInfo = serviceInfo
         val dpm = requireNotNull(app.getSystemService(DevicePolicyManager::class.java))
         val owner = DeviceOwnerPolicies(app)
         assertEquals(DeviceOwnerPolicies.Role.DEVICE, owner.role)
@@ -32,7 +36,7 @@ class DhizukuClientTest {
         assertTrue(launch, launch.contains("Status: ok"))
         click("Set Hidden Apps")
         click("Switch app-hiding mode")
-        click("Dhizuku")
+        click("Dhizuku mode", viewId = "$AMAROK:id/switch_apphider_radio_dhizuku")
         click("Allow package access")
         await("Android delegated package access to the external client") { hasPackageAccess(dpm, owner) }
         assertTrue(AMAROK in DhizukuAuthorization.approvals(app))
@@ -44,7 +48,7 @@ class DhizukuClientTest {
     private fun hasPackageAccess(dpm: DevicePolicyManager, owner: DeviceOwnerPolicies) =
         DevicePolicyManager.DELEGATION_PACKAGE_ACCESS in dpm.getDelegatedScopes(owner.admin, AMAROK)
 
-    private fun click(label: String) {
+    private fun click(label: String, viewId: String? = null) {
         await("UI control $label") {
             val nodes = nodes()
             fun find(text: String) = nodes.firstOrNull {
@@ -57,7 +61,9 @@ class DhizukuClientTest {
                 find("Welcome") != null -> find("OK")?.let(::tryClick)
                 find("Storage permission required") != null -> find("Cancel")?.let(::tryClick)
                 else -> {
-                    val match = find(label)
+                    val match = if (viewId == null) find(label) else nodes.firstOrNull {
+                        it.isVisibleToUser && it.viewIdResourceName == viewId
+                    }
                     if (match != null) return@await tryClick(match)
                     nodes.firstOrNull { it.isScrollable }?.performAction(AccessibilityNodeInfo.ACTION_SCROLL_FORWARD)
                 }
