@@ -13,7 +13,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   build:
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' || (!inputs.publish && github.ref == 'refs/heads/feat/selective-integration')
     runs-on: ubuntu-latest
     timeout-minutes: 25
     env:
@@ -107,7 +107,7 @@ jobs:
           name: signed-runtime-evidence-api-${{ matrix.sdk }}-${{ github.sha }}
           path: smoke-evidence/
   publish:
-    if: inputs.publish
+    if: inputs.publish && github.ref == 'refs/heads/main'
     needs: [build, acceptance]
     runs-on: ubuntu-latest
     permissions:

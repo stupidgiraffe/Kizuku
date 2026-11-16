@@ -8,6 +8,10 @@ Shared-UID packages share a Linux security principal: the UI must disclose all
 members. Certificate changes currently require reauthorization; signing-lineage
 rotation and permission migration need dedicated acceptance tests before release.
 
+Remembered ADB-shell and root grants are separate. Older approvals saved before
+host roles were recorded apply to ADB shell. Approve a client while connected to
+root to give it root access. Offline approvals apply to ADB shell.
+
 Debug APKs use Android's development signing key. A CI debug identity is not a
 permanent release identity and may differ between runs. Uninstalling loses app
 data; do not present debug builds as a durable update channel.

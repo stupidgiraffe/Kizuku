@@ -1,4 +1,38 @@
-# Upstreams inspected — 2026-11-01
+# Upstreams and compatibility decisions
+
+## Selective integration · November 17, 2026
+
+[Release pins and watched paths](../upstream-releases.json) record exact versions and peeled commits.
+The attached APKs were checked against their manifests and GitHub asset SHA-256 digests.
+AxManager 3.0.0.r509, all three Shizuku+ r3331 variants, Axora r377, and Shizuku-Next
+14.0.36-next matched their published assets. Kizuku's baseline is signed Preview 2
+(version code 5, source `5df4a477775f4c9f3232d217241e33662d3af526`).
+The project-source list also includes OmniShizuku, Xhizuku, ADB Captain, stock
+Shizuku, and aMiNo. Earlier reviews cover their relevant paths below.
+
+| Decision | Feature | Evidence and boundaries |
+| --- | --- | --- |
+| Already implemented | Single host, separate Shizuku companion, manual pairing, saved-key reconnect, ADB and root, visible bulk grants | Signed Preview 2 acceptance covers both Android versions and host UIDs. Keep the existing on-device notification pairing and installable companion. |
+| Already implemented | Axeron 3.0 Binder wire, command pipes, local ZIP plugins and WebUI | The AxManager and Axora APK providers use separate manager and client authorities. Preview 2 exercises independent Axeron authorization and runs an actual Shevery Sys Info WebUI. This evidence covers the existing local bridge. |
+| Adopt | Temporary automatic wireless pairing | Next 14.0.36's `AdbPairingAccessibilityService` reads the Settings dialog and navigates known rows. Kizuku's candidate uses the AOSP `pairing_code` view ID and its existing local TLS discovery. The service is explicitly enabled through Settings for one requested attempt. |
+| Adopt | Custom-path SU wrapper | Shizuku+ r3331 ships `assets/su`; it can delegate externally and reports a Magisk version. Kizuku's candidate reuses the existing rish transport, pairs a request with an actual host UID, and returns the command's exit status. |
+| Improve | Remembered grants by host role | Preview 2 has one persisted grant list. The candidate keeps previous approvals and user data, assigning those unqualified approvals to ADB shell. Root requires explicit approval scoped to its own store. |
+| Improve | Axeron interactive PTY and native client behavior | Axeron API 3.0 `ShellProcess` expects full argv, merged PTY output, window resize and a little-endian exit code. Kizuku Preview 2 has a native terminal for stock rish. Exercise the Axeron client transport and its plugin/WebUI before claiming parity. |
+| Adopt | Restricted Dhizuku Device Owner/Profile Owner operations | The SDK 2.7 discovers the actual owner and calls its package-specific provider. Clients written against SDK 2.4 may require `com.rosan.dhizuku.server.provider` and the legacy package. Shizuku+ r3331 embeds a separate Dhizuku compatibility APK alongside its Shizuku companion. This work still needs a constrained policy dispatcher, verified grants, owner-context tests and a real client. |
+| Defer | Extra native socket, plugin catalog, firewall, background accessibility | Add native endpoints when a supported client demonstrates a requirement. Local plugin install and WebUI are the current tested path. |
+| Reject | Arbitrary owner Binder forwarding, owner-UID UserService loading, donor manager/runtime imports, synthetic root results | Dhizuku API wraps a caller-supplied Binder and transaction. The inspected Shizuku+ relay rejects its own descriptors and forwards other targets. This exceeds the policy scope Kizuku intends to expose. |
+
+[Shizuku-Next source](https://github.com/rushiranpise/Shizuku-Next/tree/e1837aee2a02cd4636446f4320bcc9472751f16f) ·
+[Shizuku+ source](https://github.com/thejaustin/ShizukuPlus/tree/d8a162be561f78517ebfd5fb1d2d0a53604e4653) ·
+[Dhizuku SDK](https://github.com/iamr0s/Dhizuku-API/tree/2a62cadcfa491c64003a6fb3f84b285a47ed0fca) ·
+[Axeron SDK](https://github.com/fahrez182/Axeron-API/tree/bfceee9cecfb0451448b3453017b8326ee1f591e)
+
+The upstream release workflow compares stable and prerelease tags against the
+reviewed pins and opens or updates one GitHub issue for relevant source changes.
+On manual request it can retain changed APKs as three-day test artifacts.
+Review the issue and advance the pins when those changes have been triaged.
+
+## Initial upstream inspection · November 1, 2026
 
 | Source | Inspected HEAD | Latest release | Use |
 |---|---|---|---|

@@ -1,0 +1,39 @@
+#!/system/bin/sh
+
+usage() {
+    printf '%s\n' 'Usage: su [root|0|shell|2000] [-c COMMAND]'
+}
+
+case "$#" in
+    1) case "$1" in
+        -h|--help) usage; exit 0 ;;
+        -v|--version) printf '%s\n' 'Kizuku su bridge 1'; exit 0 ;;
+        -V) printf '%s\n' '1'; exit 0 ;;
+    esac ;;
+esac
+
+uid=0
+case "$1" in
+    root|0) shift ;;
+    shell|2000) uid=2000; shift ;;
+esac
+case "$#" in
+    0) set -- interactive ;;
+    2) if [ "$1" != "-c" ] && [ "$1" != "--command" ]; then usage >&2; exit 2; fi ;;
+    *) usage >&2; exit 2 ;;
+esac
+
+unset LD_PRELOAD LD_LIBRARY_PATH
+export RISH_PRESERVE_ENV=0
+base=$(/system/bin/dirname -- "$0")
+exec /system/bin/sh "$base/rish" -c '
+    actual=$(/system/bin/id -u) || exit 126
+    if [ "$actual" != "$1" ]; then
+        printf "Kizuku su: requested UID %s, active host UID %s\n" "$1" "$actual" >&2
+        exit 126
+    fi
+    if [ "$2" = "interactive" ]; then
+        exec /system/bin/sh
+    fi
+    exec /system/bin/sh -c "$3"
+' kizuku-su "$uid" "$@"

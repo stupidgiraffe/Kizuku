@@ -150,6 +150,7 @@ public class ProtocolSmokeTest {
         java.nio.file.Path directory = java.nio.file.Files.createTempDirectory(app.getCacheDir().toPath(), "rish");
         java.nio.file.Path launcher = directory.resolve("rish");
         java.nio.file.Path dex = directory.resolve("rish_shizuku.dex");
+        java.nio.file.Path su = directory.resolve("su");
         java.lang.Process command = null;
         try {
             try (var input = manager.getAssets().open("rish/rish")) {
@@ -168,11 +169,42 @@ public class ProtocolSmokeTest {
             String output = readOutput(command.getInputStream());
             assertEquals(output, 0, command.exitValue());
             assertEquals(Integer.toString(Shizuku.getUid()), output);
+            try (var input = manager.getAssets().open("rish/su")) {
+                java.nio.file.Files.copy(input, su);
+            }
+            int hostUid = Shizuku.getUid();
+            assertSu(app, su, hostUid == 0 ? new String[]{"-c", "id -u"} : new String[]{"shell", "-c", "id -u"},
+                    0, Integer.toString(hostUid));
+            assertSu(app, su, hostUid == 0 ? new String[]{"shell", "-c", "echo unexpected"} : new String[]{"-c", "echo unexpected"},
+                    126, "Kizuku su: requested UID " + (hostUid == 0 ? 2000 : 0) + ", active host UID " + hostUid);
+            assertSu(app, su, new String[]{Integer.toString(hostUid), "-c", "printf '%s' 'a b'; exit 23"},
+                    23, "a b");
+            assertSu(app, su, new String[]{"--mount-master", "-c", "echo unexpected"}, 2, "Usage:");
         } finally {
             if (command != null && command.isAlive()) command.destroyForcibly();
+            java.nio.file.Files.deleteIfExists(su);
             java.nio.file.Files.deleteIfExists(dex);
             java.nio.file.Files.deleteIfExists(launcher);
             java.nio.file.Files.deleteIfExists(directory);
+        }
+    }
+
+    private static void assertSu(Context app, java.nio.file.Path script, String[] arguments,
+            int expectedExit, String expectedOutput) throws Exception {
+        var argv = new java.util.ArrayList<>(java.util.List.of("/system/bin/sh", script.toString()));
+        java.util.Collections.addAll(argv, arguments);
+        var builder = new ProcessBuilder(argv).directory(script.getParent().toFile()).redirectErrorStream(true);
+        builder.environment().put("RISH_APPLICATION_ID", app.getPackageName());
+        var command = builder.start();
+        try {
+            command.getOutputStream().close();
+            assertTrue("SU bridge returned", command.waitFor(15, TimeUnit.SECONDS));
+            String output = readOutput(command.getInputStream());
+            assertEquals(output, expectedExit, command.exitValue());
+            assertTrue(output, output.contains(expectedOutput));
+            assertFalse(output, output.contains("unexpected"));
+        } finally {
+            if (command.isAlive()) command.destroyForcibly();
         }
     }
 

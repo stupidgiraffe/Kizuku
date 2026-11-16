@@ -34,7 +34,7 @@ internal fun RishExport() {
                     withContext(Dispatchers.IO) {
                         val output = checkNotNull(context.contentResolver.openOutputStream(uri)) { "Cannot open the selected file." }
                         ZipOutputStream(output).use { zip ->
-                            for (name in listOf("rish", "rish_shizuku.dex", "NOTICE", "LICENSE")) {
+                            for (name in listOf("rish", "su", "rish_shizuku.dex", "NOTICE", "LICENSE")) {
                                 zip.putNextEntry(ZipEntry(name))
                                 val asset = if (name == "LICENSE") name else "rish/$name"
                                 context.assets.open(asset).use { it.copyTo(zip) }
@@ -55,7 +55,11 @@ internal fun RishExport() {
     Text("Install the companion and start Kizuku. Extract the ZIP into your terminal app’s private home directory.")
     Text("Termux command", style = MaterialTheme.typography.labelLarge)
     Text("RISH_APPLICATION_ID=com.termux sh ./rish", style = MaterialTheme.typography.bodySmall)
-    Text("Approve the terminal app’s Shizuku request in Kizuku.")
+    Text("Approve the app’s Shizuku request in Kizuku.")
+    Text(
+        "Apps with a custom su path can use the exported su script. It requires root for su -c. Use su shell -c to request ADB shell explicitly.",
+        style = MaterialTheme.typography.bodySmall,
+    )
     OutlinedButton(enabled = !busy, onClick = { export.launch("kizuku-rish.zip") }) { Text("Export rish ZIP") }
     message?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
 }

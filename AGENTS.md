@@ -10,7 +10,7 @@
 - One activation/lifecycle controller; distinguish launching, connected, stopped,
   disconnected and failed. Never show an active mock service.
 - A permanent signing identity now exists: read SECURITY.md; NEVER regenerate it.
-  Keep private keys out of git. No scheduled Actions or external cloud backend.
+  Keep private keys out of git. The weekly upstream release check is the only\n  scheduled Action. Builds and releases stay under explicit control.
 - Run `./gradlew :core:test :manager:assembleDebug :test-client:assembleDebug
   :manager:lintDebug :test-client:lintDebug :compat:lintDebug` for changes.
 - `scripts/emulator-smoke.sh` exercises real cross-UID Binder/authorization paths.

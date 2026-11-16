@@ -54,7 +54,7 @@ object AuthorizationStore {
             AndroidIdentity.decode(entry) to entry.getLong("mask")
         }
     }
-    @Synchronized internal fun replaceRemembered(
+    @Synchronized fun replaceRemembered(
         context: Context, identity: ClientIdentity, mask: Long, replacement: Long, hostUid: Int,
     ): Long {
         val ledger = GrantLedger()
