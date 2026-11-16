@@ -1,7 +1,7 @@
 package io.github.stupidgiraffe.kizuku
 
 import android.app.admin.DevicePolicyManager
-import android.content.Intent
+import android.os.ParcelFileDescriptor
 import android.os.SystemClock
 import android.view.accessibility.AccessibilityNodeInfo
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -26,11 +26,10 @@ class DhizukuClientTest {
         assertEquals(DeviceOwnerPolicies.Role.DEVICE, owner.role)
         assertNull("Dhizuku is exercised without a shell or root host", CoreConnection.service)
         assertFalse("Amarok starts without Android package delegation", hasPackageAccess(dpm, owner))
-        val launch = requireNotNull(app.packageManager.getLaunchIntentForPackage(AMAROK))
-        app.startActivity(launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-        // Dismiss optional storage access. It is unrelated to app hiding.
-        click("OK")
-        click("Cancel")
+        val launch = ParcelFileDescriptor.AutoCloseInputStream(
+            automation.executeShellCommand("am start -W -n $AMAROK/deltazero.amarok.ui.MainActivity")
+        ).bufferedReader().use { it.readText() }
+        assertTrue(launch, launch.contains("Status: ok"))
         click("Set Hidden Apps")
         click("Switch app-hiding mode")
         click("Dhizuku")
@@ -48,22 +47,33 @@ class DhizukuClientTest {
     private fun click(label: String) {
         await("UI control $label") {
             val nodes = nodes()
-            val match = nodes.firstOrNull {
-                it.isVisibleToUser && (it.text?.toString()?.equals(label, true) == true ||
-                    it.contentDescription?.toString()?.equals(label, true) == true)
+            fun find(text: String) = nodes.firstOrNull {
+                it.isVisibleToUser && (it.text?.toString()?.equals(text, true) == true ||
+                    it.contentDescription?.toString()?.equals(text, true) == true)
             }
-            if (match == null) {
-                nodes.firstOrNull { it.isScrollable }?.performAction(AccessibilityNodeInfo.ACTION_SCROLL_FORWARD)
-                return@await false
-            }
-            var current: AccessibilityNodeInfo? = match
-            while (current != null) {
-                if (current.isClickable && current.isEnabled &&
-                    current.performAction(AccessibilityNodeInfo.ACTION_CLICK)) return@await true
-                current = current.parent
+            // Handle only known setup UI from the disposable emulator and the test APK.
+            when {
+                find("Pixel Launcher isn't responding") != null -> find("Close app")?.let(::tryClick)
+                find("Welcome") != null -> find("OK")?.let(::tryClick)
+                find("Storage permission required") != null -> find("Cancel")?.let(::tryClick)
+                else -> {
+                    val match = find(label)
+                    if (match != null) return@await tryClick(match)
+                    nodes.firstOrNull { it.isScrollable }?.performAction(AccessibilityNodeInfo.ACTION_SCROLL_FORWARD)
+                }
             }
             false
         }
+    }
+
+    private fun tryClick(node: AccessibilityNodeInfo): Boolean {
+        var current: AccessibilityNodeInfo? = node
+        while (current != null) {
+            if (current.isClickable && current.isEnabled &&
+                current.performAction(AccessibilityNodeInfo.ACTION_CLICK)) return true
+            current = current.parent
+        }
+        return false
     }
 
     private fun nodes(): List<AccessibilityNodeInfo> = buildList {

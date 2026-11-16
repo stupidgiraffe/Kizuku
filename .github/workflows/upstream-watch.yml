@@ -43,6 +43,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: python scripts/upstream_watch.py
       - name: Commit changed radar only
+        if: github.ref == 'refs/heads/main'
         run: |
           if [ -n "$(git status --porcelain -- tools/upstream-state.json docs/UPSTREAM_RADAR.md)" ]; then
             git config user.name 'github-actions[bot]'
@@ -60,7 +61,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           DOWNLOAD_REFERENCE_APKS: ${{ inputs.reference_apks }}
         run: |
-          args=(--report "$RUNNER_TEMP/upstream-releases.json" --update-issue)
+          args=(--report "$RUNNER_TEMP/upstream-releases.json")
+          if [[ "$GITHUB_REF" == refs/heads/main ]]; then
+            args+=(--update-issue)
+          fi
           if [[ "$DOWNLOAD_REFERENCE_APKS" == true ]]; then
             args+=(--download-dir "$RUNNER_TEMP/upstream-apks")
           fi

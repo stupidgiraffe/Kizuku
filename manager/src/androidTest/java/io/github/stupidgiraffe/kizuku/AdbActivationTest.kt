@@ -350,8 +350,15 @@ class AdbActivationTest {
     }
 
     private fun clickText(text: String, scrollAction: Int? = null) {
-        await("UI control $text", 8000) {
+        await("UI control $text", 12000, diagnostics = {
+            nodes().filter { it.packageName?.toString() == app.packageName }
+                .mapNotNull { it.text }.joinToString(limit = 30)
+        }) {
             val visible = nodes()
+            if (visible.any { it.hasLabel("Pixel Launcher isn't responding") }) {
+                visible.firstOrNull { it.hasLabel("Close app") }?.let(::tryClick)
+                return@await false
+            }
             val node = visible.firstOrNull { it.hasLabel(text) && it.isEnabled && it.isVisibleToUser }
             if (node == null) {
                 scrollAction?.let { scroll(visible, it) }
