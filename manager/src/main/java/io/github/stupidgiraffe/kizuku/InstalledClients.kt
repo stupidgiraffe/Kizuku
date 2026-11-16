@@ -19,10 +19,13 @@ object InstalledClients {
 
     @Suppress("DEPRECATION")
     @JvmOverloads
-    fun list(context: Context, live: List<Bundle>, connected: Boolean, onUnverified: () -> Unit = {}): List<Bundle> {
+    fun list(
+        context: Context, live: List<Bundle>, connected: Boolean,
+        hostUid: Int = AuthorizationStore.ADB_UID, onUnverified: () -> Unit = {},
+    ): List<Bundle> {
         val pm = context.packageManager
         val attached = live.filter { it.getBoolean("verified") }.associateBy { it.getString("package") to it.getInt("uid") }
-        val remembered = AuthorizationStore.rememberedGrants(context).associateBy { it.first.packageName() }
+        val remembered = AuthorizationStore.rememberedGrants(context, hostUid).associateBy { it.first.packageName() }
         val collator = Collator.getInstance()
         return pm.getInstalledPackages(packageFlags).mapNotNull { info ->
             val pkg = info.packageName
@@ -55,6 +58,7 @@ object InstalledClients {
                 putString("label", label)
                 putLong("package_update", info.lastUpdateTime)
                 putInt("uid", identity.uid())
+                putInt(AuthorizationStore.HOST_UID, hostUid)
                 putString("identity", identityJson)
                 putString("certificate", identity.members().getValue(pkg).first())
                 putStringArray("shared_uid", identity.members().keys.toTypedArray())

@@ -54,6 +54,14 @@ grep -qx 'true' "$evidence/wifi-supported.txt"
 instrument pair
 # A new instrumentation process reopens the encrypted persisted ADB identity.
 instrument reconnect
+# Exercise a second pairing with a fresh manager key and the existing system Wi-Fi trust.
+adb shell pm clear "$manager"
+adb shell pm grant "$manager" android.permission.POST_NOTIFICATIONS
+if (( api >= 37 )); then
+  adb shell pm grant "$manager" android.permission.ACCESS_LOCAL_NETWORK
+fi
+instrument assisted
+instrument reconnect
 adb shell am start -W -n "$manager/.MainActivity"
 adb shell screencap -p /data/local/tmp/kizuku-adb-complete.png
 adb pull /data/local/tmp/kizuku-adb-complete.png "$evidence/complete.png"

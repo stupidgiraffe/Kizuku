@@ -172,8 +172,8 @@ private enum class Destination(val title: String, val heading: String, val icon:
             if (state.busy) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
             else { Icon(Icons.Outlined.Bolt, null); Spacer(Modifier.width(8.dp)); Text("Start with root") }
         }
-        OutlinedButton(onClick = { showAdb = true }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text("Start from a computer") }
-        Text("Pair using the notification while Settings stays open. Previously paired devices can start over Wi-Fi; custom TCP ports are supported.", color = Muted, style = MaterialTheme.typography.bodySmall)
+        OutlinedButton(onClick = { showAdb = true }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text("ADB options") }
+        Text("Pair or reconnect over Wi-Fi, or start with a computer or custom TCP port.", color = Muted, style = MaterialTheme.typography.bodySmall)
         if (state.busy) OutlinedButton(onClick = controller::cancelActivation) { Text("Cancel activation") }
     }
     if (showAdbControls) AdbControls(controller) { showAdbControls = false }

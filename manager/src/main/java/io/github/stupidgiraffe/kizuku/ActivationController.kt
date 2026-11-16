@@ -103,7 +103,7 @@ class ActivationController private constructor(private val app:Application) {
             var appsError: String? = null
             var unverifiedApps = 0
             val apps = try {
-                InstalledClients.list(app, live, snapshot != null) { unverifiedApps++ }
+                InstalledClients.list(app, live, snapshot != null, snapshot?.getInt("uid") ?: AuthorizationStore.ADB_UID) { unverifiedApps++ }
             } catch (e: Exception) {
                 appsError = "Cannot load installed apps: ${e.message ?: "package or authorization lookup failed"}"
                 emptyList()
@@ -434,10 +434,14 @@ class ActivationController private constructor(private val app:Application) {
         }
         val permanent = lifetime == GrantLedger.Lifetime.PERMANENT.ordinal
         val canSaveOffline = !requireLive && (lifetime == null || permanent)
-        check(CoreConnection.service != null || canSaveOffline) { "Start the core before granting this access." }
-        val replacement = if (permanent) mask else 0L
-        val previous = AuthorizationStore.replaceRemembered(app, identity, mask, replacement)
         val service = CoreConnection.service
+        check(service != null || canSaveOffline) { "Start the core before granting this access." }
+        val hostUid = service?.status()?.getInt("uid", -1) ?: AuthorizationStore.ADB_UID
+        check(snapshot.getInt(AuthorizationStore.HOST_UID, -1) == hostUid) {
+            "The host privilege level changed. Review this app's access again."
+        }
+        val replacement = if (permanent) mask else 0L
+        val previous = AuthorizationStore.replaceRemembered(app, identity, mask, replacement, hostUid)
         if (service == null && canSaveOffline) return false
 
         try {
@@ -451,7 +455,7 @@ class ActivationController private constructor(private val app:Application) {
             }
             if (replacement != previous) {
                 try {
-                    AuthorizationStore.replaceRemembered(app, identity, mask, previous)
+                    AuthorizationStore.replaceRemembered(app, identity, mask, previous, hostUid)
                 } catch (rollback: Exception) {
                     throw IllegalStateException("Grant unconfirmed and saved access could not be restored. Review the app's permission.", rollback)
                 }

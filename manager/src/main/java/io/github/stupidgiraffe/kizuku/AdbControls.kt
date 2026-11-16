@@ -34,6 +34,7 @@ internal fun wirelessDebuggingSettingsIntent() = Intent(Settings.ACTION_APPLICAT
     var code by remember{mutableStateOf("")}
     var tls by remember{mutableStateOf(false)}
     var manualPair by remember{mutableStateOf(false)}
+    var showAssistedConsent by remember { mutableStateOf(false) }
     var pending by remember{mutableStateOf<(() -> Unit)?>(null)}
     fun settings(){runCatching{context.startActivity(wirelessDebuggingSettingsIntent())}.onFailure{context.startActivity(Intent(Settings.ACTION_SETTINGS))}}
     val permission=rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()){ results ->
@@ -54,6 +55,11 @@ internal fun wirelessDebuggingSettingsIntent() = Intent(Settings.ACTION_APPLICAT
             Button(enabled=Build.VERSION.SDK_INT>=30 && !state.busy,onClick={permitted(true){
                 ContextCompat.startForegroundService(context,Intent(context,AdbPairingService::class.java).setAction(AdbPairingService.BEGIN));settings()
             }},modifier=Modifier.fillMaxWidth()){Text(if(adb.paired)"Pair again with code" else "Pair with code")}
+            OutlinedButton(
+                enabled = Build.VERSION.SDK_INT >= 30 && !state.busy,
+                onClick = { showAssistedConsent = true },
+                modifier = Modifier.fillMaxWidth(),
+            ) { Text("Pair automatically") }
             OutlinedButton(enabled=Build.VERSION.SDK_INT>=30 && !state.busy && state.status==null,onClick={permitted(false){controller.startWireless()}},modifier=Modifier.fillMaxWidth()){Text("Start paired device")}
             TextButton(onClick=::settings){Text("Open debugging settings")}
             Text(adb.message ?: adb.stage,style=MaterialTheme.typography.bodySmall)
@@ -81,4 +87,24 @@ internal fun wirelessDebuggingSettingsIntent() = Intent(Settings.ACTION_APPLICAT
             state.message?.let{Text(it,color=MaterialTheme.colorScheme.error,style=MaterialTheme.typography.bodySmall)}
         }
     },confirmButton={TextButton(onClick=onDismiss){Text("Close")}})
+    if (showAssistedConsent) {
+        AlertDialog(
+            onDismissRequest = { showAssistedConsent = false },
+            title = { Text("Allow automatic pairing?") },
+            text = { Text("Enable Kizuku pairing in Android Accessibility. It opens Wireless debugging and reads the pairing code from Settings. It turns itself off after this attempt. Android may ask you to turn on Wireless debugging first.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showAssistedConsent = false
+                    permitted(true) {
+                        ContextCompat.startForegroundService(
+                            context, Intent(context, AdbPairingService::class.java)
+                                .setAction(AdbPairingService.BEGIN_ASSISTED),
+                        )
+                        context.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+                    }
+                }) { Text("Open Accessibility") }
+            },
+            dismissButton = { TextButton(onClick = { showAssistedConsent = false }) { Text("Cancel") } },
+        )
+    }
 }
