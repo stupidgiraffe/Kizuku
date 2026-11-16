@@ -1,0 +1,35 @@
+{
+  "curated": {
+    "RikkaApps/Shizuku": "baseline protocol",
+    "d4rken-org/porter": "compatibility, companion, authorization",
+    "HmnDev-Tech/shevery": "UX, permissions, Dhizuku, modules",
+    "thejaustin/ShizukuPlus": "extended compatibility and SU bridge",
+    "qianyumeng0228/ShizukuX": "compatibility features",
+    "rushiranpise/Shizuku-Next": "ADB and diagnostics",
+    "kerneldroid/Nightzuku": "Android platform fixes; paused project",
+    "krishna3163/OmniShizuku": "app management and utilities",
+    "xeonleonreal/Xhizuku": "module lifecycle and diagnostics",
+    "cr1437/Shizako": "compatibility and manager UX",
+    "roro2239/Stellar": "boot recovery and script execution",
+    "fahrez182/AxManager": "Axeron, plugins, WebUI and security",
+    "corvexis/Axora": "Axeron family alternative",
+    "Sharif-bot-cmd/ShizuPosed": "optional Labs inspiration",
+    "HSSkyBoy/Shizuku": "device and wireless fixes",
+    "thedjchi/Shizuku": "legacy startup and automation",
+    "iamr0s/Dhizuku": "Device Owner protocol reference",
+    "AMINODa/aMiNo-App": "ADB workflows and client compatibility"
+  },
+  "catalog": "timschneeb/awesome-shizuku",
+  "queries": [
+    "shizuku fork in:name,description archived:false",
+    "shizuku manager in:description archived:false",
+    "axeron in:name,description archived:false",
+    "axmanager in:name,description archived:false"
+  ],
+  "external_references": [
+    "https://shizustore.com/apps/xhizuku",
+    "https://shizustore.com/apps/adb-captain",
+    "https://shizustore.com/apps/shizuku-next",
+    "https://f-droid.org/en/packages/adb.captain/"
+  ]
+}
