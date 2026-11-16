@@ -13,7 +13,7 @@ Candidate source is on [feat/selective-integration](https://github.com/stupidgir
 - A custom-path SU script ships in the rish export. It checks its host UID and preserves real stdout, stderr and exit status. It does not emulate a root manager or offer mount namespace and SELinux-context switches.
 - Axeron's Binder path supports interactive PTY, merged terminal output, resize and exit status. The existing plugin lifecycle and local WebUI remain usable. The full native socket, Axeron file service, and donor-only plugin/WebUI methods are outside the supported surface.
 - Dhizuku delegates Android package access from a genuine Device Owner or Profile Owner. Older clients can install the separate same-signed Dhizuku companion. Stock Shizuku continues to use its own companion. Dhizuku arbitrary Binder forwarding, user services and non-package delegation scopes are unavailable.
-- The upstream workflow records exact release commits and groups relevant changes in one GitHub issue. Reference APKs are opt-in, short-lived test artifacts.
+- The upstream radar records exact release commits and groups relevant changes in one GitHub issue. Reference APKs are opt-in, short-lived test artifacts.
 
 Run signed acceptance for Android 16 and 17 before publishing. The first
 [Preview 3 signed run](https://github.com/stupidgiraffe/Kizuku/actions/runs/43947064649)

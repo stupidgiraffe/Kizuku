@@ -27,7 +27,7 @@ Shizuku, and aMiNo. Earlier reviews cover their relevant paths below.
 [Dhizuku SDK](https://github.com/iamr0s/Dhizuku-API/tree/2a62cadcfa491c64003a6fb3f84b285a47ed0fca) ·
 [Axeron SDK](https://github.com/fahrez182/Axeron-API/tree/bfceee9cecfb0451448b3453017b8326ee1f591e)
 
-The upstream release workflow compares stable and prerelease tags against the
+The [upstream radar](UPSTREAM_WATCH.md) compares stable and prerelease tags against the
 reviewed pins and opens or updates one GitHub issue for relevant source changes.
 On manual request it can retain changed APKs as three-day test artifacts.
 Review the issue and advance the pins when those changes have been triaged.
