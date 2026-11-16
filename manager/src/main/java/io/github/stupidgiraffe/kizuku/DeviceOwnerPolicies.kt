@@ -7,6 +7,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
+import android.os.Build
 import android.os.UserManager
 import io.github.stupidgiraffe.kizuku.api.AndroidIdentity
 import io.github.stupidgiraffe.kizuku.core.ClientIdentity
@@ -40,7 +41,8 @@ internal class DeviceOwnerPolicies(private val context: Context) {
     }
     val enrolled get() = role != null
     val canRemoveOwner get() = role == Role.DEVICE ||
-        (role == Role.PROFILE && context.getSystemService(UserManager::class.java)?.isManagedProfile == false)
+        (role == Role.PROFILE && Build.VERSION.SDK_INT >= 30 &&
+            context.getSystemService(UserManager::class.java)?.isManagedProfile == false)
 
 
     data class App(val name: String, val packageName: String, val uid: Int)
@@ -153,5 +155,6 @@ internal class DeviceOwnerPolicies(private val context: Context) {
 
     private fun eligible(info: ApplicationInfo) =
         info.packageName != context.packageName && info.packageName != CompanionInstaller.PACKAGE &&
+            info.packageName != DhizukuAuthorization.COMPANION &&
             info.flags and (ApplicationInfo.FLAG_SYSTEM or ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) == 0
 }

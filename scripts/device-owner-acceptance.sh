@@ -52,6 +52,22 @@ if grep -Fq "$manager" "$evidence/after.txt"; then
   echo 'Device Owner acceptance did not restore the original owner state' >&2
   exit 1
 fi
+profile_result=$(timeout 30 adb shell pm create-user --profileOf 0 --managed KizukuAcceptance | tr -d '\r')
+printf '%s\n' "$profile_result" | tee "$evidence/profile-created.txt"
+profile=$(sed -n 's/^Success: created user id \([0-9][0-9]*\)$/\1/p' <<<"$profile_result")
+[[ "$profile" =~ ^[1-9][0-9]+$ ]]
+trap 'adb shell pm remove-user "$profile" >/dev/null || true' EXIT
+for package in "$manager" "$client" "$manager.test"; do
+  adb shell cmd package install-existing --user "$profile" "$package"
+done
+timeout 40 adb shell am start-user -w "$profile"
+timeout 30 adb shell dpm set-profile-owner --user "$profile" "$manager/.KizukuDeviceAdminReceiver" \
+  | tee "$evidence/profile-provisioned.txt"
+timeout 60 adb shell am instrument --user "$profile" -w -e class "$manager.DeviceOwnerPolicyTest" -e scenario profile \
+  "$manager.test/androidx.test.runner.AndroidJUnitRunner" | tee "$evidence/profile.txt"
+grep -Fq 'OK (1 test)' "$evidence/profile.txt"
+adb shell pm remove-user "$profile"
+trap - EXIT
 adb uninstall "$manager.test"
 adb uninstall "$client"
 adb uninstall "$manager"

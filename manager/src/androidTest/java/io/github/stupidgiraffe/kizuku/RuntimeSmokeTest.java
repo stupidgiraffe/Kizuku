@@ -74,6 +74,7 @@ public final class RuntimeSmokeTest {
             service.controlRuntimePlugin(id, "remove");
             for (Bundle plugin : service.runtimePlugins()) assertNotEquals(id, plugin.getString("id"));
             exerciseShevery(service, file, id + "_sv", status.getInt("uid"));
+            exerciseAxManagerWebUi(service, status.getInt("uid"));
         } finally {
             for (Bundle plugin : service.runtimePlugins())
                 if (id.equals(plugin.getString("id"))) service.controlRuntimePlugin(id, "remove");
@@ -128,7 +129,9 @@ public final class RuntimeSmokeTest {
             assertEquals(output.getString("stderr"), 0, output.getInt("exit"));
             assertTrue(output.getString("stdout").contains("module=sysinfo"));
             assertTrue(output.getString("stdout").contains("MemTotal"));
-            verifySysInfoWebView(uid);
+            verifyWebView(sysinfo, "document.title === 'Sys Info' && typeof Shizuku !== 'undefined' && "
+                + "JSON.parse(Shizuku.getModuleInfo()).id === 'sysinfo' && "
+                + "JSON.parse(Shizuku.exec('id -u')).stdout.trim() === '" + uid + "'");
         } finally {
             host.controlRuntimePlugin(sysinfo, "remove");
         }
@@ -139,11 +142,34 @@ public final class RuntimeSmokeTest {
         throw new AssertionError("Module is missing: " + id);
     }
 
-    private static void verifySysInfoWebView(int uid) throws Exception {
+    private static void exerciseAxManagerWebUi(IKizukuService host, int uid) throws Exception {
+        File fixture = new File("/data/local/tmp/kizuku-axmanager-webui.zip");
+        if (!fixture.isFile()) return;
+        String plugin = "test_function";
+        assertEquals(plugin, install(host, fixture).getString("id"));
+        try {
+            String verifyOriginalBridge = """
+                (() => {
+                  if (document.title !== 'Test Function' || typeof axeronExecAsync !== 'function') return false;
+                  if (!window.kizukuTestCommand) {
+                    window.kizukuTestCommand = true;
+                    axeronExecAsync('id -u', {}).then(result => { window.kizukuTestResult = result; });
+                  }
+                  return window.kizukuTestResult?.errno === 0 &&
+                         window.kizukuTestResult.stdout.trim() === '%d';
+                })()
+                """.formatted(uid);
+            verifyWebView(plugin, verifyOriginalBridge);
+        } finally {
+            host.controlRuntimePlugin(plugin, "remove");
+        }
+    }
+
+    private static void verifyWebView(String plugin, String expression) throws Exception {
         var tests = InstrumentationRegistry.getInstrumentation();
         var intent = new Intent(tests.getTargetContext(), PluginWebActivity.class)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                .putExtra("plugin", "sysinfo")
+                .putExtra("plugin", plugin)
                 .putExtra("shell", true);
         var activity = tests.startActivitySync(intent);
         try {
@@ -157,17 +183,15 @@ public final class RuntimeSmokeTest {
                         completed.countDown();
                         return;
                     }
-                    view.evaluateJavascript("document.title === 'Sys Info' && typeof Shizuku !== 'undefined' && "
-                            + "JSON.parse(Shizuku.getModuleInfo()).id === 'sysinfo' && "
-                            + "JSON.parse(Shizuku.exec('id -u')).stdout.trim() === '" + uid + "'", value -> {
-                                answer.set(value);
-                                completed.countDown();
-                            });
+                    view.evaluateJavascript(expression, value -> {
+                        answer.set(value);
+                        completed.countDown();
+                        });
                 });
                 if (completed.await(3, TimeUnit.SECONDS) && "true".equals(answer.get())) return;
                 android.os.SystemClock.sleep(250);
             }
-            fail("Sys Info did not render and execute through its original Shizuku bridge");
+            fail(plugin + " did not render and execute through its original WebUI bridge");
         } finally {
             tests.runOnMainSync(activity::finish);
         }

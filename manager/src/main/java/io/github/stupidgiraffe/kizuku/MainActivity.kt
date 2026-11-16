@@ -202,7 +202,7 @@ private enum class Destination(val title: String, val heading: String, val icon:
     Glass {
         Text("Protection & recovery", style = MaterialTheme.typography.titleMedium)
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) { Text("Safe mode"); Text("Suspend all client capabilities", color = Muted, style = MaterialTheme.typography.bodySmall) }
+            Column(Modifier.weight(1f)) { Text("Safe mode"); Text("Suspend access to the privilege host", color = Muted, style = MaterialTheme.typography.bodySmall) }
             Switch(checked = state.safeMode, onCheckedChange = controller::safeMode)
         }
         Row(verticalAlignment = Alignment.CenterVertically) {

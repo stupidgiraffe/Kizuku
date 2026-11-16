@@ -91,7 +91,7 @@ internal fun AppsManagementScreen(
     val eligibleForRevoke = remember(shizukuClients) { shizukuClients.filter { it.hasPermission(Capability.SHIZUKU) } }
     val actionsEnabled = state.appsLoaded && !state.busy && !batch.running
     val availability = when {
-        state.safeMode -> "Safe Mode pauses all client access."
+        state.safeMode -> "Safe Mode pauses access to the privilege host."
         state.status == null -> "Offline changes apply to the ADB shell host. Start root to manage its grants."
         else -> null
     }
