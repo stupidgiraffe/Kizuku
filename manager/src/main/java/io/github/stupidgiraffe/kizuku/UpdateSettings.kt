@@ -6,12 +6,21 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.Button
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Switch
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Code
+import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -101,15 +110,39 @@ private fun UpdateSwitch(label: String, enabled: Boolean, onChange: (Boolean) ->
 internal fun ProjectLinks() {
     val context = LocalContext.current
     var notice by remember { mutableStateOf<String?>(null) }
-    val links = listOf("GitHub" to AppUpdates.PROJECT_URL, "Buy me a coffee" to AppUpdates.SUPPORT_URL)
-    Text("About Kizuku", style = MaterialTheme.typography.titleMedium)
-    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        links.forEach { (label, url) ->
-            TextButton(onClick = {
-                runCatching {
-                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
-                }.onFailure { notice = "Could not open $url" }
-            }) { Text(label) }
+
+    fun open(label: String, url: String) {
+        runCatching {
+            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)).addCategory(Intent.CATEGORY_BROWSABLE))
+        }.onFailure { notice = "Could not open $label." }
+    }
+
+    Text("Project & support", style = MaterialTheme.typography.titleMedium)
+    Text(
+        "Browse the source, report issues, or support development.",
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+    FlowRow(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        OutlinedButton(
+            onClick = { open("GitHub", AppUpdates.PROJECT_URL) },
+            shape = RoundedCornerShape(18.dp),
+        ) {
+            Icon(Icons.Outlined.Code, contentDescription = null, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(8.dp))
+            Text("GitHub")
+        }
+        FilledTonalButton(
+            onClick = { open("Buy Me a Coffee", AppUpdates.SUPPORT_URL) },
+            shape = RoundedCornerShape(18.dp),
+        ) {
+            Icon(Icons.Outlined.FavoriteBorder, contentDescription = null, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(8.dp))
+            Text("Buy me a coffee")
         }
     }
     notice?.let { Text(it, style = MaterialTheme.typography.bodySmall) }

@@ -206,8 +206,17 @@ preserved in git history. No unchanged failure was blindly rerun.
 
 ## Remaining acceptance and feature work
 
-1. Broader stock Shizuku and Axeron client testing, certificate-lineage rotation,
-   and physical Android 16/17 acceptance including OEM `su` prompts.
-2. Axeron PTY, native socket/file service and a wider range of actual third-party
-   module installers and WebUIs.
-3. SU bridge, boot-time automation, native Tasker integration, and external Dhizuku.
+1. Physical Android 16/17 and OEM acceptance, including root-manager prompts,
+   accessibility-assisted pairing, on-device install/update, and broader
+   third-party Shizuku, Axeron and Dhizuku client testing.
+2. Axeron PTY basics now pass emulator acceptance. Full native socket/file APIs,
+   plugin installers, module background lifecycle and wider WebUI compatibility
+   still require implementation and real-module tests.
+3. The custom-path SU bridge is implemented and tested in shell/root modes;
+   it does not provide universal root or claim success for unavailable operations.
+   Dhizuku package-access delegation works in emulator policy tests; raw Binder
+   forwarding, Dhizuku UserService, additional delegated scopes, and wider
+   external-client compatibility remain incomplete.
+4. Boot-time automation, native Tasker plugin integration, certificate-lineage
+   rotation, physical biometric acceptance, and a full in-app updater
+   download-to-install cycle against a newer signed APK remain open.

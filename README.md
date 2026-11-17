@@ -10,14 +10,14 @@
 </p>
 
 <p align="center">
-  <strong><a href="https://github.com/stupidgiraffe/Kizuku/releases/download/v0.2.0-preview.2/Kizuku-v0.2.0-preview.2.apk">Download the signed APK ↓</a></strong>
+  <strong><a href="https://github.com/stupidgiraffe/Kizuku/releases">Download latest signed APK · Releases</a></strong>
   &nbsp;·&nbsp;
-  <a href="https://github.com/stupidgiraffe/Kizuku/releases/tag/v0.2.0-preview.2">Release notes</a>
+  <a href="https://github.com/stupidgiraffe/Kizuku/releases">Release notes</a>
   &nbsp;·&nbsp;
   <a href="#quick-start">Quick start</a>
 </p>
 
-<p align="center"><strong>0.2.0 Preview 2</strong> · Android 8+ · Open source under Apache 2.0</p>
+<p align="center">Android 8+ · Apache 2.0 · <a href="docs/STATUS.md">Latest verified build and status</a></p>
 
 ## What you can do
 
@@ -41,14 +41,14 @@
 
 ## Quick start
 
-1. **Install the signed APK.** If the direct link hangs in your chat app, open the [release page](https://github.com/stupidgiraffe/Kizuku/releases/tag/v0.2.0-preview.2) in Chrome and tap the APK under **Assets**.
+1. **Install the signed APK.** Open [Releases](https://github.com/stupidgiraffe/Kizuku/releases) in Chrome, select the newest signed release, and download the APK under **Assets**.
 2. **Start Kizuku.** For wireless startup without root, open **Home → Wireless ADB / TCP → Pair with code**, then choose **Pair device with pairing code** in Android’s Wireless debugging settings. Enter the code through Kizuku’s notification while Settings stays open. Use **Start paired device** next time. Wireless debugging requires Android 11 or later. Home also has **Start with root** and **Start from a computer**.
-3. **Connect your apps.** For Shizuku clients, install the companion in **Settings → Compatibility companion**. If stock Shizuku or a fork already owns the companion package, remove that conflicting app before installing the companion. Approve access in Kizuku when your client asks, or manage grants in **Apps**.
+3. **Connect your apps.** Install or update the companion in **Settings → Compatibility companion**. If stock Shizuku or a fork already owns the companion package, remove that conflicting app before installing the companion. Approve access in Kizuku when your client asks, or manage grants in **Apps**.
 4. **Run your tools.** Open **Runtime** for commands and modules. To use a terminal, choose **Export rish ZIP** in **Settings** and approve Shizuku access for the terminal app.
 
 ## Release verification
 
-Preview 2 passed signed Android 16 and 17 emulator tests as shell and root, including Hail, the Sys Info module, and an in-place upgrade from Preview 1 that preserved grants and the ADB key. The public APK matches the tested artifact. External Dhizuku, the full Shevery module catalog, and physical-device acceptance remain open. [Signed test run](https://github.com/stupidgiraffe/Kizuku/actions/runs/43749949949) · [APK checksum](https://github.com/stupidgiraffe/Kizuku/releases/download/v0.2.0-preview.2/SHA256SUMS.txt) · [Current status](docs/STATUS.md)
+Kizuku publishes permanently signed preview builds after Android 16/17 emulator acceptance. The [current implementation status](docs/STATUS.md) records the newest verified version, checksum, CI evidence, and remaining limitations. Get the latest APK from [Releases](https://github.com/stupidgiraffe/Kizuku/releases) rather than an outdated version-specific link. Physical-device and broader third-party compatibility tests remain separate gates.
 
 ## Support development
 

@@ -17,7 +17,8 @@
     "HSSkyBoy/Shizuku": "device and wireless fixes",
     "thedjchi/Shizuku": "legacy startup and automation",
     "iamr0s/Dhizuku": "Device Owner protocol reference",
-    "AMINODa/aMiNo-App": "ADB workflows and client compatibility"
+    "AMINODa/aMiNo-App": "ADB workflows and client compatibility",
+    "revBlackCore/RevCoreManager": "Axora-derived plugin runtime compatibility and UI reference"
   },
   "catalog": "timschneeb/awesome-shizuku",
   "queries": [
@@ -30,6 +31,7 @@
     "https://shizustore.com/apps/xhizuku",
     "https://shizustore.com/apps/adb-captain",
     "https://shizustore.com/apps/shizuku-next",
-    "https://f-droid.org/en/packages/adb.captain/"
+    "https://f-droid.org/en/packages/adb.captain/",
+    "https://shizukux.xyz/"
   ]
 }
