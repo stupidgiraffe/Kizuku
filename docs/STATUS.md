@@ -3,6 +3,17 @@
 Updated 2026-11-17 JST. Canonical Plane mainline #3:
 `68ff91b5-1e6c-4a37-b755-8d284b4fffb4`.
 
+## Published 0.2.0 Preview 4
+
+[Download the signed APK](https://github.com/stupidgiraffe/Kizuku/releases/download/v0.2.0-preview.4/Kizuku-v0.2.0-preview.4.apk) · [Release notes](https://github.com/stupidgiraffe/Kizuku/releases/tag/v0.2.0-preview.4) · [Signed Android 16 and 17 acceptance](https://github.com/stupidgiraffe/Kizuku/actions/runs/44005813896)
+
+- Source `3b47f8995e9847bf1e7510f9ffd87166018c7fe4`, version code 7. The public 18,277,225 byte APK matches the accepted build and SHA-256 `303bde32afa6e03ad9ea5154dddaa6f70c97f8a7ee7cb70474ddb694fbff2d2a`.
+- All four signed runtime and device-policy jobs passed. Updating from Preview 3 preserved the app UID, ADB identity and remembered shell grants under the permanent signing certificate.
+- All ON, All OFF and individual app switches apply changes immediately. Each app’s access menu offers grant duration, and root and ADB-shell approvals remain separate.
+- The Shizuku companion has no launcher activity. Existing companion installs can use Settings → Compatibility companion → Update. The installed package remains the Shizuku discovery identity.
+- Settings includes GitHub, Buy Me a Coffee, manual checks, optional daily checks and automatic APK downloads. Emulator coverage exercised release selection, scheduling and APK identity checks. Android asks for approval to install. The full in-app download-and-install flow awaits a newer release.
+- Automatic pairing reads the current address and code from the same Android Settings dialog, avoiding stale discovery endpoints. Manual notification pairing passed on both emulators.
+
 ## Published 0.2.0 Preview 3
 
 [Download the signed APK](https://github.com/stupidgiraffe/Kizuku/releases/download/v0.2.0-preview.3/Kizuku-v0.2.0-preview.3.apk) · [Release notes](https://github.com/stupidgiraffe/Kizuku/releases/tag/v0.2.0-preview.3) · [Signed Android 16 and 17 acceptance](https://github.com/stupidgiraffe/Kizuku/actions/runs/43984722474) · [Feature matrix](UPSTREAMS.md#selective-integration--november-17-2026)
