@@ -105,7 +105,10 @@ class CompanionLifecycleTest {
     private fun await(description: String, condition: () -> Boolean) {
         val deadline = SystemClock.elapsedRealtime() + 20_000
         while (SystemClock.elapsedRealtime() < deadline) {
-            if (condition()) return
+            val visible = nodes()
+            if (visible.any { it.text == "Pixel Launcher isn't responding" }) {
+                click(visible.firstOrNull { it.text == "Close app" })
+            } else if (condition()) return
             SystemClock.sleep(150)
         }
         fail("Timed out waiting for $description. Visible text: ${nodes().mapNotNull { it.text }.joinToString(" | ")}")

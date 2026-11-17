@@ -6,6 +6,7 @@ import android.content.Intent
 import android.provider.Settings
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
+import io.github.stupidgiraffe.kizuku.adb.LocalAdb
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -46,9 +47,18 @@ class PairingAccessibilityService : AccessibilityService() {
                         val code = root.findAccessibilityNodeInfosByViewId(PAIRING_CODE_ID)
                             .firstOrNull { it.isVisibleToUser }?.text?.toString()
                             ?.takeIf { SIX_DIGITS.matches(it) }
-                        val endpoint = stage.pairing
-                        if (code != null && stage.stage == "Waiting for code" && endpoint != null) {
-                            if (controller.pair(endpoint.host, endpoint.port, code) != null) break
+                        if (code != null && stage.stage == "Waiting for code") {
+                            // mDNS can briefly retain the previous pairing dialog's port.
+                            // Use the address Android displays with this specific code.
+                            val address = root.findAccessibilityNodeInfosByViewId(PAIRING_ADDRESS_ID)
+                                .firstOrNull { it.isVisibleToUser }?.text?.toString()?.trim()
+                            val match = address?.let { PAIRING_ADDRESS.matchEntire(it) }
+                            val host = match?.groupValues?.get(1)
+                            val port = match?.groupValues?.get(2)?.toIntOrNull()
+                            if (host != null && port != null &&
+                                runCatching { LocalAdb.requireLocal(host, port) }.isSuccess &&
+                                controller.pair(host, port, code) != null
+                            ) break
                         } else if (code == null && !pairingRowOpened) {
                             navigate(root, wirelessTitle, pairTitle)
                         }
@@ -113,6 +123,8 @@ class PairingAccessibilityService : AccessibilityService() {
     private companion object {
         const val SETTINGS_PACKAGE = "com.android.settings"
         const val PAIRING_CODE_ID = "$SETTINGS_PACKAGE:id/pairing_code"
+        const val PAIRING_ADDRESS_ID = "$SETTINGS_PACKAGE:id/ip_addr"
+        val PAIRING_ADDRESS = Regex("""([0-9]{1,3}(?:\.[0-9]{1,3}){3}):([0-9]{1,5})""")
         val SIX_DIGITS = Regex("[0-9]{6}")
         val TERMINAL_STAGES = setOf("Cancelled", "Connected", "Paired", "Failed")
     }
