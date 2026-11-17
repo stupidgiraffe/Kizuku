@@ -200,11 +200,11 @@ class AdbActivationTest {
         var leftSettings = false
         await("enabled Wireless debugging and pairing dialog", 35000, diagnostics = {
             // Exclude node text, since a Settings dialog can contain a pairing code.
-            nodes().take(25).joinToString("\n") {
+            nodes(fresh = true).take(70).joinToString("\n") {
                 "${it.packageName} ${it.viewIdResourceName} enabled=${it.isEnabled} checked=${it.isChecked}"
             }
         }) {
-            val visible = nodes()
+            val visible = nodes(fresh = true)
             val now = SystemClock.elapsedRealtime()
             if (now < nextAction) return@await false
             val settingsNodes = visible.filter { it.packageName?.toString() == "com.android.settings" }
@@ -233,8 +233,14 @@ class AdbActivationTest {
                             nextAction = now + 2500
                         }
                     } else {
-                        // The enabled switch is pinned above the scrollable device and pairing list.
-                        scroll(settingsNodes, AccessibilityNodeInfo.ACTION_SCROLL_FORWARD)
+                        // The switch and toolbar sit above the pairing preference list.
+                        val list = settingsNodes.firstOrNull {
+                            it.viewIdResourceName == "com.android.settings:id/recycler_view" && it.isVisibleToUser
+                        }
+                        if (list != null && !list.performAction(AccessibilityNodeInfo.ACTION_SCROLL_FORWARD)) {
+                            list.performAction(AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD)
+                        }
+                        nextAction = now + 400
                     }
                 }
                 developerEntry != null -> {
@@ -267,8 +273,7 @@ class AdbActivationTest {
             }
         }) {
             // Compare current Compose switch semantics, not the hierarchy cached before the tap.
-            if (Build.VERSION.SDK_INT >= 34) automation.clearCache()
-            val visible = nodes()
+            val visible = nodes(fresh = true)
             val node = visible.firstOrNull { it.viewIdResourceName == tag && it.isVisibleToUser }
             if (node == null) {
                 scroll(visible, AccessibilityNodeInfo.ACTION_SCROLL_FORWARD)
@@ -299,7 +304,8 @@ class AdbActivationTest {
         }
         fail("Timed out: $label; core=${controller.state.value.phase}; busy=${controller.state.value.busy}; adb=${controller.adb.value.stage}; detail=${controller.state.value.message}\n${diagnostics()}")
     }
-    private fun nodes(): List<AccessibilityNodeInfo> {
+    private fun nodes(fresh: Boolean = false): List<AccessibilityNodeInfo> {
+        if (fresh && Build.VERSION.SDK_INT >= 34) automation.clearCache()
         val root = automation.rootInActiveWindow ?: return emptyList()
         val result = ArrayList<AccessibilityNodeInfo>()
         fun visit(node: AccessibilityNodeInfo) {
