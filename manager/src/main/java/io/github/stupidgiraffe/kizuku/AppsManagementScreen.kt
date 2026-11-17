@@ -15,6 +15,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Apps
 import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -53,7 +54,7 @@ private enum class AppFilter(val label: String) {
 
 private enum class AppPermission(val label: String, val scope: Long, val description: String) {
     SHIZUKU("Shizuku Binder", Capability.SHIZUKU, SHIZUKU_WARNING),
-    AXERON("Axeron", Capability.AXERON, "Allows shell commands. A remembered grant also allows root commands whenever Kizuku runs as root."),
+    AXERON("Axeron", Capability.AXERON, "Allows commands with the privileges of the selected host."),
     DIAGNOSTICS("Native diagnostics", Capability.DIAGNOSTICS, "Allows this app to read the host UID, PID, Android API level and uptime.")
 }
 
@@ -70,7 +71,6 @@ internal fun AppsManagementScreen(
     var search by rememberSaveable { mutableStateOf("") }
     var filter by rememberSaveable { mutableStateOf(AppFilter.ALL) }
     var approval by remember { mutableStateOf<Pair<Bundle, AppPermission>?>(null) }
-    var bulkApproval by remember { mutableStateOf<Pair<ShizukuBatchAction, List<Bundle>>?>(null) }
     var showFailures by remember { mutableStateOf(false) }
     val clients = remember(state.apps) { state.apps.filter { it.hasScope("available_scopes", appScopes) } }
     val query = search.trim()
@@ -93,7 +93,7 @@ internal fun AppsManagementScreen(
     val availability = when {
         state.safeMode -> "Safe Mode pauses access to the privilege host."
         state.status == null -> "Offline changes apply to the ADB shell host. Start root to manage its grants."
-        else -> null
+        else -> "Managing ${AuthorizationStore.hostLabel(state.status.getInt("uid"))} access."
     }
 
     LazyColumn(
@@ -105,7 +105,8 @@ internal fun AppsManagementScreen(
             ShizukuMasterControls(state, batch, shizukuClients.size, eligibleForGrant.size, eligibleForRevoke.size,
                 actionsEnabled, controller::reloadApps, onFailures = { showFailures = true }) { action ->
                 keyboard?.hide()
-                bulkApproval = action to if (action == ShizukuBatchAction.GRANT) eligibleForGrant else eligibleForRevoke
+                val targets = if (action == ShizukuBatchAction.GRANT) eligibleForGrant else eligibleForRevoke
+                protect { controller.changeAllShizuku(action, targets) }
             }
         }
         item {
@@ -146,21 +147,15 @@ internal fun AppsManagementScreen(
             visible.isEmpty() -> item { SecondaryText("No clients match the current search and filter.") }
         }
         items(visible, key = { it.packageName }) { app ->
-            AppPermissionCard(app, state, appScopes, actionsEnabled) { permission, enabled ->
-                if (enabled) approval = app to permission
-                else protect { controller.decide(app, permission.scope, null) }
+            AppPermissionCard(app, state, appScopes, actionsEnabled,
+                onDuration = { approval = app to it }) { permission, enabled ->
+                protect { controller.decide(app, permission.scope, rememberedLifetime(enabled)) }
             }
         }
     }
 
     approval?.let { (app, permission) ->
         PermissionDialog(app, permission, state.status != null, actionsEnabled, controller, protect) { approval = null }
-    }
-    bulkApproval?.let { (action, apps) ->
-        BulkShizukuDialog(action, apps, enabled = actionsEnabled, onDismiss = { bulkApproval = null }) {
-            bulkApproval = null
-            protect { controller.changeAllShizuku(action, apps) }
-        }
     }
     batch.result?.takeIf { showFailures }?.let { result ->
         AlertDialog(
@@ -245,8 +240,8 @@ internal fun NativeDiagnosticsPermissions(state: CoreState, controller: Activati
         clients.isEmpty() -> SecondaryText("No installed apps declare or request native diagnostics.")
     }
     clients.forEach { app ->
-        AppPermissionCard(app, state, Capability.DIAGNOSTICS, actionsEnabled) { _, enabled ->
-            if (enabled) approval = app else protect { controller.decide(app, Capability.DIAGNOSTICS, null) }
+        AppPermissionCard(app, state, Capability.DIAGNOSTICS, actionsEnabled, onDuration = { approval = app }) { _, enabled ->
+            protect { controller.decide(app, Capability.DIAGNOSTICS, rememberedLifetime(enabled)) }
         }
     }
     approval?.let {
@@ -254,14 +249,20 @@ internal fun NativeDiagnosticsPermissions(state: CoreState, controller: Activati
     }
 }
 
+private fun rememberedLifetime(enabled: Boolean) = GrantLedger.Lifetime.PERMANENT.ordinal.takeIf { enabled }
+
 @Composable
 private fun AppPermissionCard(
     app: Bundle,
     state: CoreState,
     scopes: Long,
     actionsEnabled: Boolean,
+    onDuration: (AppPermission) -> Unit,
     onToggle: (AppPermission, Boolean) -> Unit,
 ) {
+    var menuOpen by remember { mutableStateOf(false) }
+    val permissions = AppPermission.entries.filter { scopes and it.scope != 0L && app.hasScope("available_scopes", it.scope) }
+    val editable = actionsEnabled && app.getBoolean("verified")
     val label = remember(app.label) { BidiFormatter.getInstance().unicodeWrap(app.label) }
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -276,27 +277,38 @@ private fun AppPermissionCard(
                     Text(label, style = MaterialTheme.typography.titleMedium, maxLines = 2, overflow = TextOverflow.Ellipsis)
                     Text(app.packageName, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
+                Box {
+                    IconButton(onClick = { menuOpen = true }, enabled = editable) {
+                        Icon(Icons.Outlined.MoreVert, contentDescription = "Access options for $label")
+                    }
+                    DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                        permissions.forEach { permission ->
+                            DropdownMenuItem(text = { Text("${permission.label} duration") }, enabled = editable, onClick = {
+                                menuOpen = false
+                                onDuration(permission)
+                            })
+                        }
+                    }
+                }
             }
             val members = app.getStringArray("shared_uid").orEmpty()
             if (members.size > 1) SecondaryText("Shared UID · ${members.joinToString()}")
-            AppPermission.entries.forEach { permission ->
+            permissions.forEach { permission ->
                 val scope = permission.scope
-                if (scopes and scope != 0L && app.hasScope("available_scopes", scope)) {
-                    Row(Modifier.heightIn(min = 48.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Column(Modifier.weight(1f)) {
-                            Text(permission.label, style = MaterialTheme.typography.bodyMedium)
-                            SecondaryText(app.permissionStatus(scope, state.status != null, state.safeMode))
-                        }
-                        Switch(
-                            checked = app.hasPermission(scope),
-                            enabled = actionsEnabled && app.getBoolean("verified"),
-                            onCheckedChange = { onToggle(permission, it) },
-                            modifier = Modifier.testTag("capability:${app.packageName}:$scope").semantics {
-                                testTagsAsResourceId = true
-                                contentDescription = "${permission.label} for $label"
-                            },
-                        )
+                Row(Modifier.heightIn(min = 48.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Column(Modifier.weight(1f)) {
+                        Text(permission.label, style = MaterialTheme.typography.bodyMedium)
+                        SecondaryText(app.permissionStatus(scope, state.status != null, state.safeMode))
                     }
+                    Switch(
+                        checked = app.hasPermission(scope),
+                        enabled = editable,
+                        onCheckedChange = { onToggle(permission, it) },
+                        modifier = Modifier.testTag("capability:${app.packageName}:$scope").semantics {
+                            testTagsAsResourceId = true
+                            contentDescription = "${permission.label} for $label"
+                        },
+                    )
                 }
             }
         }
@@ -330,7 +342,7 @@ private fun PermissionDialog(
     val title = if (permission == AppPermission.DIAGNOSTICS) "native diagnostics" else permission.label
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Authorize $title?") },
+        title = { Text("$title duration") },
         text = {
             ProtectPermissionDialog()
             Column(Modifier.heightIn(max = 320.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -358,45 +370,8 @@ private fun PermissionDialog(
             }
         },
         dismissButton = {
-            TextButton(enabled = enabled, onClick = {
-                onDismiss()
-                protect { controller.decide(app, permission.scope, null) }
-            }) { Text("Deny") }
+            TextButton(onClick = onDismiss) { Text("Cancel") }
         },
-    )
-}
-
-@Composable
-private fun BulkShizukuDialog(
-    action: ShizukuBatchAction,
-    apps: List<Bundle>,
-    enabled: Boolean,
-    onDismiss: () -> Unit,
-    onConfirm: () -> Unit,
-) {
-    val granting = action == ShizukuBatchAction.GRANT
-    val appCount = "${apps.size} ${if (apps.size == 1) "app" else "apps"}"
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(if (granting) "Grant Shizuku to $appCount?" else "Revoke Shizuku for $appCount?") },
-        text = {
-            ProtectPermissionDialog()
-            Column(Modifier.heightIn(max = 320.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text(if (granting) SHIZUKU_WARNING else "Removes remembered and temporary Shizuku grants for the listed apps.")
-                Text("Host privileges: ${AuthorizationStore.hostLabel(apps.first().getInt(AuthorizationStore.HOST_UID, AuthorizationStore.ADB_UID))}")
-                apps.forEach { app ->
-                    Column {
-                        Text(BidiFormatter.getInstance().unicodeWrap(app.label), style = MaterialTheme.typography.titleSmall)
-                        SecondaryText(app.packageName)
-                        app.getStringArray("shared_uid")?.takeIf { it.size > 1 }?.let { SecondaryText("Shared UID · ${it.joinToString()}") }
-                    }
-                }
-                SecondaryText(if (granting) "Remembers access for every listed app, including apps with temporary access. Search and filters do not limit this action."
-                    else "Search and filters do not limit this action.")
-            }
-        },
-        confirmButton = { TextButton(enabled = enabled, onClick = onConfirm) { Text(if (granting) "Grant Shizuku" else "Revoke Shizuku") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
     )
 }
 

@@ -37,6 +37,7 @@ axeron_probe() { adb shell am force-stop "$client"; instrument "$client" stage "
 extra_status=0
 if [[ "$host_uid" == 2000 ]]; then
   adb shell appops set "$manager" REQUEST_INSTALL_PACKAGES allow
+  instrument "$manager" action updates UpdateSettingsTest || extra_status=1
   instrument "$manager" action companion CompanionLifecycleTest || extra_status=1
 fi
 while IFS= read -r apk; do adb install -r -t "$apk"; done < <(find "$artifact_root" -name '*.apk' -type f -path '*/compat/*' | sort)

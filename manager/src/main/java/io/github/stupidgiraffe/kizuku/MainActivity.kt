@@ -1,7 +1,6 @@
 package io.github.stupidgiraffe.kizuku
 
 import android.content.Intent
-import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -40,9 +39,17 @@ private val Cyan: Color @Composable get() = MaterialTheme.colorScheme.primary
 private val Muted: Color @Composable get() = MaterialTheme.colorScheme.onSurfaceVariant
 
 class MainActivity : ComponentActivity() {
+    private var updateNavigation by mutableIntStateOf(0)
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        if (intent.action == AppUpdates.OPEN_SETTINGS) updateNavigation++
+    }
+
     @OptIn(ExperimentalMaterial3ExpressiveApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        if (intent.action == AppUpdates.OPEN_SETTINGS) updateNavigation++
         enableEdgeToEdge(statusBarStyle = SystemBarStyle.auto(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT), navigationBarStyle = SystemBarStyle.auto(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT))
         window.decorView.filterTouchesWhenObscured = true
         if (Build.VERSION.SDK_INT >= 31) window.setHideOverlayWindows(true)
@@ -58,7 +65,7 @@ class MainActivity : ComponentActivity() {
             )
             MaterialExpressiveTheme(colorScheme = scheme, motionScheme = MotionScheme.expressive(),
                 shapes = Shapes(medium = RoundedCornerShape(16.dp), large = RoundedCornerShape(24.dp))) {
-                CommandCenter()
+                CommandCenter(updateNavigation)
             }
         }
     }
@@ -72,9 +79,12 @@ private enum class Destination(val title: String, val heading: String, val icon:
     Settings("Settings", "Settings", Icons.Outlined.Tune),
 }
 
-@Composable private fun CommandCenter(controller: ActivationController = ActivationController.get(LocalContext.current)) {
+@Composable private fun CommandCenter(updateNavigation: Int, controller: ActivationController = ActivationController.get(LocalContext.current)) {
     val state by controller.state.collectAsStateWithLifecycle()
     var tab by rememberSaveable { mutableStateOf(Destination.Core) }
+    LaunchedEffect(updateNavigation) {
+        if (updateNavigation > 0) tab = Destination.Settings
+    }
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { CoreConnection.changed() }
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val wide = maxWidth >= 760.dp
@@ -105,7 +115,7 @@ private enum class Destination(val title: String, val heading: String, val icon:
                         Text(tab.heading, style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.SemiBold)
                         state.message?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium) }
                         when (tab) {
-                            Destination.Core -> CoreScreen(state, controller) { tab = Destination.Settings }
+                            Destination.Core -> CoreScreen(state, controller)
                             Destination.Apps -> Box(Modifier.weight(1f)) {
                                 AppsManagementScreen(state, controller) { InstalledAppControls(state.status?.getBoolean("axeron_runtime") == true) }
                             }
@@ -130,10 +140,7 @@ private enum class Destination(val title: String, val heading: String, val icon:
     }
 }
 
-@Composable private fun CoreScreen(state: CoreState, controller: ActivationController, openSettings: () -> Unit) {
-    val context = LocalContext.current
-    val companionChanges by CompanionInstaller.changes.collectAsStateWithLifecycle()
-    val companion = remember(companionChanges, state.appsLoaded) { CompanionInstaller.packageState(context) }
+@Composable private fun CoreScreen(state: CoreState, controller: ActivationController) {
     val clipboard = LocalClipboardManager.current
     var showAdb by remember { mutableStateOf(false) }
     var showAdbControls by remember { mutableStateOf(false) }
@@ -159,10 +166,6 @@ private enum class Destination(val title: String, val heading: String, val icon:
             status != null -> status.getString("runtime_error") ?: "Unavailable on this host."
             else -> "Offline."
         })
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            HomeStatus("Compatibility companion", companion.text, Modifier.weight(1f))
-            TextButton(onClick = openSettings) { Text("Manage") }
-        }
         if (status != null) OutlinedButton(onClick = controller::stop, modifier = Modifier.fillMaxWidth()) { Text("Stop service") }
     }
     Glass {
@@ -194,7 +197,6 @@ private enum class Destination(val title: String, val heading: String, val icon:
 }
 
 @Composable private fun SettingsScreen(state: CoreState, controller: ActivationController) {
-    val context = LocalContext.current
     var recover by remember { mutableStateOf(controller.recoveryDiagnostics().enabled) }
     CompatibilityCompanionPanel(CompanionInstaller.Kind.SHIZUKU)
     Glass { RishExport() }
@@ -212,7 +214,8 @@ private enum class Destination(val title: String, val heading: String, val icon:
         Text("No telemetry. Authorization stays on your device. Release builds use Kizuku’s permanent signing identity.", color = Muted, style = MaterialTheme.typography.bodySmall)
     }
     Glass { AutomationSettings(controller) }
-    TextButton(onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/stupidgiraffe/Kizuku"))) }) { Text("Source & licenses") }
+    Glass { UpdateSettings() }
+    Glass { ProjectLinks() }
 }
 
 @Composable
@@ -242,7 +245,7 @@ internal fun CompatibilityCompanionPanel(kind: CompanionInstaller.Kind) {
                     removalNotice = null
                     runCatching { CompanionInstaller.install(context, kind) }.onFailure { removalNotice = it.message ?: "Install failed" }
                 }
-            }) { Text(if (companion.installed) "Reinstall" else "Install") }
+            }) { Text(if (companion.installed) { if (companion.updateAvailable) "Update" else "Reinstall" } else "Install") }
             OutlinedButton(enabled = !installing && !removing && companion.installed, onClick = {
                 protectCompanion {
                     runCatching {

@@ -78,10 +78,7 @@ class AdbActivationTest {
         clickText("Apps")
         val eligible = controller.state.value.apps.count { it.getLong("manifest_scopes") and Capability.SHIZUKU != 0L }
         assertTrue(eligible > 0)
-        clickText("All ON ($eligible)")
-        clickText("Cancel")
         clickProbeBinderSwitch(checked = false)
-        clickText("Remember this certificate")
         await("remembered Binder grant") { row().getLong("granted") == Capability.SHIZUKU }
         clickProbeBinderSwitch(checked = true)
         await("revoked offline grant") { row().getLong("granted") == 0L }
@@ -100,21 +97,6 @@ class AdbActivationTest {
             }
 
             clickText("All ON ($eligible)", AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD)
-            await("confirmation identifies the target package", 8000) {
-                val visible = nodes()
-                val targetCount = if (eligible == 1) "1 app" else "$eligible apps"
-                if (visible.none { it.hasLabel("Grant Shizuku to $targetCount?") }) return@await false
-                if (visible.any { it.hasLabel(client) && it.isVisibleToUser }) return@await true
-                visible.firstOrNull { node ->
-                    node.actionList.any { it.id == AccessibilityNodeInfo.ACTION_SCROLL_FORWARD }
-                }?.performAction(AccessibilityNodeInfo.ACTION_SCROLL_FORWARD)
-                false
-            }
-            clickText("Cancel")
-            assertEquals("Dismissing confirmation preserves the current grants", Capability.AXERON, row().getLong("granted"))
-
-            clickText("All ON ($eligible)")
-            clickText("Grant Shizuku")
             await("offline bulk grant") {
                 row().getLong("granted") == both && controller.shizukuBatch.value.result?.action == ShizukuBatchAction.GRANT
             }
@@ -122,7 +104,6 @@ class AdbActivationTest {
                 controller.state.value.apps.first { it.getString("package") == nativeOnly }.getLong("granted"))
 
             clickText("All OFF ($eligible)")
-            clickText("Revoke Shizuku")
             await("offline bulk revoke preserves Axeron") {
                 row().getLong("granted") == Capability.AXERON && controller.shizukuBatch.value.result?.action == ShizukuBatchAction.REVOKE
             }
