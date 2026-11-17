@@ -84,7 +84,6 @@ internal fun AppsManagementScreen(
                 }
         }
     }
-    val currentClients by rememberUpdatedState(remember(clients) { clients.associateBy { it.packageName } })
     val shizukuClients = remember(clients) { clients.filter { it.hasScope("available_scopes", Capability.SHIZUKU) } }
     val eligibleForGrant = remember(shizukuClients) {
         shizukuClients.filter { it.hasScope("manifest_scopes", Capability.SHIZUKU) && !it.hasScope("remembered", Capability.SHIZUKU) }
@@ -147,9 +146,7 @@ internal fun AppsManagementScreen(
             clients.isEmpty() -> item { SecondaryText("No Shizuku or Axeron clients installed. Compatible apps appear here after installation.") }
             visible.isEmpty() -> item { SecondaryText("No clients match the current search and filter.") }
         }
-        items(visible, key = { it.packageName }) { item ->
-            // A visible lazy slot observes the latest verified snapshot even when its key stays the same.
-            val app = currentClients[item.packageName] ?: return@items
+        items(visible, key = { it.packageName }) { app ->
             AppPermissionCard(app, state, appScopes, actionsEnabled,
                 onDuration = { approval = app to it }) { permission, enabled ->
                 protect { controller.decide(app, permission.scope, rememberedLifetime(enabled)) }

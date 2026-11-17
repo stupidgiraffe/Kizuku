@@ -106,8 +106,8 @@ class CompanionLifecycleTest {
         val deadline = SystemClock.elapsedRealtime() + 20_000
         while (SystemClock.elapsedRealtime() < deadline) {
             val visible = nodes()
-            if (visible.any { it.text == "Pixel Launcher isn't responding" }) {
-                click(visible.firstOrNull { it.text == "Close app" })
+            if (visible.any { it.text?.toString() == "Pixel Launcher isn't responding" }) {
+                click(visible.firstOrNull { it.text?.toString() == "Close app" })
             } else if (condition()) return
             SystemClock.sleep(150)
         }

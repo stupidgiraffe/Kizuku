@@ -6,6 +6,7 @@ import android.app.UiAutomation
 import android.os.ParcelFileDescriptor
 import android.provider.Settings
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import android.os.SystemClock
 import android.view.accessibility.AccessibilityNodeInfo
@@ -265,13 +266,15 @@ class AdbActivationTest {
                     "checkable=${node.isCheckable}, checked=${node.isChecked}"
             }
         }) {
+            // Compare current Compose switch semantics, not the hierarchy cached before the tap.
+            if (Build.VERSION.SDK_INT >= 34) automation.clearCache()
             val visible = nodes()
             val node = visible.firstOrNull { it.viewIdResourceName == tag && it.isVisibleToUser }
             if (node == null) {
                 scroll(visible, AccessibilityNodeInfo.ACTION_SCROLL_FORWARD)
                 return@await false
             }
-            if (!node.isEnabled || node.isChecked != checked) return@await false
+            if (!node.refresh() || !node.isEnabled || node.isChecked != checked) return@await false
             click(node)
             true
         }
