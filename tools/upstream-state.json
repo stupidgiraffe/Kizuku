@@ -18,7 +18,7 @@
       ],
       "pushed_at": "2025-06-18T04:21:02Z",
       "license": "Apache-2.0",
-      "stars": 33868,
+      "stars": 33942,
       "archived": false,
       "fork": false
     },
@@ -40,7 +40,7 @@
       ],
       "pushed_at": "2026-11-13T09:02:54Z",
       "license": "Apache-2.0",
-      "stars": 317,
+      "stars": 319,
       "archived": false,
       "fork": false
     },
@@ -49,9 +49,13 @@
       "origin": "curated",
       "url": "https://github.com/HmnDev-Tech/shevery",
       "description": "Shevery - Modernized Android manager with Jetpack Compose, Material 3, and compatibility enhancements.",
-      "head": "ca8f19455462d3a8091c891b680768a6deadd37c",
-      "head_changes": [],
-      "commit_subject": "fix(adb): include NUL terminator in SPAKE2 names to match AOSP/BoringSSL (#400)",
+      "head": "ea7b84dc31dc2a7cf6c93aa62a6e9cd7eb673d4b",
+      "head_changes": [
+        "fix(server): wire ClientPackageValidator.enforcePackageOwnership into ShizukuService.attachApplication",
+        "chore(submodules): update api to enforce binder delivery UIDs in SheveryProvider.call()",
+        "test(providers): add Robolectric ContentProvider.call() tests for binder sender UID enforcement"
+      ],
+      "commit_subject": "Merge pull request #406 from HmnDev-Tech/Add-Sponsorship-Button",
       "release": "14.6.5",
       "release_url": "https://github.com/HmnDev-Tech/shevery/releases/tag/14.6.5",
       "release_published": "2026-11-15T11:36:17Z",
@@ -60,9 +64,9 @@
         "Rewrote the legacy C/C++ native layer (`starter`, `rish`, `adb_pairing`) in **Rust**, removing BoringSSL and `libc++` native build dependencies:",
         "`rish`: PTY management, raw `termios`, `SIGWINCH` self-pipe handling, and JNI bridges."
       ],
-      "pushed_at": "2026-11-16T04:05:58Z",
+      "pushed_at": "2026-11-17T12:29:30Z",
       "license": "Apache-2.0",
-      "stars": 1710,
+      "stars": 1714,
       "archived": false,
       "fork": false
     },
@@ -71,20 +75,29 @@
       "origin": "curated",
       "url": "https://github.com/thejaustin/ShizukuPlus",
       "description": "Shizuku+ brings Root/ADB/Dhizuku unification, a Plus API suite, OneUI/Android 16+ support, M3E theming, TCP connectivity, improved customization, & more.",
-      "head": "d8a162be561f78517ebfd5fb1d2d0a53604e4653",
-      "head_changes": [],
-      "commit_subject": "Timeline halo starts once the row is attached; steady label colour",
-      "release": "13.7.0.r3331",
-      "release_url": "https://github.com/thejaustin/ShizukuPlus/releases/tag/13.7.0.r3331",
-      "release_published": "2026-11-16T19:15:47Z",
-      "release_notes": [
-        "🛠 Fixes & Improvements",
-        "Less empty space under lists** — With the floating navigation bar on, screens now leave just enough room at the bottom for the bar instead of a large fixed gap, and pressed settings rows round to the ",
-        "🚀 **Most recent major release — [13.7.0.r3301](https://github.com/thejaustin/ShizukuPlus/releases/tag/13.7.0.r3301)**"
+      "head": "fbf6b676ac48442a5f7b77cafab5ac22311fe6b1",
+      "head_changes": [
+        "Fix squeezed App Backup rows and the blank Dhizuku allowed-apps row; quieter server errors",
+        "ci: attach each build's commit to its Sentry release - lets \"Fixes SHIZUKUPLUS-XX\" resolve on ship",
+        "fix: long app names end in \"…\" in list rows; About's developer-options row hides via setAvailable - follow-ups to #684",
+        "fix: Home card dragging - direction-aware drop targets, no instant grab on scroll, lock respected; experimental Quick card moves",
+        "fix: terminal export is rish-only by default; su (SU Bridge wrapper) is an explained opt-in - it overwrote Termux's own su",
+        "fix: server crash reports keep their stack trace (redacted) - the server sent it but the manager dropped it, leaving SHIZUKUPLUS-BR undiagnosable",
+        "fix: freeze APIs refuse boot-critical system packages (System UI, Settings, telephony, permission plumbing, persistent apps) - disabling one boot-loops at the l",
+        "fix: status card chips and the settings jump highlight stay readable on light containers (high-contrast custom accents)"
       ],
-      "pushed_at": "2026-11-16T19:15:41Z",
+      "commit_subject": "fix: status card chips and the settings jump highlight stay readable on light containers (high-contrast custom accents)",
+      "release": "13.7.0.r3346",
+      "release_url": "https://github.com/thejaustin/ShizukuPlus/releases/tag/13.7.0.r3346",
+      "release_published": "2026-11-17T15:32:42Z",
+      "release_notes": [
+        "🔒 Security & Privacy",
+        "No freezing core system apps** — Freezing an app through Shizuku+ (the app list, the `plus` command or the Plus API) now refuses System UI, Settings, the phone and permission services, and any other a",
+        "🛠 Fixes & Improvements"
+      ],
+      "pushed_at": "2026-11-17T15:32:35Z",
       "license": "Apache-2.0",
-      "stars": 1813,
+      "stars": 1821,
       "archived": false,
       "fork": false
     },
@@ -93,9 +106,20 @@
       "origin": "curated",
       "url": "https://github.com/qianyumeng0228/ShizukuX",
       "description": "ShizukuX 是 Shizuku 的增强分支：让普通应用借助 ADB / Root 特权进程直接调用系统级 API，并内置 Dhizuku、Extra API、Root 兼容桥等高级能力。继承自 ShizukuPlus（Apache 2.0）。",
-      "head": "44a11b7eeb35ed07b91916642a99fc15c14ac760",
-      "head_changes": [],
-      "commit_subject": "fix(dhizuku): 授权不再被超时清空、remoteProcess 返回真实 binder、协议对齐 v8",
+      "head": "c3861d53e54997017a05408282240ab8538fc00f",
+      "head_changes": [
+        "feat(dhizuku): 接通 UserService（bindUserService / unbindUserService）",
+        "fix(dhizuku): 按 AIDL writeTypedObject 语义读取 Bundle 参数",
+        "fix(dhizuku): enforceOwnPackage 对不可解析的调用方包名改为 fail-closed",
+        "fix(starter): 旧守护跨安装目录识别 + apk 失效时停止重启",
+        "fix(starter): 按 argv 中的 apk 路径识别跨目录旧守护",
+        "fix(starter): 旧守护 exe basename 按前缀匹配（内核会加 deleted 后缀）",
+        "fix(adb-worker): 首次关闭无线调试即判死，不再挂起 Worker",
+        "fix(rotation): restore 时先跑 wm user-rotation，再写两个 settings",
+        "fix(adb-worker): 失败原因同时写 logcat，release 也能从外部读回",
+        "fix(rotation): restore 只写 settings，并清掉残留的锁态 base"
+      ],
+      "commit_subject": "fix(rotation): restore 只写 settings，并清掉残留的锁态 base",
       "release": "v13.7.0.k2017",
       "release_url": "https://github.com/qianyumeng0228/ShizukuX/releases/tag/v13.7.0.k2017",
       "release_published": "2026-11-10T19:13:58Z",
@@ -104,9 +128,9 @@
         "tab 高亮与图标**。玻璃 tab 高亮在切换时滑动过渡；ADB 模块 tab 落在「应用」与「终端」之间；应用 tab 换成 Android 机器人、模块 tab 保留拼图；tab 目的地不再显示返回上箭头",
         "WebUI 兼容桥**。接入 shevery 系模块的 WebUI 协议，社区模块可直接打开面板"
       ],
-      "pushed_at": "2026-11-16T07:52:01Z",
+      "pushed_at": "2026-11-17T16:27:00Z",
       "license": "Apache-2.0",
-      "stars": 208,
+      "stars": 211,
       "archived": false,
       "fork": false
     },
@@ -115,7 +139,7 @@
       "origin": "curated",
       "url": "https://github.com/rushiranpise/Shizuku-Next",
       "description": "A feature-rich Shizuku fork with improved setup, reliability, UI, and additional start methods.",
-      "head": "d4be2449344d11609b1667eecc8f3d1744a0d2bc",
+      "head": "3e93b2ad7d68373e02ae7c4f7ff5ea4b4d91f888",
       "head_changes": [],
       "commit_subject": "chore(i18n): new translations from Crowdin",
       "release": "v14.0.36-next",
@@ -126,9 +150,9 @@
         "add fixed-name latest APK asset",
         "Full Changelog**: https://github.com/rushiranpise/Shizuku-Next/compare/v14.0.35-next...v14.0.36-next"
       ],
-      "pushed_at": "2026-11-16T13:05:23Z",
+      "pushed_at": "2026-11-17T12:02:36Z",
       "license": "Apache-2.0",
-      "stars": 1975,
+      "stars": 2007,
       "archived": false,
       "fork": false
     },
@@ -150,7 +174,7 @@
       ],
       "pushed_at": "2026-11-13T07:18:38Z",
       "license": "Apache-2.0",
-      "stars": 351,
+      "stars": 353,
       "archived": false,
       "fork": false
     },
@@ -201,7 +225,7 @@
       "origin": "curated",
       "url": "https://github.com/cr1437/Shizako",
       "description": "猫耳看板娘的系统权限助手：不 Root 也能用特权 API，兼容 Shizuku-API 生态（官方 SDK 应用零改动直连） A catgirl-mascot privileged-API assistant for Android. Shizuku-API compatible — apps built on the official SDK conne",
-      "head": "20b9b3ac80d8150d568c84ea63b72217a427f590",
+      "head": "c34f5880b1f01d1ee9e405838bef50d54bd598ac",
       "head_changes": [],
       "commit_subject": "docs: 刷新徽章计数",
       "release": "zako3.19",
@@ -212,7 +236,7 @@
         "无线调试配对永远「连不上」**：`AdbPairingClient` 为加连接超时改用了 `Socket().apply { connect(InetSocketAddress(host, port), …) }`，而 `apply` 的接收者是 `Socket`，`Socket` 自带 `getPort()`（未连接时恒为 0），于是 `port` 被解析成 0 —— 每次配对都在连 `127.",
         "配对成功但服务起不来（`Untracked pid … received signal 1`）**：通过 ADB shell 启动服务时，adbd 会在 shell 通道关闭的一刻给前台进程组发 SIGHUP；服务子进程在 `fork()` 到 `setsid()` 之间有一个极小的窗口，信号落进去就会把还没 exec 的进程杀掉。现在 starter 在 fork 之前就忽略 SIGHUP/SI"
       ],
-      "pushed_at": "2026-11-16T22:10:23Z",
+      "pushed_at": "2026-11-17T14:29:55Z",
       "license": "Apache-2.0",
       "stars": 122,
       "archived": false,
@@ -236,7 +260,7 @@
       ],
       "pushed_at": "2026-10-18T11:38:12Z",
       "license": "MPL-2.0",
-      "stars": 1882,
+      "stars": 1889,
       "archived": false,
       "fork": false
     },
@@ -258,7 +282,7 @@
       ],
       "pushed_at": "2026-11-01T15:16:29Z",
       "license": "Apache-2.0",
-      "stars": 1576,
+      "stars": 1577,
       "archived": false,
       "fork": false
     },
@@ -280,7 +304,7 @@
       ],
       "pushed_at": "2026-10-21T08:40:43Z",
       "license": "Apache-2.0",
-      "stars": 21,
+      "stars": 22,
       "archived": false,
       "fork": false
     },
@@ -324,7 +348,7 @@
       ],
       "pushed_at": "2026-11-08T08:59:44Z",
       "license": "Apache-2.0",
-      "stars": 241,
+      "stars": 249,
       "archived": false,
       "fork": true
     },
@@ -344,7 +368,7 @@
       ],
       "pushed_at": "2026-07-15T03:12:10Z",
       "license": "Apache-2.0",
-      "stars": 6956,
+      "stars": 6975,
       "archived": false,
       "fork": true
     },
@@ -364,9 +388,9 @@
         "Fix error when battery optimization settings screen is unavailable",
         "Fix a startup race condition that could prevent the service from starting on some devices"
       ],
-      "pushed_at": "2026-11-16T09:24:22Z",
+      "pushed_at": "2026-11-17T05:10:14Z",
       "license": "GPL-3.0",
-      "stars": 4180,
+      "stars": 4184,
       "archived": false,
       "fork": false
     },
@@ -389,6 +413,28 @@
       "pushed_at": "2026-11-10T20:05:38Z",
       "license": "Apache-2.0",
       "stars": 2,
+      "archived": false,
+      "fork": false
+    },
+    "revBlackCore/RevCoreManager": {
+      "name": "revBlackCore/RevCoreManager",
+      "origin": "curated",
+      "url": "https://github.com/revBlackCore/RevCoreManager",
+      "description": "Privileged Plugin Manager for Android (AX Manager-Compatible)",
+      "head": "39dfdb2efe81e975ad7b89fec38e7eb09c704ad7",
+      "head_changes": [],
+      "commit_subject": "Remove unused fastlane changelog workflow",
+      "release": "v26.10.21.r1",
+      "release_url": "https://github.com/revBlackCore/RevCoreManager/releases/tag/v26.10.21.r1",
+      "release_published": "2026-11-17T05:52:57Z",
+      "release_notes": [
+        "RevCore Manager - privileged plugin manager for Android.",
+        "Root, Wireless Debugging & PC ADB activation",
+        "Plugin install/enable/disable with WebUI support"
+      ],
+      "pushed_at": "2026-11-17T06:16:05Z",
+      "license": "Apache-2.0",
+      "stars": 3,
       "archived": false,
       "fork": false
     },
@@ -428,7 +474,7 @@
       "release_notes": [],
       "pushed_at": "2026-09-05T13:41:25Z",
       "license": "Apache-2.0",
-      "stars": 44,
+      "stars": 45,
       "archived": false,
       "fork": false
     },

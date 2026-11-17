@@ -1,15 +1,33 @@
 # Kizuku upstream radar
 
-Last changed: 2026-11-17 00:06 UTC. Automated metadata check; **not** a source-code, security, or compatibility audit.
+Last changed: 2026-11-17 16:35 UTC. Automated metadata check; **not** a source-code, security, or compatibility audit.
 
 Source discovery is best-effort and not exhaustive. No upstream code, APKs, or dependencies are copied or upgraded.
 
 ## Recent signals
 
+- **[thejaustin/ShizukuPlus](https://github.com/thejaustin/ShizukuPlus/releases/tag/13.7.0.r3346)** — Release 13.7.0.r3331 → 13.7.0.r3346
+  - 🔒 Security & Privacy
+  - No freezing core system apps** — Freezing an app through Shizuku+ (the app list, the `plus` command or the Plus API) now refuses System UI, Settings, the phone and permission servi
+  - 🛠 Fixes & Improvements
+- **[revBlackCore/RevCoreManager](https://github.com/revBlackCore/RevCoreManager)** — New tracked source
+- **[rushiranpise/Shizuku-Next](https://github.com/rushiranpise/Shizuku-Next)** — New HEAD chore(i18n): new translations from Crowdin
 - **[cr1437/Shizako](https://github.com/cr1437/Shizako)** — New HEAD docs: 刷新徽章计数
+- **[qianyumeng0228/ShizukuX](https://github.com/qianyumeng0228/ShizukuX)** — New HEAD fix(rotation): restore 只写 settings，并清掉残留的锁态 base
+  - feat(dhizuku): 接通 UserService（bindUserService / unbindUserService）
+  - fix(dhizuku): 按 AIDL writeTypedObject 语义读取 Bundle 参数
+  - fix(dhizuku): enforceOwnPackage 对不可解析的调用方包名改为 fail-closed
+- **[HmnDev-Tech/shevery](https://github.com/HmnDev-Tech/shevery)** — New HEAD Merge pull request #406 from HmnDev-Tech/Add-Sponsorship-Button
+  - fix(server): wire ClientPackageValidator.enforcePackageOwnership into ShizukuService.attachApplication
+  - chore(submodules): update api to enforce binder delivery UIDs in SheveryProvider.call()
+  - test(providers): add Robolectric ContentProvider.call() tests for binder sender UID enforcement
 
 ## Feature opportunities to evaluate
 
+- **Device Owner / Dhizuku interoperability** — [HmnDev-Tech/shevery](https://github.com/HmnDev-Tech/shevery): fix(server): wire ClientPackageValidator.enforcePackageOwnership into ShizukuService.attachApplication
+- **Device Owner / Dhizuku interoperability** — [thejaustin/ShizukuPlus](https://github.com/thejaustin/ShizukuPlus/releases/tag/13.7.0.r3346): 🔒 Security & Privacy
+- **Device Owner / Dhizuku interoperability** — [qianyumeng0228/ShizukuX](https://github.com/qianyumeng0228/ShizukuX): feat(dhizuku): 接通 UserService（bindUserService / unbindUserService）
+- **Android 16/17 and stock Shizuku compatibility** — [rushiranpise/Shizuku-Next](https://github.com/rushiranpise/Shizuku-Next): chore(i18n): new translations from Crowdin
 - **ADB activation and service recovery** — [cr1437/Shizako](https://github.com/cr1437/Shizako): docs: 刷新徽章计数
 
 ## Tracked projects
@@ -18,21 +36,22 @@ Source discovery is best-effort and not exhaustive. No upstream code, APKs, or d
 |---|---|---|---|---|
 | [AMINODa/aMiNo-App](https://github.com/AMINODa/aMiNo-App) | ADB workflows and client compatibility | v1.4.2 | 2026-11-10 | Apache-2.0 |
 | [corvexis/Axora](https://github.com/corvexis/Axora) | Axeron family alternative | 26.10.21 | 2026-10-21 | Apache-2.0 |
-| [cr1437/Shizako](https://github.com/cr1437/Shizako) | compatibility and manager UX | zako3.19 | 2026-11-16 | Apache-2.0 |
+| [cr1437/Shizako](https://github.com/cr1437/Shizako) | compatibility and manager UX | zako3.19 | 2026-11-17 | Apache-2.0 |
 | [d4rken-org/porter](https://github.com/d4rken-org/porter) | compatibility, companion, authorization | v0.8.2-rc0 | 2026-11-13 | Apache-2.0 |
 | [fahrez182/AxManager](https://github.com/fahrez182/AxManager) | Axeron, plugins, WebUI and security | v3.0.0 | 2026-11-01 | Apache-2.0 |
-| [HmnDev-Tech/shevery](https://github.com/HmnDev-Tech/shevery) | UX, permissions, Dhizuku, modules | 14.6.5 | 2026-11-16 | Apache-2.0 |
+| [HmnDev-Tech/shevery](https://github.com/HmnDev-Tech/shevery) | UX, permissions, Dhizuku, modules | 14.6.5 | 2026-11-17 | Apache-2.0 |
 | [HSSkyBoy/Shizuku](https://github.com/HSSkyBoy/Shizuku) | device and wireless fixes | v13.6.2 | 2026-11-08 | Apache-2.0 |
-| [iamr0s/Dhizuku](https://github.com/iamr0s/Dhizuku) | Device Owner protocol reference | v2.13.0 | 2026-11-16 | GPL-3.0 |
+| [iamr0s/Dhizuku](https://github.com/iamr0s/Dhizuku) | Device Owner protocol reference | v2.13.0 | 2026-11-17 | GPL-3.0 |
 | [kerneldroid/Nightzuku](https://github.com/kerneldroid/Nightzuku) | Android platform fixes; paused project | v13.7.1-r62 | 2026-11-13 | Apache-2.0 |
 | [krishna3163/OmniShizuku](https://github.com/krishna3163/OmniShizuku) | app management and utilities | latest | 2026-11-14 | Apache-2.0 |
-| [qianyumeng0228/ShizukuX](https://github.com/qianyumeng0228/ShizukuX) | compatibility features | v13.7.0.k2017 | 2026-11-16 | Apache-2.0 |
+| [qianyumeng0228/ShizukuX](https://github.com/qianyumeng0228/ShizukuX) | compatibility features | v13.7.0.k2017 | 2026-11-17 | Apache-2.0 |
+| [revBlackCore/RevCoreManager](https://github.com/revBlackCore/RevCoreManager) | Axora-derived plugin runtime compatibility and UI reference | v26.10.21.r1 | 2026-11-17 | Apache-2.0 |
 | [RikkaApps/Shizuku](https://github.com/RikkaApps/Shizuku) | baseline protocol | v13.6.0 | 2025-06-18 | Apache-2.0 |
 | [roro2239/Stellar](https://github.com/roro2239/Stellar) | boot recovery and script execution | v1.1(101000) | 2026-10-18 | MPL-2.0 |
-| [rushiranpise/Shizuku-Next](https://github.com/rushiranpise/Shizuku-Next) | ADB and diagnostics | v14.0.36-next | 2026-11-16 | Apache-2.0 |
+| [rushiranpise/Shizuku-Next](https://github.com/rushiranpise/Shizuku-Next) | ADB and diagnostics | v14.0.36-next | 2026-11-17 | Apache-2.0 |
 | [Sharif-bot-cmd/ShizuPosed](https://github.com/Sharif-bot-cmd/ShizuPosed) | optional Labs inspiration | 1.4.10 | 2026-11-15 | Apache-2.0 |
 | [thedjchi/Shizuku](https://github.com/thedjchi/Shizuku) | legacy startup and automation | v13.7.0-thedjchi | 2026-07-15 | Apache-2.0 |
-| [thejaustin/ShizukuPlus](https://github.com/thejaustin/ShizukuPlus) | extended compatibility and SU bridge | 13.7.0.r3331 | 2026-11-16 | Apache-2.0 |
+| [thejaustin/ShizukuPlus](https://github.com/thejaustin/ShizukuPlus) | extended compatibility and SU bridge | 13.7.0.r3346 | 2026-11-17 | Apache-2.0 |
 | [xeonleonreal/Xhizuku](https://github.com/xeonleonreal/Xhizuku) | module lifecycle and diagnostics | v4.0.0 | 2026-10-19 | Apache-2.0 |
 | [asrtroh-netizen/shizuku](https://github.com/asrtroh-netizen/shizuku) | discovered — review before adoption | V15.5.0 | 2026-09-06 | Apache-2.0 |
 | [Batestinha/shizuku-thedjchi-daemonstatebroadcast](https://github.com/Batestinha/shizuku-thedjchi-daemonstatebroadcast) | discovered — review before adoption | v13.7.0.r1365-thedjchi | 2026-09-10 | Apache-2.0 |
@@ -53,6 +72,7 @@ Source discovery is best-effort and not exhaustive. No upstream code, APKs, or d
 - https://shizustore.com/apps/adb-captain
 - https://shizustore.com/apps/shizuku-next
 - https://f-droid.org/en/packages/adb.captain/
+- https://shizukux.xyz/
 
 ## Decision rule
 
