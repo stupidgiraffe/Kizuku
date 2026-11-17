@@ -16,12 +16,12 @@ instrumentation=$artifacts/manager/build/outputs/apk/androidTest/release/manager
 temp=$(mktemp -d)
 trap 'rm -rf "$temp"' EXIT
 
-preview=$temp/Kizuku-v0.2.0-preview.2.apk
-preview_code=5
-preview_hash=14ab7db569f40f853d18fbd9274995ecdbf135aa99f7df6a8b52a83edff68295
+preview=$temp/Kizuku-v0.2.0-preview.3.apk
+preview_code=6
+preview_hash=b634a1099a4cb6c736f5436b82662f5422f174b0bffc80f2e84eb31c32fbee0d
 fingerprint=83c9b70c57b2666f8eb48f0cfe74013053c804fd0b452addfdeed451629d2bce
 curl --fail --silent --show-error --location --retry 3 --max-time 90 \
-  https://github.com/stupidgiraffe/Kizuku/releases/download/v0.2.0-preview.2/Kizuku-v0.2.0-preview.2.apk \
+  https://github.com/stupidgiraffe/Kizuku/releases/download/v0.2.0-preview.3/Kizuku-v0.2.0-preview.3.apk \
   --output "$preview"
 printf '%s  %s\n' "$preview_hash" "$preview" | sha256sum -c | tee "$evidence/fixture.txt"
 
@@ -44,7 +44,7 @@ if (( candidate_code < minimum_code )); then
   echo "Candidate versionCode $candidate_code must be at least $minimum_code"
   exit 1
 fi
-printf '0.2.0 Preview 2 versionCode %s to candidate versionCode %s\n' "$preview_code" "$candidate_code" | tee "$evidence/versions.txt"
+printf '0.2.0 Preview 3 versionCode %s to candidate versionCode %s\n' "$preview_code" "$candidate_code" | tee "$evidence/versions.txt"
 
 if adb shell pm path "$manager" | grep -q '^package:'; then
   echo 'Start signed update acceptance with the manager absent'

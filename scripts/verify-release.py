@@ -19,6 +19,8 @@ for module in ('manager', 'compat', 'dhizuku-compat', 'test-client'):
         raise SystemExit(f'{module}: release version mismatch')
     if 'application-debuggable' in manifest:
         raise SystemExit(f'{module}: release is debuggable')
+    if module in ('compat', 'dhizuku-compat') and 'launchable-activity:' in manifest:
+        raise SystemExit(f'{module}: the compatibility companion exposes a launcher activity')
     packages[module] = apk
 with zipfile.ZipFile(packages['manager']) as archive:
     if archive.read('assets/legacy-compat.apk') != packages['compat'].read_bytes():

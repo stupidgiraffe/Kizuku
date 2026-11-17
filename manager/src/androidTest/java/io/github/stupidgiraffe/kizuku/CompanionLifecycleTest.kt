@@ -1,14 +1,16 @@
 package io.github.stupidgiraffe.kizuku
 
 import android.content.Intent
+import android.content.pm.LauncherApps
 import android.content.pm.PackageManager
+import android.os.Process
 import android.os.SystemClock
 import android.view.accessibility.AccessibilityNodeInfo
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Test
@@ -40,7 +42,9 @@ class CompanionLifecycleTest {
         clickInstaller("Install")
         awaitManagerText("Companion installed.")
         assertEquals(PackageManager.SIGNATURE_MATCH, packages.checkSignatures(app.packageName, companion))
-        assertNotNull("Companion has a launcher entry", packages.getLaunchIntentForPackage(companion))
+        assertNull("Companion has no launch intent", packages.getLaunchIntentForPackage(companion))
+        val launcher = app.getSystemService(LauncherApps::class.java)
+        assertTrue("Companion stays out of the app drawer", launcher.getActivityList(companion, Process.myUserHandle()).isEmpty())
 
         clickManager("Remove")
         await("Android uninstall confirmation") { installerControl("Cancel") != null }

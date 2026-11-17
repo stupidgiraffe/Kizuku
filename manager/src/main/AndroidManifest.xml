@@ -1,6 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android" xmlns:tools="http://schemas.android.com/tools">
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_LOCAL_NETWORK" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <!-- Security boundary: independently verify every shared-UID owner, including
          arbitrary third-party clients. A fixed queries list cannot cover them. -->
     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" tools:ignore="QueryAllPackagesPermission" />
@@ -30,6 +32,11 @@
         </service>
         <service android:name=".AdbPairingService" android:exported="false" android:foregroundServiceType="shortService" />
         <service android:name=".AutomationJobService" android:exported="true" android:permission="android.permission.BIND_JOB_SERVICE" />
+        <service android:name=".UpdateCheckJob" android:exported="true" android:permission="android.permission.BIND_JOB_SERVICE" />
+        <provider android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.updates" android:exported="false" android:grantUriPermissions="true">
+            <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/update_paths" />
+        </provider>
         <receiver android:name=".AutomationReceiver" android:exported="true" />
         <provider android:name=".DhizukuProvider"
             android:authorities="io.github.stupidgiraffe.kizuku.dhizuku_server.provider" android:exported="true" />

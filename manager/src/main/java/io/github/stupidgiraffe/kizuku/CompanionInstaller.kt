@@ -26,11 +26,13 @@ object CompanionInstaller {
     private val revision = MutableStateFlow(0)
     val changes = revision.asStateFlow()
 
-    data class State(val text: String, val installed: Boolean = false, val conflict: Boolean = false)
+    data class State(val text: String, val installed: Boolean = false, val conflict: Boolean = false, val updateAvailable: Boolean = false)
+    @Suppress("DEPRECATION")
     fun packageState(context: Context, kind: Kind = Kind.SHIZUKU): State = try {
         val info = context.packageManager.getPackageInfo(kind.packageName, 0)
         if (context.packageManager.checkSignatures(context.packageName, kind.packageName) == PackageManager.SIGNATURE_MATCH) {
-            State("Kizuku companion ${info.versionName} installed", installed = true)
+            State("Kizuku companion ${info.versionName} installed", installed = true,
+                updateAvailable = info.versionCode < BuildConfig.VERSION_CODE)
         } else State("Another ${kind.label} app owns the compatibility package.", conflict = true)
     } catch (_: PackageManager.NameNotFoundException) { State("Companion is not installed") }
 
