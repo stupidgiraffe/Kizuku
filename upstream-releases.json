@@ -1,0 +1,44 @@
+{
+  "rushiranpise/Shizuku-Next": {
+    "tag": "v14.0.36-next",
+    "commit": "e1837aee2a02cd4636446f4320bcc9472751f16f",
+    "published_at": "2026-11-16T05:18:53Z",
+    "paths": "/(adb|starter|start|accessibility)/|AndroidManifest\\.xml$"
+  },
+  "thejaustin/ShizukuPlus": {
+    "tag": "13.7.0.r3331",
+    "commit": "d8a162be561f78517ebfd5fb1d2d0a53604e4653",
+    "published_at": "2026-11-16T19:15:47Z",
+    "paths": "dhizuku|rish|rootcompat|/assets/su$|ShizukuService\\.java$"
+  },
+  "fahrez182/AxManager": {
+    "tag": "v3.0.0",
+    "commit": "1b08f1c9987ecf79b28c555fbcc7b2689147cf62",
+    "published_at": "2026-10-29T10:37:13Z",
+    "paths": "axeron-api|reignite|pty|webui|plugin|axsh"
+  },
+  "fahrez182/Axeron-API": {
+    "tag": "3.0.0",
+    "commit": "bfceee9cecfb0451448b3453017b8326ee1f591e",
+    "published_at": "2026-10-29T10:38:47Z",
+    "paths": "/(aidl|cpp|java|kotlin)/"
+  },
+  "corvexis/Axora": {
+    "tag": "26.10.21",
+    "commit": "9acb7f76816f6e8cbc6a651b17fe16b4fbf5b9bc",
+    "published_at": "2026-10-21T08:40:27Z",
+    "paths": "axeron|pty|webui|plugin|axsh"
+  },
+  "HmnDev-Tech/shevery": {
+    "tag": "14.6.5",
+    "commit": "f1f45543e16f98ae4c729721226893c32be130a5",
+    "published_at": "2026-11-15T11:36:17Z",
+    "paths": "/(adb|dhizuku|authorization|management|module|deviceowner|native)/|^stub/"
+  },
+  "iamr0s/Dhizuku-API": {
+    "tag": "v2.7.0",
+    "commit": "2a62cadcfa491c64003a6fb3f84b285a47ed0fca",
+    "published_at": "2026-10-30T06:17:17Z",
+    "paths": "/(aidl|java|kotlin)/"
+  }
+}

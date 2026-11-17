@@ -7,6 +7,7 @@ import android.system.ErrnoException;
 import android.system.Os;
 import android.system.OsConstants;
 import java.io.File;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -37,7 +38,7 @@ final class LegacyRish {
     }
     private final Map<Integer, Session> sessions = new HashMap<>();
     private final KizukuService host;
-    private boolean loaded;
+    private static boolean loaded;
 
     LegacyRish(KizukuService host) { this.host = host; }
 
@@ -95,7 +96,7 @@ final class LegacyRish {
         return session.exit;
     }
 
-    private static void enforcePipe(ParcelFileDescriptor fd, int direction) throws ErrnoException {
+    static void enforcePipe(ParcelFileDescriptor fd, int direction) throws ErrnoException {
         if (!OsConstants.S_ISFIFO(Os.fstat(fd.getFileDescriptor()).st_mode)
             || (Os.fcntlInt(fd.getFileDescriptor(), OsConstants.F_GETFL, 0) & OsConstants.O_ACCMODE) != direction)
             throw new IllegalArgumentException("Shell transport requires directional pipes");
@@ -122,19 +123,32 @@ final class LegacyRish {
                     if ("RISH_PRESERVE_ENV=0".equals(value)) { preserve = false; break; }
                 }
             }
-            if (!loaded) {
-                String path = host.platform.packageInfo(Protocol.MANAGER, 0).applicationInfo.nativeLibraryDir;
-                System.load(new File(path, "librish.so").getCanonicalPath());
-                loaded = true;
-            }
+            String path = host.platform.packageInfo(Protocol.MANAGER, 0).applicationInfo.nativeLibraryDir;
+            load(new File(path, "librish.so"));
             long handle = start(encode(args), preserve ? encode(env) : null, encode(dir), tty,
-                in.getFd(), out.getFd(), err == null ? -1 : err.getFd());
+                in.getFd(), out.getFd(), err == null ? -1 : err.getFd(), true, 0);
             if (handle == 0) throw new IllegalStateException("Could not create shell");
             return handle;
         } catch (Exception failure) {
             if (failure instanceof RuntimeException runtime) throw runtime;
             throw new IllegalStateException("Could not create shell", failure);
         }
+    }
+
+    static synchronized void load(File library) throws java.io.IOException {
+        if (!loaded) {
+            System.load(library.getCanonicalPath());
+            loaded = true;
+        }
+    }
+
+    static long openTerminal(File library, String[] argv, String[] env, File dir,
+            ParcelFileDescriptor in, ParcelFileDescriptor out, long size) throws IOException, ErrnoException {
+        enforcePipe(in, OsConstants.O_RDONLY);
+        enforcePipe(out, OsConstants.O_WRONLY);
+        load(library);
+        return start(encode(argv), encode(env), encode(dir.getPath()), (byte) 7,
+                in.getFd(), out.getFd(), -1, false, size);
     }
 
     private static byte[] encode(String text) {
@@ -153,8 +167,9 @@ final class LegacyRish {
         return result;
     }
 
-    private static native long start(byte[][] args, byte[][] env, byte[] dir, byte tty, int in, int out, int err);
-    private static native void resize(long shell, long size);
-    private static native int status(long shell);
-    private static native void destroy(long shell);
+    private static native long start(byte[][] args, byte[][] env, byte[] dir, byte tty, int in, int out, int err, boolean prefixShell, long size);
+    static native void resize(long shell, long size);
+    static native int status(long shell);
+    static native boolean outputDone(long shell);
+    static native void destroy(long shell);
 }

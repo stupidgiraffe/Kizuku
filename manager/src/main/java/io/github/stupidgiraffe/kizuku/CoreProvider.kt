@@ -51,7 +51,7 @@ class CoreProvider : ContentProvider() {
                     Bundle().apply { putBinder("manager_lifetime", CoreConnection.lifetime) }
                 }
                 "load_grants" -> Bundle().apply {
-                    putString("grants", AuthorizationStore.load(app)); putBoolean("safe_mode", prefs.getBoolean("safe_mode", false))
+                    putString("grants", AuthorizationStore.load(app, callerUid)); putBoolean("safe_mode", prefs.getBoolean("safe_mode", false))
                 }
                 "legacy_bootstrap" -> {
                     val service = requireNotNull(CoreConnection.service) { "Core is not connected" }

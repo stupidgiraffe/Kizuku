@@ -11,7 +11,7 @@ import io.github.stupidgiraffe.kizuku.adb.AdbKey;
 import io.github.stupidgiraffe.kizuku.adb.PreferenceAdbKeyStore;
 import io.github.stupidgiraffe.kizuku.core.Capability;
 import io.github.stupidgiraffe.kizuku.core.ClientIdentity;
-import io.github.stupidgiraffe.kizuku.core.GrantLedger;
+import org.json.JSONArray;
 import java.security.MessageDigest;
 import java.util.Collections;
 import org.junit.Test;
@@ -38,11 +38,15 @@ public class SignedUpdateTest {
         if (stage.equals("before")) {
             assertEquals("Fixture starts without a grant", 0L, grantedScope(app, uid));
             ClientIdentity identity = AndroidIdentity.resolve(app.getPackageManager(), uid, CLIENT);
-            AuthorizationStore.INSTANCE.decide(app, identity, SCOPES,
-                    GrantLedger.Lifetime.PERMANENT.ordinal());
+            String legacyGrants = new JSONArray()
+                    .put(AndroidIdentity.encode(identity).put("mask", SCOPES)).toString();
+            assertTrue(app.getSharedPreferences("authorization", Context.MODE_PRIVATE)
+                    .edit().putString("grants", legacyGrants).commit());
             assertTrue("Saved the pairing preference", adb.edit().putBoolean("paired", true).commit());
         } else if (stage.equals("after")) {
             assertTrue("Pairing preference survives the update", adb.getBoolean("paired", false));
+            assertEquals("Previous grants cannot authorize a root host", "[]",
+                    AuthorizationStore.INSTANCE.load(app, 0));
         } else {
             fail("Unknown signed update stage: " + stage);
         }

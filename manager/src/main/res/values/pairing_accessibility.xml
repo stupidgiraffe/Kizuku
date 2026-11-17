@@ -1,0 +1,4 @@
+<resources>
+    <string name="pairing_accessibility_label">Kizuku pairing</string>
+    <string name="pairing_accessibility_description">Opens Wireless debugging and detects its pairing code for one requested pairing attempt.</string>
+</resources>

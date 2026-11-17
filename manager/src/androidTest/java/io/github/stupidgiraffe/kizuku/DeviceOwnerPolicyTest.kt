@@ -31,6 +31,18 @@ class DeviceOwnerPolicyTest {
                 val denied = runCatching { policies.apps() }.exceptionOrNull()
                 assertTrue("App policy controls require actual Android enrollment", denied is IllegalStateException)
             }
+            "profile" -> {
+                assertEquals(DeviceOwnerPolicies.Role.PROFILE, policies.role)
+                assertFalse("Android handles removal of managed profiles", policies.canRemoveOwner)
+                val app = policies.apps().single { it.packageName == "io.github.stupidgiraffe.kizuku.testclient" }
+                val target = policies.select(app)
+                try {
+                    assertTrue(policies.apply(target, DeviceOwnerPolicies.Policy.SUSPEND, true).suspended)
+                    assertFalse(policies.apply(target, DeviceOwnerPolicies.Policy.SUSPEND, false).suspended)
+                } finally {
+                    if (policies.status(target).suspended) policies.apply(target, DeviceOwnerPolicies.Policy.SUSPEND, false)
+                }
+            }
             "enrolled" -> {
                 assertTrue(policies.enrolled)
                 val app = policies.apps().single { it.packageName == "io.github.stupidgiraffe.kizuku.testclient" }

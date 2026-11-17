@@ -45,7 +45,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 private val appScopes = Capability.SHIZUKU or Capability.AXERON
-private const val SHIZUKU_WARNING = "Shizuku grants system Binder access and can run legacy processes and UserServices with the active host's privileges (ADB shell or root). Axeron access is managed separately."
+private const val SHIZUKU_WARNING = "Shizuku grants system Binder access and can run processes and UserServices with the privileges shown below."
 
 private enum class AppFilter(val label: String) {
     ALL("All apps"), AUTHORIZED("Authorized"), REQUESTED("Requests")
@@ -91,8 +91,8 @@ internal fun AppsManagementScreen(
     val eligibleForRevoke = remember(shizukuClients) { shizukuClients.filter { it.hasPermission(Capability.SHIZUKU) } }
     val actionsEnabled = state.appsLoaded && !state.busy && !batch.running
     val availability = when {
-        state.safeMode -> "Safe Mode pauses all client access."
-        state.status == null -> "Remembered permissions apply when the core starts."
+        state.safeMode -> "Safe Mode pauses access to the privilege host."
+        state.status == null -> "Offline changes apply to the ADB shell host. Start root to manage its grants."
         else -> null
     }
 
@@ -336,6 +336,7 @@ private fun PermissionDialog(
             Column(Modifier.heightIn(max = 320.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(app.packageName, style = MaterialTheme.typography.titleSmall)
                 Text(permission.description)
+                Text("Host privileges: ${AuthorizationStore.hostLabel(app.getInt(AuthorizationStore.HOST_UID, AuthorizationStore.ADB_UID))}")
                 SecondaryText("UID ${app.getInt("uid")}\nSHA-256\n${app.getString("certificate")}")
                 app.getStringArray("shared_uid")?.takeIf { it.size > 1 }?.let {
                     Text("Packages sharing this UID\n${it.joinToString("\n")}")
@@ -382,6 +383,7 @@ private fun BulkShizukuDialog(
             ProtectPermissionDialog()
             Column(Modifier.heightIn(max = 320.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(if (granting) SHIZUKU_WARNING else "Removes remembered and temporary Shizuku grants for the listed apps.")
+                Text("Host privileges: ${AuthorizationStore.hostLabel(apps.first().getInt(AuthorizationStore.HOST_UID, AuthorizationStore.ADB_UID))}")
                 apps.forEach { app ->
                     Column {
                         Text(BidiFormatter.getInstance().unicodeWrap(app.label), style = MaterialTheme.typography.titleSmall)

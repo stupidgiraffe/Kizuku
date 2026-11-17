@@ -173,7 +173,7 @@ private enum class Destination(val title: String, val heading: String, val icon:
             else { Icon(Icons.Outlined.Bolt, null); Spacer(Modifier.width(8.dp)); Text("Start with root") }
         }
         OutlinedButton(onClick = { showAdb = true }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text("Start from a computer") }
-        Text("Pair using the notification while Settings stays open. Previously paired devices can start over Wi-Fi; custom TCP ports are supported.", color = Muted, style = MaterialTheme.typography.bodySmall)
+        Text("Pair or reconnect over Wi-Fi, or start with a computer or custom TCP port.", color = Muted, style = MaterialTheme.typography.bodySmall)
         if (state.busy) OutlinedButton(onClick = controller::cancelActivation) { Text("Cancel activation") }
     }
     if (showAdbControls) AdbControls(controller) { showAdbControls = false }
@@ -196,56 +196,13 @@ private enum class Destination(val title: String, val heading: String, val icon:
 @Composable private fun SettingsScreen(state: CoreState, controller: ActivationController) {
     val context = LocalContext.current
     var recover by remember { mutableStateOf(controller.recoveryDiagnostics().enabled) }
-    val changes by CompanionInstaller.changes.collectAsStateWithLifecycle()
-    var resumed by remember { mutableIntStateOf(0) }
-    var removing by rememberSaveable { mutableStateOf(false) }
-    var removalNotice by rememberSaveable { mutableStateOf<String?>(null) }
-    val protectCompanion = rememberProtectedAction(DeviceProtection.Companion) { removalNotice = it }
-    val remove = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-        removing = false
-        removalNotice = CompanionInstaller.removalResult(context, result.resultCode, result.data)
-    }
-    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
-        resumed++
-    }
-    val companion = remember(changes, resumed) { CompanionInstaller.packageState(context) }
-    val installing = remember(changes, resumed) { CompanionInstaller.installing(context) }
-    Glass {
-        Text("Compatibility companion", style = MaterialTheme.typography.titleMedium)
-        Text(companion.text, color = Muted, style = MaterialTheme.typography.bodySmall)
-        Text("The companion provides the package identity that Shizuku apps look for.", color = Muted, style = MaterialTheme.typography.bodySmall)
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Button(enabled = !installing && !removing && !companion.conflict, onClick = {
-                protectCompanion {
-                    removalNotice = null
-                    runCatching { CompanionInstaller.install(context) }.onFailure { controller.notice(it.message ?: "Install failed") }
-                }
-            }) { Text(if (companion.installed) "Reinstall" else "Install") }
-            OutlinedButton(enabled = !installing && !removing && companion.installed, onClick = {
-                protectCompanion {
-                    runCatching {
-                        val intent = CompanionInstaller.removalIntent(context)
-                        removing = true
-                        removalNotice = null
-                        remove.launch(intent)
-                    }.onFailure { removing = false; removalNotice = it.message ?: "Cannot open Android’s uninstaller." }
-                }
-            }) { Text("Remove") }
-        }
-        if (installing) {
-            Text("Waiting for Android’s installation confirmation.", style = MaterialTheme.typography.bodySmall)
-            TextButton(onClick = { CompanionInstaller.reset(context) }) { Text("Clear install session") }
-        }
-        (removalNotice ?: CompanionInstaller.notice(context))?.let {
-            Text(it, style = MaterialTheme.typography.bodySmall)
-        }
-    }
+    CompatibilityCompanionPanel(CompanionInstaller.Kind.SHIZUKU)
     Glass { RishExport() }
     DeviceProtectionSettings()
     Glass {
         Text("Protection & recovery", style = MaterialTheme.typography.titleMedium)
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) { Text("Safe mode"); Text("Suspend all client capabilities", color = Muted, style = MaterialTheme.typography.bodySmall) }
+            Column(Modifier.weight(1f)) { Text("Safe mode"); Text("Suspend access to the privilege host", color = Muted, style = MaterialTheme.typography.bodySmall) }
             Switch(checked = state.safeMode, onCheckedChange = controller::safeMode)
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -256,4 +213,53 @@ private enum class Destination(val title: String, val heading: String, val icon:
     }
     Glass { AutomationSettings(controller) }
     TextButton(onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/stupidgiraffe/Kizuku"))) }) { Text("Source & licenses") }
+}
+
+@Composable
+internal fun CompatibilityCompanionPanel(kind: CompanionInstaller.Kind) {
+    val context = LocalContext.current
+    val changes by CompanionInstaller.changes.collectAsStateWithLifecycle()
+    var resumed by remember { mutableIntStateOf(0) }
+    var removing by rememberSaveable { mutableStateOf(false) }
+    var removalNotice by rememberSaveable { mutableStateOf<String?>(null) }
+    val protectCompanion = rememberProtectedAction(DeviceProtection.Companion) { removalNotice = it }
+    val remove = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        removing = false
+        removalNotice = CompanionInstaller.removalResult(context, result.resultCode, result.data, kind)
+    }
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+        resumed++
+    }
+    val companion = remember(changes, resumed) { CompanionInstaller.packageState(context, kind) }
+    val installing = remember(changes, resumed) { CompanionInstaller.installing(context, kind) }
+    Glass {
+        Text(if (kind == CompanionInstaller.Kind.SHIZUKU) "Compatibility companion" else "Dhizuku companion", style = MaterialTheme.typography.titleMedium)
+        Text(companion.text, color = Muted, style = MaterialTheme.typography.bodySmall)
+        Text("The companion provides the package identity that ${kind.label} apps look for.", color = Muted, style = MaterialTheme.typography.bodySmall)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Button(enabled = !installing && !removing && !companion.conflict, onClick = {
+                protectCompanion {
+                    removalNotice = null
+                    runCatching { CompanionInstaller.install(context, kind) }.onFailure { removalNotice = it.message ?: "Install failed" }
+                }
+            }) { Text(if (companion.installed) "Reinstall" else "Install") }
+            OutlinedButton(enabled = !installing && !removing && companion.installed, onClick = {
+                protectCompanion {
+                    runCatching {
+                        val intent = CompanionInstaller.removalIntent(context, kind)
+                        removing = true
+                        removalNotice = null
+                        remove.launch(intent)
+                    }.onFailure { removing = false; removalNotice = it.message ?: "Cannot open Android’s uninstaller." }
+                }
+            }) { Text("Remove") }
+        }
+        if (installing) {
+            Text("Waiting for Android’s installation confirmation.", style = MaterialTheme.typography.bodySmall)
+            TextButton(onClick = { CompanionInstaller.reset(context, kind) }) { Text("Clear install session") }
+        }
+        (removalNotice ?: CompanionInstaller.notice(context, kind))?.let {
+            Text(it, style = MaterialTheme.typography.bodySmall)
+        }
+    }
 }

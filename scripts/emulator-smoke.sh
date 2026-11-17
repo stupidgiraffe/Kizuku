@@ -44,7 +44,7 @@ if [[ "${KIZUKU_TEST_ADB:-false}" == true && "$host_uid" == 2000 ]]; then
   if [[ "${KIZUKU_TEST_THIRD_PARTY:-false}" == true ]]; then
     scripts/hail-client-acceptance.sh prepare
   fi
-  KIZUKU_EVIDENCE_DIR="$evidence/adb" scripts/adb-acceptance.sh
+  KIZUKU_EVIDENCE_DIR="$evidence/adb" scripts/adb-acceptance.sh || extra_status=1
 fi
 adb shell dumpsys package "$manager" >"$evidence"/manager-package.txt
 adb shell am start -W --user 0 -n "$manager/.MainActivity"
@@ -54,6 +54,7 @@ launch
 instrument "$manager" action connected
 if [[ "${KIZUKU_TEST_THIRD_PARTY:-false}" == true ]]; then
   scripts/prepare-shevery-module-test.sh
+  scripts/prepare-axeron-webui-test.sh
 fi
 instrument "$manager" action runtime RuntimeSmokeTest || extra_status=1
 instrument "$manager" action labs LabsSmokeTest || extra_status=1

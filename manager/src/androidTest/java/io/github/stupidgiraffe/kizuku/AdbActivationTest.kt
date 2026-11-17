@@ -2,6 +2,9 @@ package io.github.stupidgiraffe.kizuku
 
 import android.app.NotificationManager
 import android.app.RemoteInput
+import android.app.UiAutomation
+import android.os.ParcelFileDescriptor
+import android.provider.Settings
 import android.content.Intent
 import android.os.Bundle
 import android.os.SystemClock
@@ -19,15 +22,16 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class AdbActivationTest {
     private val instrumentation = InstrumentationRegistry.getInstrumentation()
+    private val automation get() = instrumentation.getUiAutomation(UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES)
     private val app = instrumentation.targetContext
     private val controller get() = ActivationController.get(app)
     private val client = "io.github.stupidgiraffe.kizuku.testclient"
 
     @Test fun exerciseAppActivation() {
         val scenario = InstrumentationRegistry.getArguments().getString("scenario")
-        val accessibility = instrumentation.uiAutomation.serviceInfo
+        val accessibility = automation.serviceInfo
         accessibility.flags = accessibility.flags or android.accessibilityservice.AccessibilityServiceInfo.FLAG_REPORT_VIEW_IDS
-        instrumentation.uiAutomation.serviceInfo = accessibility
+        automation.serviceInfo = accessibility
         openManager()
         when (scenario) {
             "apps" -> exerciseAppPermissions()
@@ -56,6 +60,7 @@ class AdbActivationTest {
                 assertConnectedAndStop()
             }
             "pair" -> pairThroughNotification()
+            "assisted" -> pairThroughAccessibility()
             "reconnect" -> {
                 assertTrue("pairing survived a manager process restart", controller.adb.value.paired)
                 main { controller.startWireless() }
@@ -86,7 +91,7 @@ class AdbActivationTest {
         val nativeUid = app.packageManager.getApplicationInfo(nativeOnly, 0).uid
         val nativeIdentity = AndroidIdentity.resolve(app.packageManager, nativeUid, nativeOnly)
         val permanent = GrantLedger.Lifetime.PERMANENT.ordinal
-        AuthorizationStore.decide(app, nativeIdentity, Capability.DIAGNOSTICS, permanent)
+        AuthorizationStore.replaceRemembered(app, nativeIdentity, Capability.DIAGNOSTICS, Capability.DIAGNOSTICS, AuthorizationStore.ADB_UID)
         try {
             main { controller.decide(row(), Capability.AXERON, permanent) }
             await("separate Axeron grant and diagnostics-only control") {
@@ -138,7 +143,7 @@ class AdbActivationTest {
             clickText("Review affected apps", AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD)
             clickText("Close")
         } finally {
-            AuthorizationStore.decide(app, nativeIdentity, Capability.DIAGNOSTICS, null)
+            AuthorizationStore.replaceRemembered(app, nativeIdentity, Capability.DIAGNOSTICS, 0L, AuthorizationStore.ADB_UID)
             main { controller.decide(row(), both, null) }
             await("probe grants cleared") { row().getLong("granted") == 0L }
         }
@@ -169,6 +174,41 @@ class AdbActivationTest {
         assertTrue(controller.adb.value.paired)
         assertConnectedAndStop()
         openManager()
+    }
+
+    private fun pairThroughAccessibility() {
+        val component = "${app.packageName}/${PairingAccessibilityService::class.java.name}"
+        fun enabled() = Settings.Secure.getString(app.contentResolver, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES)
+            ?.split(':')?.contains(component) == true
+        fun shell(command: String) {
+            ParcelFileDescriptor.AutoCloseInputStream(automation.executeShellCommand(command))
+                .use { it.readBytes() }
+        }
+
+        assertFalse("A fresh manager has no pairing key", controller.adb.value.paired)
+        assertFalse("Accessibility is disabled before opt-in", enabled())
+        clickText("Wireless ADB / TCP")
+        clickText("Pair automatically", AccessibilityNodeInfo.ACTION_SCROLL_FORWARD)
+        clickText("Open Accessibility")
+        await("one requested accessibility pairing session") { AdbPairingService.assistedSession }
+        // A disposable test emulator approves the restricted Settings toggle as shell.
+        // Kizuku must navigate the actual Settings hierarchy and read the Android code.
+        shell("settings put secure enabled_accessibility_services $component")
+        shell("settings put secure accessibility_enabled 1")
+        try {
+            await("wireless core started by automatic pairing", 60000, diagnostics = {
+                "stage=${controller.adb.value.stage}; Settings view IDs=" +
+                    nodes().filter { it.packageName?.toString() == "com.android.settings" }
+                        .mapNotNull { it.viewIdResourceName }.distinct().take(35)
+            }) { CoreConnection.service != null }
+            assertTrue(controller.adb.value.paired)
+            await("accessibility disabled after use") { !enabled() }
+            assertConnectedAndStop()
+            openManager()
+        } finally {
+            shell("settings delete secure enabled_accessibility_services")
+            shell("settings put secure accessibility_enabled 0")
+        }
     }
 
     private fun openPairingDialog() {
@@ -276,7 +316,7 @@ class AdbActivationTest {
         fail("Timed out: $label; core=${controller.state.value.phase}; busy=${controller.state.value.busy}; adb=${controller.adb.value.stage}; detail=${controller.state.value.message}\n${diagnostics()}")
     }
     private fun nodes(): List<AccessibilityNodeInfo> {
-        val root = instrumentation.uiAutomation.rootInActiveWindow ?: return emptyList()
+        val root = automation.rootInActiveWindow ?: return emptyList()
         val result = ArrayList<AccessibilityNodeInfo>()
         fun visit(node: AccessibilityNodeInfo) {
             result.add(node)
@@ -310,8 +350,15 @@ class AdbActivationTest {
     }
 
     private fun clickText(text: String, scrollAction: Int? = null) {
-        await("UI control $text", 8000) {
+        await("UI control $text", 12000, diagnostics = {
+            nodes().filter { it.packageName?.toString() == app.packageName }
+                .mapNotNull { it.text }.joinToString(limit = 30)
+        }) {
             val visible = nodes()
+            if (visible.any { it.hasLabel("Pixel Launcher isn't responding") }) {
+                visible.firstOrNull { it.hasLabel("Close app") }?.let(::tryClick)
+                return@await false
+            }
             val node = visible.firstOrNull { it.hasLabel(text) && it.isEnabled && it.isVisibleToUser }
             if (node == null) {
                 scrollAction?.let { scroll(visible, it) }

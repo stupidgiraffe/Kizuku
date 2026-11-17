@@ -14,6 +14,7 @@ class AdbPairingService:Service() {
     private val timeout=Handler(Looper.getMainLooper())
     private lateinit var controller:ActivationController
     private var sessionActive=false
+    private var assisted=false
     override fun onCreate() {
         super.onCreate();controller=ActivationController.get(this)
         val manager=getSystemService(NotificationManager::class.java)
@@ -37,7 +38,13 @@ class AdbPairingService:Service() {
     }
     override fun onStartCommand(intent:Intent?,flags:Int,startId:Int):Int {
         when(intent?.action) {
-            BEGIN -> { sessionActive=true; if(controller.discoverPairing()==null)stopSelf() }
+            BEGIN, BEGIN_ASSISTED -> {
+                if (sessionActive) return START_NOT_STICKY
+                sessionActive = true
+                assisted = intent.action == BEGIN_ASSISTED
+                if (assisted) assistedSession = true
+                if (controller.discoverPairing() == null) stopSelf()
+            }
             SEND -> {
                 Log.d("KizukuAdb", "Notification reply received")
                 val code=RemoteInput.getResultsFromIntent(intent)?.getCharSequence(CODE)?.toString().orEmpty()
@@ -69,11 +76,20 @@ class AdbPairingService:Service() {
     }
     override fun onBind(intent:Intent?)=null
     override fun onTimeout(startId:Int){controller.cancelActivation();stopSelf()}
-    override fun onDestroy(){timeout.removeCallbacksAndMessages(null);scope.cancel();super.onDestroy()}
+    override fun onDestroy() {
+        if (assisted) assistedSession = false
+        timeout.removeCallbacksAndMessages(null)
+        scope.cancel()
+        super.onDestroy()
+    }
     companion object {
         const val CHANNEL="kizuku_adb_pairing"
         const val ID=708
         const val BEGIN="io.github.stupidgiraffe.kizuku.PAIR_BEGIN"
+        const val BEGIN_ASSISTED="io.github.stupidgiraffe.kizuku.PAIR_ASSISTED"
+        // Accessed by the two services on the application main thread only.
+        @Volatile internal var assistedSession = false
+            private set
         const val SEND="io.github.stupidgiraffe.kizuku.PAIR_CODE"
         const val CANCEL="io.github.stupidgiraffe.kizuku.PAIR_CANCEL"
         const val CODE="pairing_code"

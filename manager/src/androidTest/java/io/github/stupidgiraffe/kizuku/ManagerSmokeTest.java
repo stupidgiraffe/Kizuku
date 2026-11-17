@@ -24,21 +24,22 @@ public class ManagerSmokeTest {
         long end = SystemClock.elapsedRealtime()+15000;
         while (CoreConnection.INSTANCE.getService()==null && SystemClock.elapsedRealtime()<end) SystemClock.sleep(100);
         IKizukuService service = CoreConnection.INSTANCE.getService(); assertNotNull("Real server handshake", service);
-        assertEquals(Integer.parseInt(InstrumentationRegistry.getArguments().getString("host_uid","2000")), service.status().getInt("uid",-1));
+        int hostUid = service.status().getInt("uid", -1);
+        assertEquals(Integer.parseInt(InstrumentationRegistry.getArguments().getString("host_uid", "2000")), hostUid);
         Context app = InstrumentationRegistry.getInstrumentation().getTargetContext();
         String target="io.github.stupidgiraffe.kizuku.testclient"; int uid=app.getPackageManager().getApplicationInfo(target,0).uid;
         ClientIdentity identity=AndroidIdentity.resolve(app.getPackageManager(),uid,target);
         switch (action) {
-            case "legacy": AuthorizationStore.INSTANCE.decide(app,identity,Capability.SHIZUKU,2); service.grant(target,uid,Capability.SHIZUKU,2,identity.fingerprint()); break;
-            case "native": AuthorizationStore.INSTANCE.decide(app,identity,Capability.SHIZUKU | Capability.DIAGNOSTICS,null); service.grant(target,uid,Capability.DIAGNOSTICS,1,identity.fingerprint()); service.revoke(target,uid,Capability.SHIZUKU); break;
-            case "revoke": AuthorizationStore.INSTANCE.decide(app,identity,Capability.SHIZUKU | Capability.DIAGNOSTICS,null); service.revoke(target,uid,Capability.DIAGNOSTICS | Capability.SHIZUKU); break;
-            case "persist": AuthorizationStore.INSTANCE.decide(app,identity,Capability.DIAGNOSTICS,2); service.grant(target,uid,Capability.DIAGNOSTICS,2,identity.fingerprint()); break;
+            case "legacy": AuthorizationStore.INSTANCE.replaceRemembered(app, identity, Capability.SHIZUKU, Capability.SHIZUKU, hostUid); service.grant(target,uid,Capability.SHIZUKU,2,identity.fingerprint()); break;
+            case "native": AuthorizationStore.INSTANCE.replaceRemembered(app, identity, Capability.SHIZUKU | Capability.DIAGNOSTICS, 0L, hostUid); service.grant(target,uid,Capability.DIAGNOSTICS,1,identity.fingerprint()); service.revoke(target,uid,Capability.SHIZUKU); break;
+            case "revoke": AuthorizationStore.INSTANCE.replaceRemembered(app, identity, Capability.SHIZUKU | Capability.DIAGNOSTICS, 0L, hostUid); service.revoke(target,uid,Capability.DIAGNOSTICS | Capability.SHIZUKU); break;
+            case "persist": AuthorizationStore.INSTANCE.replaceRemembered(app, identity, Capability.DIAGNOSTICS, Capability.DIAGNOSTICS, hostUid); service.grant(target,uid,Capability.DIAGNOSTICS,2,identity.fingerprint()); break;
             case "axeron_allow":
-                AuthorizationStore.INSTANCE.decide(app, identity, Capability.AXERON, 2);
+                AuthorizationStore.INSTANCE.replaceRemembered(app, identity, Capability.AXERON, Capability.AXERON, hostUid);
                 service.grant(target, uid, Capability.AXERON, 2, identity.fingerprint());
                 break;
             case "axeron_revoke":
-                AuthorizationStore.INSTANCE.decide(app, identity, Capability.AXERON, null);
+                AuthorizationStore.INSTANCE.replaceRemembered(app, identity, Capability.AXERON, 0L, hostUid);
                 service.revoke(target, uid, Capability.AXERON);
                 break;
             case "stop":

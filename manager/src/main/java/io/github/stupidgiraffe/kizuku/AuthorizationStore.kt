@@ -12,8 +12,23 @@ import org.json.JSONObject
 /** Only manager code writes approval decisions. Exported provider calls can only read/prune. */
 object AuthorizationStore {
     private fun prefs(context: Context) = context.getSharedPreferences("authorization", 0)
-    @Synchronized fun load(context: Context): String {
-        val current = prefs(context).getString("grants", "[]") ?: "[]"
+    internal const val ADB_UID = 2000
+    internal const val ROOT_UID = 0
+    internal const val HOST_UID = "authorization_host_uid"
+
+    // Preview 2 stored no privilege level. Migrate the existing grants to the least
+    // privileged host by keeping their original key and requiring new root approval.
+    private fun key(hostUid: Int): String = when (hostUid) {
+        ADB_UID -> "grants"
+        ROOT_UID -> "root_grants"
+        else -> throw SecurityException("Unsupported authorization host")
+    }
+
+    internal fun hostLabel(hostUid: Int) = if (hostUid == ROOT_UID) "root" else "ADB shell"
+
+    @Synchronized fun load(context: Context, hostUid: Int): String {
+        val key = key(hostUid)
+        val current = prefs(context).getString(key, "[]") ?: "[]"
         val saved = JSONArray(current)
         val valid = JSONArray()
         for (i in 0 until saved.length()) {
@@ -22,7 +37,7 @@ object AuthorizationStore {
             if (runCatching { AndroidIdentity.resolve(context.packageManager, identity.uid(), identity.packageName()) == identity }.getOrDefault(false)) valid.put(entry)
         }
         val result = valid.toString()
-        if (result != current) check(prefs(context).edit().putString("grants", result).commit()) { "Cannot invalidate obsolete authorization" }
+        if (result != current) check(prefs(context).edit().putString(key, result).commit()) { "Cannot invalidate obsolete authorization" }
         return result
     }
     fun verify(context: Context, snapshot: Bundle): ClientIdentity {
@@ -32,19 +47,18 @@ object AuthorizationStore {
         check(expected == actual) { "App identity changed. Review a fresh permission request." }
         return expected
     }
-    internal fun rememberedGrants(context: Context): List<Pair<ClientIdentity, Long>> {
-        val entries = JSONArray(load(context))
+    internal fun rememberedGrants(context: Context, hostUid: Int): List<Pair<ClientIdentity, Long>> {
+        val entries = JSONArray(load(context, hostUid))
         return List(entries.length()) { index ->
             val entry = entries.getJSONObject(index)
             AndroidIdentity.decode(entry) to entry.getLong("mask")
         }
     }
-    fun decide(context: Context, identity: ClientIdentity, mask: Long, lifetime: Int?) {
-        replaceRemembered(context, identity, mask, if (lifetime == GrantLedger.Lifetime.PERMANENT.ordinal) mask else 0L)
-    }
-    @Synchronized internal fun replaceRemembered(context: Context, identity: ClientIdentity, mask: Long, replacement: Long): Long {
+    @Synchronized fun replaceRemembered(
+        context: Context, identity: ClientIdentity, mask: Long, replacement: Long, hostUid: Int,
+    ): Long {
         val ledger = GrantLedger()
-        val saved = rememberedGrants(context)
+        val saved = rememberedGrants(context, hostUid)
         saved.forEach { (client, scopes) -> ledger.grant(client, scopes, GrantLedger.Lifetime.PERMANENT) }
         val previous = ledger.capabilities(identity) and mask
         if (previous == replacement) return previous
@@ -56,7 +70,7 @@ object AuthorizationStore {
         }
         val result = JSONArray()
         grants.forEach { grant -> result.put(AndroidIdentity.encode(grant.identity()).put("mask", grant.mask())) }
-        check(prefs(context).edit().putString("grants", result.toString()).commit()) { "Cannot save authorization decision" }
+        check(prefs(context).edit().putString(key(hostUid), result.toString()).commit()) { "Cannot save authorization decision" }
         return previous
     }
     fun safeMode(context: Context, enabled: Boolean) { check(prefs(context).edit().putBoolean("safe_mode",enabled).commit()) }

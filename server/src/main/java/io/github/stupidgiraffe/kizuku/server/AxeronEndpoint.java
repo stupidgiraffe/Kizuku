@@ -355,17 +355,19 @@ final class AxeronEndpoint {
                 ParcelFileDescriptor stdin, ParcelFileDescriptor stdout, ParcelFileDescriptor stderr,
                 boolean pty, long size, ParcelFileDescriptor status) {
             try {
-                if (pty) throw unsupported("Axeron PTY");
-                if (argv == null || argv.length == 0 || stdin == null || stdout == null || stderr == null) {
+                if (argv == null || argv.length == 0 || stdin == null || stdout == null || (!pty && stderr == null)) {
                     throw new IllegalArgumentException("Missing Axeron command or stream");
                 }
                 if (!host.allowed(identity, Capability.AXERON, false)) {
                     throw new SecurityException("Axeron capability is required");
                 }
-                IAxshProcess process = launcher.launch(identity, argv, env, dir, stdin, stdout, stderr, false, size, status);
+                IAxshProcess process = launcher.launch(identity, argv, env, dir, stdin, stdout, stderr, pty, size, status);
                 if (process == null) throw new IllegalStateException("Axeron launcher did not return a process");
                 return new IAxshProcess.Stub() {
-                    @Override public void setWindowSize(long size) { verifyOwner(identity); }
+                    @Override public void setWindowSize(long size) throws RemoteException {
+                        verifyOwner(identity);
+                        process.setWindowSize(size);
+                    }
                     @Override public int waitFor() throws RemoteException {
                         verifyOwner(identity);
                         return process.waitFor();

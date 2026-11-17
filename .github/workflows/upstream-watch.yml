@@ -3,15 +3,23 @@ on:
   schedule:
     - cron: '23 2 * * *' # ~11:23 JST; best effort
   workflow_dispatch:
+    inputs:
+      reference_apks:
+        description: Download changed reference APKs as temporary test artifacts
+        type: boolean
+        default: false
   push:
     branches: [main]
     paths:
       - '.github/workflows/upstream-watch.yml'
       - 'scripts/upstream_watch.py'
       - 'scripts/test_upstream_watch.py'
+      - 'scripts/check-upstream-releases.py'
+      - 'upstream-releases.json'
       - 'tools/upstream-sources.json'
 permissions:
   contents: write
+  issues: write
 concurrency:
   group: kizuku-upstream-radar
   cancel-in-progress: false
@@ -35,6 +43,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: python scripts/upstream_watch.py
       - name: Commit changed radar only
+        if: github.ref == 'refs/heads/main'
         run: |
           if [ -n "$(git status --porcelain -- tools/upstream-state.json docs/UPSTREAM_RADAR.md)" ]; then
             git config user.name 'github-actions[bot]'
@@ -46,3 +55,24 @@ jobs:
           else
             echo 'Upstream radar unchanged'
           fi
+
+      - name: Compare release tags with reviewed pins
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DOWNLOAD_REFERENCE_APKS: ${{ inputs.reference_apks }}
+        run: |
+          args=(--report "$RUNNER_TEMP/upstream-releases.json")
+          if [[ "$GITHUB_REF" == refs/heads/main ]]; then
+            args+=(--update-issue)
+          fi
+          if [[ "$DOWNLOAD_REFERENCE_APKS" == true ]]; then
+            args+=(--download-dir "$RUNNER_TEMP/upstream-apks")
+          fi
+          python3 scripts/check-upstream-releases.py "${args[@]}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: upstream-release-evidence
+          path: |
+            ${{ runner.temp }}/upstream-releases.json
+            ${{ runner.temp }}/upstream-apks/
+          retention-days: 3

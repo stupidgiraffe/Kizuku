@@ -111,6 +111,7 @@ public final class AxeronWireSmokeTest {
         assertThrows(UnsupportedOperationException.class, () -> call(binder, FILE_SERVICE, null, null));
         assertThrows(UnsupportedOperationException.class, () -> call(binder, OPEN_CHANNEL, null, null));
         assertStreams(binder, hostUid);
+        assertInteractiveTerminal(binder, hostUid);
         assertRefusedAndClosed(binder, IllegalArgumentException.class, true);
 
         if (stage.equals("held")) {
@@ -154,6 +155,70 @@ public final class AxeronWireSmokeTest {
         } finally {
             closePipes(stdin, stdout, stderr, status);
         }
+    }
+
+    private static void assertInteractiveTerminal(IBinder binder, int hostUid) throws Exception {
+        ParcelFileDescriptor[] stdin = ParcelFileDescriptor.createPipe();
+        ParcelFileDescriptor[] stdout = ParcelFileDescriptor.createPipe();
+        ParcelFileDescriptor[] status = ParcelFileDescriptor.createPipe();
+        try {
+            String command = """
+                [ -t 0 ] && [ -t 1 ] && [ -t 2 ] || exit 90
+                stty size
+                IFS= read -r line
+                stty size
+                printf '%s:%s\\n' "$(id -u)" "$line" >&2
+                exit 24
+                """;
+            IBinder child = call(binder, NEW_PROCESS, data -> {
+                data.writeStringArray(new String[]{"/system/bin/sh", "-c", command});
+                data.writeStringArray(null);
+                data.writeString(null);
+                data.writeTypedObject(stdin[0], 0);
+                data.writeTypedObject(stdout[1], 0);
+                data.writeTypedObject(null, 0);
+                data.writeInt(1);
+                data.writeLong(20 | (70L << 16));
+                data.writeTypedObject(status[1], 0);
+            }, Parcel::readStrongBinder);
+            assertNotNull(child);
+            stdin[0].close();
+            stdout[1].close();
+            status[1].close();
+            var poll = poll(stdout[0]);
+            try (var output = new ParcelFileDescriptor.AutoCloseInputStream(stdout[0]);
+                 var input = new ParcelFileDescriptor.AutoCloseOutputStream(stdin[1])) {
+                assertEquals("20 70", terminalLine(output, poll));
+                Parcel data = Parcel.obtain(), reply = Parcel.obtain();
+                try {
+                    data.writeInterfaceToken(PROCESS_DESCRIPTOR);
+                    data.writeLong(35 | (102L << 16));
+                    assertTrue(child.transact(IBinder.FIRST_CALL_TRANSACTION, data, reply, 0));
+                    reply.readException();
+                } finally { data.recycle(); reply.recycle(); }
+                input.write("payload\n".getBytes(StandardCharsets.UTF_8));
+                assertEquals("payload", terminalLine(output, poll));
+                assertEquals("35 102", terminalLine(output, poll));
+                assertEquals(hostUid + ":payload", terminalLine(output, poll));
+            }
+            byte[] exit = readPipe(status[0]);
+            assertEquals(4, exit.length);
+            assertEquals(24, ByteBuffer.wrap(exit).order(ByteOrder.LITTLE_ENDIAN).getInt());
+        } finally {
+            closePipes(stdin, stdout, status);
+        }
+    }
+
+    private static String terminalLine(InputStream input, StructPollfd[] poll) throws Exception {
+        var line = new ByteArrayOutputStream();
+        while (line.size() < 128) {
+            awaitReadable(poll);
+            int value = input.read();
+            assertNotEquals("Unexpected terminal EOF", -1, value);
+            if (value == '\n') return line.toString(StandardCharsets.UTF_8).stripTrailing();
+            line.write(value);
+        }
+        throw new AssertionError("Terminal line exceeded the test limit");
     }
 
     private static void assertRevokedProcessDies(IBinder binder) throws Exception {

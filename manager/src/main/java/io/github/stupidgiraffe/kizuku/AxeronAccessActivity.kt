@@ -47,7 +47,7 @@ class AxeronAccessActivity : ComponentActivity() {
         setContent {
             MaterialTheme {
                 val scope = rememberCoroutineScope()
-                var ready by remember { mutableStateOf(false) }
+                var hostUid by remember { mutableStateOf<Int?>(null) }
                 var busy by remember { mutableStateOf(true) }
                 var problem by remember { mutableStateOf<String?>(null) }
                 val protect = rememberProtectedAction(DeviceProtection.AppPermissions) { problem = it }
@@ -55,12 +55,14 @@ class AxeronAccessActivity : ComponentActivity() {
                     try {
                         val granted = withContext(Dispatchers.IO) {
                             val host = checkNotNull(CoreConnection.service) { "Start Kizuku and request access again." }
+                            val uid = host.status().getInt("uid", -1)
+                            check(uid == AuthorizationStore.ROOT_UID || uid == AuthorizationStore.ADB_UID)
                             host.requestAxeronAccess(caller, identity.uid())
-                            host.applications().any {
+                            uid to host.applications().any {
                                 it.getString("package") == caller && it.getLong("granted") and Capability.AXERON != 0L
                             }
                         }
-                        if (granted) { setResult(RESULT_OK); finish() } else ready = true
+                        if (granted.second) { setResult(RESULT_OK); finish() } else hostUid = granted.first
                     } catch (failure: Exception) {
                         if (failure is CancellationException) throw failure
                         problem = failure.message ?: "Cannot request Axeron access."
@@ -70,18 +72,19 @@ class AxeronAccessActivity : ComponentActivity() {
                     ProtectPermissionDialog()
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(caller, style = MaterialTheme.typography.titleSmall)
-                        Text("Allows commands as Android shell. If you later start Kizuku as root, this saved grant also allows root commands.")
+                        hostUid?.let { Text("Allows commands through the ${AuthorizationStore.hostLabel(it)} host.") }
                         if (identity.members().size > 1) Text("Shared Android UID: ${identity.members().keys.joinToString()}")
                         Text("Certificate ${snapshot.getString("certificate")}", style = MaterialTheme.typography.labelSmall)
                         problem?.let { Text(it, color = MaterialTheme.colorScheme.error) }
                     }
                 }, confirmButton = {
-                    TextButton(enabled = ready && !busy, onClick = {
+                    TextButton(enabled = hostUid != null && !busy, onClick = {
                         protect {
                             busy = true
                             problem = null
                             scope.launch {
                                 try {
+                                    snapshot.putInt(AuthorizationStore.HOST_UID, checkNotNull(hostUid))
                                     controller.approveAxeronRequest(snapshot)
                                     setResult(RESULT_OK)
                                     finish()

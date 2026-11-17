@@ -10,8 +10,14 @@ case "$target" in
   android-37.0) expected_api=37 ;;
   *) echo "Unsupported emulator target: $target"; exit 1 ;;
 esac
+image=${KIZUKU_EMULATOR_IMAGE:-google_apis}
+case "$image" in
+  google_apis|default) ;;
+  *) echo "Unsupported emulator image: $image"; exit 1 ;;
+esac
+printf '%s\n' "$image" >smoke-evidence/emulator-image.txt
 mkdir -p "$ANDROID_AVD_HOME"
-printf 'no\n' | avdmanager create avd --force -n kizuku-ci --path "$ANDROID_AVD_HOME/kizuku-ci.avd" --package "system-images;$target;google_apis;x86_64" --device pixel_7
+printf 'no\n' | avdmanager create avd --force -n kizuku-ci --path "$ANDROID_AVD_HOME/kizuku-ci.avd" --package "system-images;$target;$image;x86_64" --device pixel_7
 avdmanager list avd >smoke-evidence/avds.txt
 cp "$ANDROID_AVD_HOME/kizuku-ci.ini" smoke-evidence/avd-target.ini
 grep -Fxq "target=$target" smoke-evidence/avd-target.ini
@@ -68,9 +74,10 @@ fi
 if [[ "${KIZUKU_TEST_SIGNED_UPDATE:-false}" == true ]]; then
   scripts/signed-update-acceptance.sh "${1:-artifacts}"
 fi
-if [[ "${KIZUKU_TEST_DEVICE_OWNER:-false}" == true ]]; then
-  scripts/device-owner-acceptance.sh "${1:-artifacts}"
-fi
+case "${KIZUKU_TEST_DEVICE_OWNER:-false}" in
+  only) scripts/device-owner-acceptance.sh "${1:-artifacts}"; exit 0 ;;
+  true) scripts/device-owner-acceptance.sh "${1:-artifacts}" ;;
+esac
 shell_status=0
 KIZUKU_EVIDENCE_DIR=smoke-evidence/shell scripts/emulator-smoke.sh "${1:-artifacts}" || shell_status=$?
 if [[ "${KIZUKU_TEST_ROOT:-false}" == true ]]; then

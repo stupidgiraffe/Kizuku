@@ -22,9 +22,25 @@
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
+        <service android:name=".PairingAccessibilityService"
+            android:exported="true" android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
+            android:label="@string/pairing_accessibility_label">
+            <intent-filter><action android:name="android.accessibilityservice.AccessibilityService" /></intent-filter>
+            <meta-data android:name="android.accessibilityservice" android:resource="@xml/pairing_accessibility" />
+        </service>
         <service android:name=".AdbPairingService" android:exported="false" android:foregroundServiceType="shortService" />
         <service android:name=".AutomationJobService" android:exported="true" android:permission="android.permission.BIND_JOB_SERVICE" />
         <receiver android:name=".AutomationReceiver" android:exported="true" />
+        <provider android:name=".DhizukuProvider"
+            android:authorities="io.github.stupidgiraffe.kizuku.dhizuku_server.provider" android:exported="true" />
+        <activity android:name=".DhizukuPermissionActivity" android:exported="true"
+            android:excludeFromRecents="true" android:taskAffinity="io.github.stupidgiraffe.kizuku.dhizuku">
+            <intent-filter>
+                <action android:name="io.github.stupidgiraffe.kizuku.action.REQUEST_DHIZUKU_PERMISSION" />
+                <action android:name="com.rosan.dhizuku.action.request.permission" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
         <provider android:name=".CoreProvider" android:authorities="io.github.stupidgiraffe.kizuku.core" android:exported="true" />
         <receiver android:name=".InstallResultReceiver" android:exported="false" />
         <receiver android:name=".LegacyBinderRequestReceiver" android:exported="true">
