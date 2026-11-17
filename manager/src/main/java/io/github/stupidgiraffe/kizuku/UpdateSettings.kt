@@ -19,21 +19,18 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun UpdateSettings() {
     val context = LocalContext.current
     val app = context.applicationContext
-    val changes = rememberCoroutineScope()
     val state by AppUpdates.state.collectAsStateWithLifecycle()
     var automatic by remember { mutableStateOf(AppUpdates.automatic(app)) }
     var autoDownload by remember { mutableStateOf(AppUpdates.autoDownload(app)) }
@@ -52,14 +49,14 @@ internal fun UpdateSettings() {
         notice = null
         runCatching { AppUpdates.setAutomatic(app, enabled) }.onSuccess {
             automatic = enabled
-            if (enabled) changes.launch { AppUpdates.check(app) }
+            if (enabled) AppUpdates.requestCheck(app)
         }.onFailure { notice = it.message }
     }
     if (automatic) {
         UpdateSwitch("Download updates automatically", autoDownload) { enabled ->
             AppUpdates.setAutoDownload(app, enabled)
             autoDownload = enabled
-            if (enabled) changes.launch { AppUpdates.check(app) }
+            if (enabled) AppUpdates.requestCheck(app)
         }
     }
 
@@ -71,12 +68,12 @@ internal fun UpdateSettings() {
     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         OutlinedButton(enabled = !state.busy, onClick = {
             notice = null
-            changes.launch { AppUpdates.check(app) }
+            AppUpdates.requestCheck(app)
         }) { Text("Check now") }
         if (available != null) {
             Button(enabled = !state.busy, onClick = {
                 notice = null
-                changes.launch { AppUpdates.download(app, available) }
+                AppUpdates.requestDownload(app, available)
             }) { Text("Download") }
         }
         if (state.downloaded != null) {

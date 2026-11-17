@@ -21,6 +21,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -51,6 +52,7 @@ internal object AppUpdates {
     private const val MAX_APK_SIZE = 128L * 1024 * 1024
     private val versionPattern = Regex("""(\d{1,6})\.(\d{1,6})\.(\d{1,6})(?:-(preview|rc)\.(\d{1,6}))?""")
     private val digestPattern = Regex("[0-9a-f]{64}")
+    private val requests = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val lock = Mutex()
     private val mutable = MutableStateFlow(State())
     val state = mutable.asStateFlow()
@@ -85,9 +87,28 @@ internal object AppUpdates {
 
     suspend fun restore(context: Context) = withContext(Dispatchers.IO) {
         lock.withLock {
-            val downloaded = archivedVersion(context)
+            val staged = apk(context)
+            val downloaded = archivedVersion(context, staged)
             mutable.value = mutable.value.copy(downloaded = downloaded)
-            if (downloaded == null) context.getSystemService(NotificationManager::class.java).cancel(UPDATE_NOTIFICATION)
+            if (downloaded == null && staged.delete()) {
+                context.getSystemService(NotificationManager::class.java).cancel(UPDATE_NOTIFICATION)
+            }
+        }
+    }
+
+    fun requestCheck(context: Context) {
+        requests.launch { check(context.applicationContext) }
+    }
+
+    fun requestDownload(context: Context, release: KizukuRelease) {
+        requests.launch { runUpdateAction { save(context.applicationContext, release) } }
+    }
+
+    fun openedFromNotification(context: Context) {
+        val app = context.applicationContext
+        requests.launch {
+            restore(app)
+            if (state.value.downloaded == null && state.value.release == null) check(app)
         }
     }
 
@@ -102,10 +123,6 @@ internal object AppUpdates {
         } else if (background && newest != null && newest.version != current.downloaded) {
             notify(context, "Kizuku ${newest.version} is available")
         }
-    }
-
-    suspend fun download(context: Context, release: KizukuRelease) = runUpdateAction {
-        save(context, release)
     }
 
     private fun willAutoDownload(context: Context) = automatic(context) && autoDownload(context)

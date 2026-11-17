@@ -43,13 +43,20 @@ class MainActivity : ComponentActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        if (intent.action == AppUpdates.OPEN_SETTINGS) updateNavigation++
+        handleUpdateNotification(intent)
+    }
+
+    private fun handleUpdateNotification(intent: Intent) {
+        if (intent.action == AppUpdates.OPEN_SETTINGS) {
+            updateNavigation++
+            AppUpdates.openedFromNotification(this)
+        }
     }
 
     @OptIn(ExperimentalMaterial3ExpressiveApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        if (intent.action == AppUpdates.OPEN_SETTINGS) updateNavigation++
+        handleUpdateNotification(intent)
         enableEdgeToEdge(statusBarStyle = SystemBarStyle.auto(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT), navigationBarStyle = SystemBarStyle.auto(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT))
         window.decorView.filterTouchesWhenObscured = true
         if (Build.VERSION.SDK_INT >= 31) window.setHideOverlayWindows(true)
@@ -142,6 +149,9 @@ private enum class Destination(val title: String, val heading: String, val icon:
 
 @Composable private fun CoreScreen(state: CoreState, controller: ActivationController) {
     val clipboard = LocalClipboardManager.current
+    val context = LocalContext.current
+    val companionChanges by CompanionInstaller.changes.collectAsStateWithLifecycle()
+    val companion = remember(companionChanges, state.apps) { CompanionInstaller.packageState(context) }
     var showAdb by remember { mutableStateOf(false) }
     var showAdbControls by remember { mutableStateOf(false) }
     val status = state.status
@@ -157,8 +167,9 @@ private enum class Destination(val title: String, val heading: String, val icon:
         HorizontalDivider()
         HomeStatus("Shizuku compatibility", when {
             state.safeMode -> "Client access paused in Safe Mode."
-            status != null -> "Ready for authorized apps."
-            else -> "Offline."
+            status == null -> "Offline."
+            companion.installed -> "Ready for authorized apps."
+            else -> "Setup required in Settings."
         })
         HomeStatus("Axeron runtime", when {
             state.safeMode -> "Suspended in Safe Mode."
