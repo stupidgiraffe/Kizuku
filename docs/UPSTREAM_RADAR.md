@@ -1,34 +1,17 @@
 # Kizuku upstream radar
 
-Last changed: 2026-11-17 16:35 UTC. Automated metadata check; **not** a source-code, security, or compatibility audit.
+Last changed: 2026-11-17 17:09 UTC. Automated metadata check; **not** a source-code, security, or compatibility audit.
 
 Source discovery is best-effort and not exhaustive. No upstream code, APKs, or dependencies are copied or upgraded.
 
 ## Recent signals
 
-- **[thejaustin/ShizukuPlus](https://github.com/thejaustin/ShizukuPlus/releases/tag/13.7.0.r3346)** — Release 13.7.0.r3331 → 13.7.0.r3346
-  - 🔒 Security & Privacy
-  - No freezing core system apps** — Freezing an app through Shizuku+ (the app list, the `plus` command or the Plus API) now refuses System UI, Settings, the phone and permission servi
-  - 🛠 Fixes & Improvements
-- **[revBlackCore/RevCoreManager](https://github.com/revBlackCore/RevCoreManager)** — New tracked source
-- **[rushiranpise/Shizuku-Next](https://github.com/rushiranpise/Shizuku-Next)** — New HEAD chore(i18n): new translations from Crowdin
-- **[cr1437/Shizako](https://github.com/cr1437/Shizako)** — New HEAD docs: 刷新徽章计数
-- **[qianyumeng0228/ShizukuX](https://github.com/qianyumeng0228/ShizukuX)** — New HEAD fix(rotation): restore 只写 settings，并清掉残留的锁态 base
-  - feat(dhizuku): 接通 UserService（bindUserService / unbindUserService）
-  - fix(dhizuku): 按 AIDL writeTypedObject 语义读取 Bundle 参数
-  - fix(dhizuku): enforceOwnPackage 对不可解析的调用方包名改为 fail-closed
-- **[HmnDev-Tech/shevery](https://github.com/HmnDev-Tech/shevery)** — New HEAD Merge pull request #406 from HmnDev-Tech/Add-Sponsorship-Button
-  - fix(server): wire ClientPackageValidator.enforcePackageOwnership into ShizukuService.attachApplication
-  - chore(submodules): update api to enforce binder delivery UIDs in SheveryProvider.call()
-  - test(providers): add Robolectric ContentProvider.call() tests for binder sender UID enforcement
+- **[Youngupdatesource/fOxygen](https://github.com/Youngupdatesource/fOxygen)** — New tracked source
+- **[qianyumeng0228/ShizukuX](https://github.com/qianyumeng0228/ShizukuX)** — New HEAD docs(devlog): r2795 补交付记录：翻转来自系统、restore 不再碰 wm user-rotation
 
 ## Feature opportunities to evaluate
 
-- **Device Owner / Dhizuku interoperability** — [HmnDev-Tech/shevery](https://github.com/HmnDev-Tech/shevery): fix(server): wire ClientPackageValidator.enforcePackageOwnership into ShizukuService.attachApplication
-- **Device Owner / Dhizuku interoperability** — [thejaustin/ShizukuPlus](https://github.com/thejaustin/ShizukuPlus/releases/tag/13.7.0.r3346): 🔒 Security & Privacy
-- **Device Owner / Dhizuku interoperability** — [qianyumeng0228/ShizukuX](https://github.com/qianyumeng0228/ShizukuX): feat(dhizuku): 接通 UserService（bindUserService / unbindUserService）
-- **Android 16/17 and stock Shizuku compatibility** — [rushiranpise/Shizuku-Next](https://github.com/rushiranpise/Shizuku-Next): chore(i18n): new translations from Crowdin
-- **ADB activation and service recovery** — [cr1437/Shizako](https://github.com/cr1437/Shizako): docs: 刷新徽章计数
+- **Axeron runtime, modules and WebUI** — [qianyumeng0228/ShizukuX](https://github.com/qianyumeng0228/ShizukuX): docs(devlog): r2795 补交付记录：翻转来自系统、restore 不再碰 wm user-rotation
 
 ## Tracked projects
 
@@ -53,6 +36,7 @@ Source discovery is best-effort and not exhaustive. No upstream code, APKs, or d
 | [thedjchi/Shizuku](https://github.com/thedjchi/Shizuku) | legacy startup and automation | v13.7.0-thedjchi | 2026-07-15 | Apache-2.0 |
 | [thejaustin/ShizukuPlus](https://github.com/thejaustin/ShizukuPlus) | extended compatibility and SU bridge | 13.7.0.r3346 | 2026-11-17 | Apache-2.0 |
 | [xeonleonreal/Xhizuku](https://github.com/xeonleonreal/Xhizuku) | module lifecycle and diagnostics | v4.0.0 | 2026-10-19 | Apache-2.0 |
+| [Youngupdatesource/fOxygen](https://github.com/Youngupdatesource/fOxygen) | AxManager-derived terminal PTY, axsh, WebUI, plugin lifecycle, low-power recovery and UI performance | v1.2 | 2026-11-17 | Apache-2.0 |
 | [asrtroh-netizen/shizuku](https://github.com/asrtroh-netizen/shizuku) | discovered — review before adoption | V15.5.0 | 2026-09-06 | Apache-2.0 |
 | [Batestinha/shizuku-thedjchi-daemonstatebroadcast](https://github.com/Batestinha/shizuku-thedjchi-daemonstatebroadcast) | discovered — review before adoption | v13.7.0.r1365-thedjchi | 2026-09-10 | Apache-2.0 |
 | [bugragungoz/shizuqu](https://github.com/bugragungoz/shizuqu) | discovered — review before adoption | v13.7.0 | 2026-10-30 | Apache-2.0 |

@@ -18,7 +18,7 @@
       ],
       "pushed_at": "2025-06-18T04:21:02Z",
       "license": "Apache-2.0",
-      "stars": 33942,
+      "stars": 33946,
       "archived": false,
       "fork": false
     },
@@ -50,11 +50,7 @@
       "url": "https://github.com/HmnDev-Tech/shevery",
       "description": "Shevery - Modernized Android manager with Jetpack Compose, Material 3, and compatibility enhancements.",
       "head": "ea7b84dc31dc2a7cf6c93aa62a6e9cd7eb673d4b",
-      "head_changes": [
-        "fix(server): wire ClientPackageValidator.enforcePackageOwnership into ShizukuService.attachApplication",
-        "chore(submodules): update api to enforce binder delivery UIDs in SheveryProvider.call()",
-        "test(providers): add Robolectric ContentProvider.call() tests for binder sender UID enforcement"
-      ],
+      "head_changes": [],
       "commit_subject": "Merge pull request #406 from HmnDev-Tech/Add-Sponsorship-Button",
       "release": "14.6.5",
       "release_url": "https://github.com/HmnDev-Tech/shevery/releases/tag/14.6.5",
@@ -76,16 +72,7 @@
       "url": "https://github.com/thejaustin/ShizukuPlus",
       "description": "Shizuku+ brings Root/ADB/Dhizuku unification, a Plus API suite, OneUI/Android 16+ support, M3E theming, TCP connectivity, improved customization, & more.",
       "head": "fbf6b676ac48442a5f7b77cafab5ac22311fe6b1",
-      "head_changes": [
-        "Fix squeezed App Backup rows and the blank Dhizuku allowed-apps row; quieter server errors",
-        "ci: attach each build's commit to its Sentry release - lets \"Fixes SHIZUKUPLUS-XX\" resolve on ship",
-        "fix: long app names end in \"…\" in list rows; About's developer-options row hides via setAvailable - follow-ups to #684",
-        "fix: Home card dragging - direction-aware drop targets, no instant grab on scroll, lock respected; experimental Quick card moves",
-        "fix: terminal export is rish-only by default; su (SU Bridge wrapper) is an explained opt-in - it overwrote Termux's own su",
-        "fix: server crash reports keep their stack trace (redacted) - the server sent it but the manager dropped it, leaving SHIZUKUPLUS-BR undiagnosable",
-        "fix: freeze APIs refuse boot-critical system packages (System UI, Settings, telephony, permission plumbing, persistent apps) - disabling one boot-loops at the l",
-        "fix: status card chips and the settings jump highlight stay readable on light containers (high-contrast custom accents)"
-      ],
+      "head_changes": [],
       "commit_subject": "fix: status card chips and the settings jump highlight stay readable on light containers (high-contrast custom accents)",
       "release": "13.7.0.r3346",
       "release_url": "https://github.com/thejaustin/ShizukuPlus/releases/tag/13.7.0.r3346",
@@ -106,20 +93,9 @@
       "origin": "curated",
       "url": "https://github.com/qianyumeng0228/ShizukuX",
       "description": "ShizukuX 是 Shizuku 的增强分支：让普通应用借助 ADB / Root 特权进程直接调用系统级 API，并内置 Dhizuku、Extra API、Root 兼容桥等高级能力。继承自 ShizukuPlus（Apache 2.0）。",
-      "head": "c3861d53e54997017a05408282240ab8538fc00f",
-      "head_changes": [
-        "feat(dhizuku): 接通 UserService（bindUserService / unbindUserService）",
-        "fix(dhizuku): 按 AIDL writeTypedObject 语义读取 Bundle 参数",
-        "fix(dhizuku): enforceOwnPackage 对不可解析的调用方包名改为 fail-closed",
-        "fix(starter): 旧守护跨安装目录识别 + apk 失效时停止重启",
-        "fix(starter): 按 argv 中的 apk 路径识别跨目录旧守护",
-        "fix(starter): 旧守护 exe basename 按前缀匹配（内核会加 deleted 后缀）",
-        "fix(adb-worker): 首次关闭无线调试即判死，不再挂起 Worker",
-        "fix(rotation): restore 时先跑 wm user-rotation，再写两个 settings",
-        "fix(adb-worker): 失败原因同时写 logcat，release 也能从外部读回",
-        "fix(rotation): restore 只写 settings，并清掉残留的锁态 base"
-      ],
-      "commit_subject": "fix(rotation): restore 只写 settings，并清掉残留的锁态 base",
+      "head": "08b1055f48ec81e5621a0732d515b0ba8c56aa36",
+      "head_changes": [],
+      "commit_subject": "docs(devlog): r2795 补交付记录：翻转来自系统、restore 不再碰 wm user-rotation",
       "release": "v13.7.0.k2017",
       "release_url": "https://github.com/qianyumeng0228/ShizukuX/releases/tag/v13.7.0.k2017",
       "release_published": "2026-11-10T19:13:58Z",
@@ -128,7 +104,7 @@
         "tab 高亮与图标**。玻璃 tab 高亮在切换时滑动过渡；ADB 模块 tab 落在「应用」与「终端」之间；应用 tab 换成 Android 机器人、模块 tab 保留拼图；tab 目的地不再显示返回上箭头",
         "WebUI 兼容桥**。接入 shevery 系模块的 WebUI 协议，社区模块可直接打开面板"
       ],
-      "pushed_at": "2026-11-17T16:27:00Z",
+      "pushed_at": "2026-11-17T16:59:07Z",
       "license": "Apache-2.0",
       "stars": 211,
       "archived": false,
@@ -238,7 +214,7 @@
       ],
       "pushed_at": "2026-11-17T14:29:55Z",
       "license": "Apache-2.0",
-      "stars": 122,
+      "stars": 123,
       "archived": false,
       "fork": false
     },
@@ -260,7 +236,7 @@
       ],
       "pushed_at": "2026-10-18T11:38:12Z",
       "license": "MPL-2.0",
-      "stars": 1889,
+      "stars": 1891,
       "archived": false,
       "fork": false
     },
@@ -348,7 +324,7 @@
       ],
       "pushed_at": "2026-11-08T08:59:44Z",
       "license": "Apache-2.0",
-      "stars": 249,
+      "stars": 250,
       "archived": false,
       "fork": true
     },
@@ -368,7 +344,7 @@
       ],
       "pushed_at": "2026-07-15T03:12:10Z",
       "license": "Apache-2.0",
-      "stars": 6975,
+      "stars": 6976,
       "archived": false,
       "fork": true
     },
@@ -437,6 +413,28 @@
       "stars": 3,
       "archived": false,
       "fork": false
+    },
+    "Youngupdatesource/fOxygen": {
+      "name": "Youngupdatesource/fOxygen",
+      "origin": "curated",
+      "url": "https://github.com/Youngupdatesource/fOxygen",
+      "description": "fOxygen: ADB/Root environment manager for Android with plugins, WebUI, permission manager, and an axsh terminal shell. Fork of AxManager.",
+      "head": "f70ed3b3824c3172149dfaca775cc047dc5f0e38",
+      "head_changes": [],
+      "commit_subject": "hotfix",
+      "release": "v1.2",
+      "release_url": "https://github.com/Youngupdatesource/fOxygen/releases/tag/v1.2",
+      "release_published": "2026-10-24T07:25:01Z",
+      "release_notes": [
+        "Terminal (axsh): a native client gives any terminal app a full interactive shell through the server (real PTY, `vi`, `top`, job control, window resizing), the same way in Root and ADB mode. Start it f",
+        "Rootless debugging (root mode only, per app): run an app's axsh sessions as the shell user (uid 2000, like `adb shell`) instead of root",
+        "Privilege Manager: filter by Shizuku API apps, terminal apps, or both. Granted apps stay on top and are remembered between launches, so the list no longer flickers, and apps that are already allowed s"
+      ],
+      "pushed_at": "2026-11-17T15:15:41Z",
+      "license": "Apache-2.0",
+      "stars": 19,
+      "archived": false,
+      "fork": true
     },
     "asrtroh-netizen/shizuku": {
       "name": "asrtroh-netizen/shizuku",
