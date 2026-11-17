@@ -67,8 +67,22 @@ timeout 30 adb shell dpm set-profile-owner --user "$profile" "$manager/.KizukuDe
 timeout 60 adb shell am instrument --user "$profile" -w -e class "$manager.DeviceOwnerPolicyTest" -e scenario profile \
   "$manager.test/androidx.test.runner.AndroidJUnitRunner" | tee "$evidence/profile.txt"
 grep -Fq 'OK (1 test)' "$evidence/profile.txt"
-adb shell pm remove-user "$profile"
+# Android completes managed-profile removal asynchronously. Wait for user and
+# policy cleanup before uninstalling the former profile owner.
+timeout 65 adb shell pm remove-user --wait "$profile"
 trap - EXIT
+for attempt in {1..20}; do
+  timeout 5 adb shell dpm list-owners >"$evidence/after-profile.txt"
+  if ! grep -Fq "$manager" "$evidence/after-profile.txt"; then
+    break
+  fi
+  sleep 1
+done
+cat "$evidence/after-profile.txt"
+if grep -Fq "$manager" "$evidence/after-profile.txt"; then
+  echo 'Managed profile removal left a Kizuku owner record' >&2
+  exit 1
+fi
 adb uninstall "$manager.test"
 adb uninstall "$client"
 adb uninstall "$manager"
