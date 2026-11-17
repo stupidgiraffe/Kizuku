@@ -1,24 +1,17 @@
 # Implementation state
 
-Updated 2026-11-16 JST. Canonical Plane mainline #3:
+Updated 2026-11-17 JST. Canonical Plane mainline #3:
 `68ff91b5-1e6c-4a37-b755-8d284b4fffb4`.
 
-## 0.2.0 Preview 3 candidate
+## Published 0.2.0 Preview 3
 
-Candidate source is on [feat/selective-integration](https://github.com/stupidgiraffe/Kizuku/tree/feat/selective-integration).
-[Upstream comparison](UPSTREAMS.md#selective-integration--november-17-2026).
+[Download the signed APK](https://github.com/stupidgiraffe/Kizuku/releases/download/v0.2.0-preview.3/Kizuku-v0.2.0-preview.3.apk) · [Release notes](https://github.com/stupidgiraffe/Kizuku/releases/tag/v0.2.0-preview.3) · [Signed Android 16 and 17 acceptance](https://github.com/stupidgiraffe/Kizuku/actions/runs/43984722474) · [Feature matrix](UPSTREAMS.md#selective-integration--november-17-2026)
 
-- Opt-in automatic Android Settings pairing uses the same TLS discovery and pairing path as the notification. The accessibility service has an in-memory attempt and disables itself after use.
-- Grants from Preview 2 and older are retained for ADB shell. Root permissions have their own approvals and require a running root host to manage.
-- A custom-path SU script ships in the rish export. It checks its host UID and preserves real stdout, stderr and exit status. It does not emulate a root manager or offer mount namespace and SELinux-context switches.
-- Axeron's Binder path supports interactive PTY, merged terminal output, resize and exit status. The existing plugin lifecycle and local WebUI remain usable. The full native socket, Axeron file service, and donor-only plugin/WebUI methods are outside the supported surface.
-- Dhizuku delegates Android package access from a genuine Device Owner or Profile Owner. Older clients can install the separate same-signed Dhizuku companion. Stock Shizuku continues to use its own companion. Dhizuku arbitrary Binder forwarding, user services and non-package delegation scopes are unavailable.
-- The upstream radar records exact release commits and groups relevant changes in one GitHub issue. Reference APKs are opt-in, short-lived test artifacts.
-
-Run signed acceptance for Android 16 and 17 before publishing. The first
-[Preview 3 signed run](https://github.com/stupidgiraffe/Kizuku/actions/runs/43947064649)
-verified in-place update from Preview 2 on both APIs. Automatic pairing selection
-failed the UI check on both. That run did not authorize publication.
+- Source `1b541c82bec469aaf015f98a6952efee6b702d2e`, version code 6. The published 18,261,989 byte APK matches the tested artifact and its SHA-256 `b634a1099a4cb6c736f5436b82662f5422f174b0bffc80f2e84eb31c32fbee0d`.
+- Signed in-place upgrades from Preview 2 retained the app UID, ADB identity and stored shell grants. Root grants require fresh approval. The existing signing certificate and Shizuku compatibility companion passed verification.
+- Both runtime jobs passed temporary automatic pairing, manual notification pairing, Hail Shizuku calls, stock rish, the UID-checked custom SU path in ADB-shell and root modes, and Axeron PTY input, resize, output and exit status. Tests used the original AxManager and Shevery WebUIs.
+- Both device-policy jobs passed Device Owner, managed-profile Profile Owner, Amarok package-access delegation through the separately managed Dhizuku companion, and profile cleanup. Dhizuku coverage is limited to Android package access. Raw Binder forwarding and Dhizuku UserService are unavailable.
+- The upstream radar compares exact stable and prerelease tags and commits, keeps one update issue for relevant changes, and can retain opt-in reference APKs as short-lived test artifacts. [Main workflow verification](https://github.com/stupidgiraffe/Kizuku/actions/runs/43984681119)
 
 ## Published 0.2.0 Preview 2
 
