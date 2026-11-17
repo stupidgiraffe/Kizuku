@@ -18,7 +18,8 @@
     "thedjchi/Shizuku": "legacy startup and automation",
     "iamr0s/Dhizuku": "Device Owner protocol reference",
     "AMINODa/aMiNo-App": "ADB workflows and client compatibility",
-    "revBlackCore/RevCoreManager": "Axora-derived plugin runtime compatibility and UI reference"
+    "revBlackCore/RevCoreManager": "Axora-derived plugin runtime compatibility and UI reference",
+    "Youngupdatesource/fOxygen": "AxManager-derived terminal PTY, axsh, WebUI, plugin lifecycle, low-power recovery and UI performance"
   },
   "catalog": "timschneeb/awesome-shizuku",
   "queries": [
