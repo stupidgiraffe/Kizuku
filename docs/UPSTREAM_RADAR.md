@@ -1,27 +1,16 @@
 # Kizuku upstream radar
 
-Last changed: 2026-11-16 20:12 UTC. Automated metadata check; **not** a source-code, security, or compatibility audit.
+Last changed: 2026-11-17 00:06 UTC. Automated metadata check; **not** a source-code, security, or compatibility audit.
 
 Source discovery is best-effort and not exhaustive. No upstream code, APKs, or dependencies are copied or upgraded.
 
 ## Recent signals
 
-- **[Terminator7245/Kitsune-Shizuku](https://github.com/Terminator7245/Kitsune-Shizuku)** — New tracked source
-- **[yagribochek/shevery-info-via-prop](https://github.com/yagribochek/shevery-info-via-prop)** — New tracked source
-- **[gmm96/tasker-permissions-module](https://github.com/gmm96/tasker-permissions-module)** — No longer in the active discovery shortlist
-- **[madkongo/CallVault](https://github.com/madkongo/CallVault)** — No longer in the active discovery shortlist
-- **[Aukimor/OpenMinis-standalone](https://github.com/Aukimor/OpenMinis-standalone)** — No longer in the active discovery shortlist
-- **[BallParkBanter/pocketpal-bray](https://github.com/BallParkBanter/pocketpal-bray)** — No longer in the active discovery shortlist
-- **[bkaganovich-stack/pixel-volte-patch](https://github.com/bkaganovich-stack/pixel-volte-patch)** — No longer in the active discovery shortlist
-- **[brayanermano100-afk/blocktopograph_shizuku_fork_new](https://github.com/brayanermano100-afk/blocktopograph_shizuku_fork_new)** — No longer in the active discovery shortlist
-- **[Hinduc0der/voice-sip-agent-selfhost](https://github.com/Hinduc0der/voice-sip-agent-selfhost)** — No longer in the active discovery shortlist
-- **[Jorgeprdz/ExpressiveCutout-OneUI-DynamicIsland](https://github.com/Jorgeprdz/ExpressiveCutout-OneUI-DynamicIsland)** — No longer in the active discovery shortlist
-- **[MikasaAckerrman/Shizuku-mirror](https://github.com/MikasaAckerrman/Shizuku-mirror)** — No longer in the active discovery shortlist
-- **[novakin777/dfroot-xiaomi-watch-5](https://github.com/novakin777/dfroot-xiaomi-watch-5)** — No longer in the active discovery shortlist
+- **[cr1437/Shizako](https://github.com/cr1437/Shizako)** — New HEAD docs: 刷新徽章计数
 
 ## Feature opportunities to evaluate
 
-No new release/commit candidates since the previous scan.
+- **ADB activation and service recovery** — [cr1437/Shizako](https://github.com/cr1437/Shizako): docs: 刷新徽章计数
 
 ## Tracked projects
 

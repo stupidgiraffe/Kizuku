@@ -18,7 +18,7 @@
       ],
       "pushed_at": "2025-06-18T04:21:02Z",
       "license": "Apache-2.0",
-      "stars": 33864,
+      "stars": 33868,
       "archived": false,
       "fork": false
     },
@@ -62,7 +62,7 @@
       ],
       "pushed_at": "2026-11-16T04:05:58Z",
       "license": "Apache-2.0",
-      "stars": 1709,
+      "stars": 1710,
       "archived": false,
       "fork": false
     },
@@ -128,7 +128,7 @@
       ],
       "pushed_at": "2026-11-16T13:05:23Z",
       "license": "Apache-2.0",
-      "stars": 1969,
+      "stars": 1975,
       "archived": false,
       "fork": false
     },
@@ -201,7 +201,7 @@
       "origin": "curated",
       "url": "https://github.com/cr1437/Shizako",
       "description": "猫耳看板娘的系统权限助手：不 Root 也能用特权 API，兼容 Shizuku-API 生态（官方 SDK 应用零改动直连） A catgirl-mascot privileged-API assistant for Android. Shizuku-API compatible — apps built on the official SDK conne",
-      "head": "6b58d67a70c923024b7a4c8faf78ffa775864f1d",
+      "head": "20b9b3ac80d8150d568c84ea63b72217a427f590",
       "head_changes": [],
       "commit_subject": "docs: 刷新徽章计数",
       "release": "zako3.19",
@@ -212,7 +212,7 @@
         "无线调试配对永远「连不上」**：`AdbPairingClient` 为加连接超时改用了 `Socket().apply { connect(InetSocketAddress(host, port), …) }`，而 `apply` 的接收者是 `Socket`，`Socket` 自带 `getPort()`（未连接时恒为 0），于是 `port` 被解析成 0 —— 每次配对都在连 `127.",
         "配对成功但服务起不来（`Untracked pid … received signal 1`）**：通过 ADB shell 启动服务时，adbd 会在 shell 通道关闭的一刻给前台进程组发 SIGHUP；服务子进程在 `fork()` 到 `setsid()` 之间有一个极小的窗口，信号落进去就会把还没 exec 的进程杀掉。现在 starter 在 fork 之前就忽略 SIGHUP/SI"
       ],
-      "pushed_at": "2026-11-16T11:29:49Z",
+      "pushed_at": "2026-11-16T22:10:23Z",
       "license": "Apache-2.0",
       "stars": 122,
       "archived": false,
@@ -280,7 +280,7 @@
       ],
       "pushed_at": "2026-10-21T08:40:43Z",
       "license": "Apache-2.0",
-      "stars": 20,
+      "stars": 21,
       "archived": false,
       "fork": false
     },
@@ -344,7 +344,7 @@
       ],
       "pushed_at": "2026-07-15T03:12:10Z",
       "license": "Apache-2.0",
-      "stars": 6954,
+      "stars": 6956,
       "archived": false,
       "fork": true
     },
@@ -366,7 +366,7 @@
       ],
       "pushed_at": "2026-11-16T09:24:22Z",
       "license": "GPL-3.0",
-      "stars": 4179,
+      "stars": 4180,
       "archived": false,
       "fork": false
     },
