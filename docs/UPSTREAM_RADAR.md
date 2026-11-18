@@ -1,17 +1,23 @@
 # Kizuku upstream radar
 
-Last changed: 2026-11-17 17:09 UTC. Automated metadata check; **not** a source-code, security, or compatibility audit.
+Last changed: 2026-11-18 02:29 UTC. Automated metadata check; **not** a source-code, security, or compatibility audit.
 
 Source discovery is best-effort and not exhaustive. No upstream code, APKs, or dependencies are copied or upgraded.
 
 ## Recent signals
 
-- **[Youngupdatesource/fOxygen](https://github.com/Youngupdatesource/fOxygen)** — New tracked source
-- **[qianyumeng0228/ShizukuX](https://github.com/qianyumeng0228/ShizukuX)** — New HEAD docs(devlog): r2795 补交付记录：翻转来自系统、restore 不再碰 wm user-rotation
+- **[Youngupdatesource/fOxygen](https://github.com/Youngupdatesource/fOxygen)** — New HEAD remove unecesary logging
+- **[cr1437/Shizako](https://github.com/cr1437/Shizako)** — New HEAD docs: 刷新徽章计数
+- **[qianyumeng0228/ShizukuX](https://github.com/qianyumeng0228/ShizukuX)** — New HEAD sync(upstream): 冻结拒绝系统关键包、server 崩溃栈、监听器隔离、终端 su 改 opt-in
+  - fix(rotation): 用空闲态记住用户真实的自动旋转设置
+- **[iamr0s/Dhizuku](https://github.com/iamr0s/Dhizuku)** — New HEAD Bump com.google.devtools.ksp from 2.3.13 to 2.3.14 in the maven-dependencies group (#358)
 
 ## Feature opportunities to evaluate
 
-- **Axeron runtime, modules and WebUI** — [qianyumeng0228/ShizukuX](https://github.com/qianyumeng0228/ShizukuX): docs(devlog): r2795 补交付记录：翻转来自系统、restore 不再碰 wm user-rotation
+- **Axeron runtime, modules and WebUI** — [qianyumeng0228/ShizukuX](https://github.com/qianyumeng0228/ShizukuX): fix(rotation): 用空闲态记住用户真实的自动旋转设置
+- **ADB activation and service recovery** — [cr1437/Shizako](https://github.com/cr1437/Shizako): docs: 刷新徽章计数
+- **ADB activation and service recovery** — [iamr0s/Dhizuku](https://github.com/iamr0s/Dhizuku): Bump com.google.devtools.ksp from 2.3.13 to 2.3.14 in the maven-dependencies group (#358)
+- **Capability security and grants** — [Youngupdatesource/fOxygen](https://github.com/Youngupdatesource/fOxygen): remove unecesary logging
 
 ## Tracked projects
 
