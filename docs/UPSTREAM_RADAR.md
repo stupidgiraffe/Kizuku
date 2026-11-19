@@ -1,23 +1,28 @@
 # Kizuku upstream radar
 
-Last changed: 2026-11-18 02:29 UTC. Automated metadata check; **not** a source-code, security, or compatibility audit.
+Last changed: 2026-11-19 02:29 UTC. Automated metadata check; **not** a source-code, security, or compatibility audit.
 
 Source discovery is best-effort and not exhaustive. No upstream code, APKs, or dependencies are copied or upgraded.
 
 ## Recent signals
 
-- **[Youngupdatesource/fOxygen](https://github.com/Youngupdatesource/fOxygen)** — New HEAD remove unecesary logging
+- **[thejaustin/ShizukuPlus](https://github.com/thejaustin/ShizukuPlus/releases/tag/13.7.0.r3350)** — Release 13.7.0.r3346 → 13.7.0.r3350
+  - Dhizuku limited mode (experimental)** — Settings → Experimental → "Dhizuku limited mode": when Secure Folder or another profile blocks Device Owner, the setup offers Shizuku+ as Pr
+  - 🔒 Security & Privacy
+  - Clearer Device Owner setup** — Before "Activate now" makes Shizuku+ the Device Owner, it says what that blocks while it's active: new Secure Folder, work profiles, Private Space an
+- **[rushiranpise/Shizuku-Next](https://github.com/rushiranpise/Shizuku-Next)** — New HEAD chore(i18n): new translations from Crowdin
 - **[cr1437/Shizako](https://github.com/cr1437/Shizako)** — New HEAD docs: 刷新徽章计数
-- **[qianyumeng0228/ShizukuX](https://github.com/qianyumeng0228/ShizukuX)** — New HEAD sync(upstream): 冻结拒绝系统关键包、server 崩溃栈、监听器隔离、终端 su 改 opt-in
-  - fix(rotation): 用空闲态记住用户真实的自动旋转设置
-- **[iamr0s/Dhizuku](https://github.com/iamr0s/Dhizuku)** — New HEAD Bump com.google.devtools.ksp from 2.3.13 to 2.3.14 in the maven-dependencies group (#358)
+- **[qianyumeng0228/ShizukuX](https://github.com/qianyumeng0228/ShizukuX)** — New HEAD docs: log the k2816-k2817 upstream picks and their on-device evidence
+  - docs(devlog): 记录与 Dhizuku 的逐项对齐
+  - fix(dpdo): shell-first activation, refresh DPMS user-setup state, close role bypass
+  - fix(motion): home card press no longer buzzes when it turns into a page swipe
 
 ## Feature opportunities to evaluate
 
-- **Axeron runtime, modules and WebUI** — [qianyumeng0228/ShizukuX](https://github.com/qianyumeng0228/ShizukuX): fix(rotation): 用空闲态记住用户真实的自动旋转设置
+- **Device Owner / Dhizuku interoperability** — [thejaustin/ShizukuPlus](https://github.com/thejaustin/ShizukuPlus/releases/tag/13.7.0.r3350): Dhizuku limited mode (experimental)** — Settings → Experimental → "Dhizuku limited mode": when Secure Folder or another profile blocks Devic
+- **Device Owner / Dhizuku interoperability** — [qianyumeng0228/ShizukuX](https://github.com/qianyumeng0228/ShizukuX): docs(devlog): 记录与 Dhizuku 的逐项对齐
+- **Android 16/17 and stock Shizuku compatibility** — [rushiranpise/Shizuku-Next](https://github.com/rushiranpise/Shizuku-Next): chore(i18n): new translations from Crowdin
 - **ADB activation and service recovery** — [cr1437/Shizako](https://github.com/cr1437/Shizako): docs: 刷新徽章计数
-- **ADB activation and service recovery** — [iamr0s/Dhizuku](https://github.com/iamr0s/Dhizuku): Bump com.google.devtools.ksp from 2.3.13 to 2.3.14 in the maven-dependencies group (#358)
-- **Capability security and grants** — [Youngupdatesource/fOxygen](https://github.com/Youngupdatesource/fOxygen): remove unecesary logging
 
 ## Tracked projects
 
@@ -25,22 +30,22 @@ Source discovery is best-effort and not exhaustive. No upstream code, APKs, or d
 |---|---|---|---|---|
 | [AMINODa/aMiNo-App](https://github.com/AMINODa/aMiNo-App) | ADB workflows and client compatibility | v1.4.2 | 2026-11-10 | Apache-2.0 |
 | [corvexis/Axora](https://github.com/corvexis/Axora) | Axeron family alternative | 26.10.21 | 2026-10-21 | Apache-2.0 |
-| [cr1437/Shizako](https://github.com/cr1437/Shizako) | compatibility and manager UX | zako3.19 | 2026-11-17 | Apache-2.0 |
+| [cr1437/Shizako](https://github.com/cr1437/Shizako) | compatibility and manager UX | zako3.19 | 2026-11-18 | Apache-2.0 |
 | [d4rken-org/porter](https://github.com/d4rken-org/porter) | compatibility, companion, authorization | v0.8.2-rc0 | 2026-11-13 | Apache-2.0 |
 | [fahrez182/AxManager](https://github.com/fahrez182/AxManager) | Axeron, plugins, WebUI and security | v3.0.0 | 2026-11-01 | Apache-2.0 |
-| [HmnDev-Tech/shevery](https://github.com/HmnDev-Tech/shevery) | UX, permissions, Dhizuku, modules | 14.6.5 | 2026-11-17 | Apache-2.0 |
+| [HmnDev-Tech/shevery](https://github.com/HmnDev-Tech/shevery) | UX, permissions, Dhizuku, modules | 14.6.5 | 2026-11-18 | Apache-2.0 |
 | [HSSkyBoy/Shizuku](https://github.com/HSSkyBoy/Shizuku) | device and wireless fixes | v13.6.2 | 2026-11-08 | Apache-2.0 |
 | [iamr0s/Dhizuku](https://github.com/iamr0s/Dhizuku) | Device Owner protocol reference | v2.13.0 | 2026-11-17 | GPL-3.0 |
 | [kerneldroid/Nightzuku](https://github.com/kerneldroid/Nightzuku) | Android platform fixes; paused project | v13.7.1-r62 | 2026-11-13 | Apache-2.0 |
 | [krishna3163/OmniShizuku](https://github.com/krishna3163/OmniShizuku) | app management and utilities | latest | 2026-11-14 | Apache-2.0 |
-| [qianyumeng0228/ShizukuX](https://github.com/qianyumeng0228/ShizukuX) | compatibility features | v13.7.0.k2017 | 2026-11-17 | Apache-2.0 |
+| [qianyumeng0228/ShizukuX](https://github.com/qianyumeng0228/ShizukuX) | compatibility features | v13.7.0.k2017 | 2026-11-18 | Apache-2.0 |
 | [revBlackCore/RevCoreManager](https://github.com/revBlackCore/RevCoreManager) | Axora-derived plugin runtime compatibility and UI reference | v26.10.21.r1 | 2026-11-17 | Apache-2.0 |
 | [RikkaApps/Shizuku](https://github.com/RikkaApps/Shizuku) | baseline protocol | v13.6.0 | 2025-06-18 | Apache-2.0 |
 | [roro2239/Stellar](https://github.com/roro2239/Stellar) | boot recovery and script execution | v1.1(101000) | 2026-10-18 | MPL-2.0 |
-| [rushiranpise/Shizuku-Next](https://github.com/rushiranpise/Shizuku-Next) | ADB and diagnostics | v14.0.36-next | 2026-11-17 | Apache-2.0 |
+| [rushiranpise/Shizuku-Next](https://github.com/rushiranpise/Shizuku-Next) | ADB and diagnostics | v14.0.36-next | 2026-11-18 | Apache-2.0 |
 | [Sharif-bot-cmd/ShizuPosed](https://github.com/Sharif-bot-cmd/ShizuPosed) | optional Labs inspiration | 1.4.10 | 2026-11-15 | Apache-2.0 |
 | [thedjchi/Shizuku](https://github.com/thedjchi/Shizuku) | legacy startup and automation | v13.7.0-thedjchi | 2026-07-15 | Apache-2.0 |
-| [thejaustin/ShizukuPlus](https://github.com/thejaustin/ShizukuPlus) | extended compatibility and SU bridge | 13.7.0.r3346 | 2026-11-17 | Apache-2.0 |
+| [thejaustin/ShizukuPlus](https://github.com/thejaustin/ShizukuPlus) | extended compatibility and SU bridge | 13.7.0.r3350 | 2026-11-18 | Apache-2.0 |
 | [xeonleonreal/Xhizuku](https://github.com/xeonleonreal/Xhizuku) | module lifecycle and diagnostics | v4.0.0 | 2026-10-19 | Apache-2.0 |
 | [Youngupdatesource/fOxygen](https://github.com/Youngupdatesource/fOxygen) | AxManager-derived terminal PTY, axsh, WebUI, plugin lifecycle, low-power recovery and UI performance | v1.2 | 2026-11-17 | Apache-2.0 |
 | [asrtroh-netizen/shizuku](https://github.com/asrtroh-netizen/shizuku) | discovered — review before adoption | V15.5.0 | 2026-09-06 | Apache-2.0 |

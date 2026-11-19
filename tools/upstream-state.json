@@ -18,7 +18,7 @@
       ],
       "pushed_at": "2025-06-18T04:21:02Z",
       "license": "Apache-2.0",
-      "stars": 33964,
+      "stars": 34042,
       "archived": false,
       "fork": false
     },
@@ -60,9 +60,9 @@
         "Rewrote the legacy C/C++ native layer (`starter`, `rish`, `adb_pairing`) in **Rust**, removing BoringSSL and `libc++` native build dependencies:",
         "`rish`: PTY management, raw `termios`, `SIGWINCH` self-pipe handling, and JNI bridges."
       ],
-      "pushed_at": "2026-11-17T18:18:26Z",
+      "pushed_at": "2026-11-18T17:00:38Z",
       "license": "Apache-2.0",
-      "stars": 1716,
+      "stars": 1728,
       "archived": false,
       "fork": false
     },
@@ -71,20 +71,25 @@
       "origin": "curated",
       "url": "https://github.com/thejaustin/ShizukuPlus",
       "description": "Shizuku+ brings Root/ADB/Dhizuku unification, a Plus API suite, OneUI/Android 16+ support, M3E theming, TCP connectivity, improved customization, & more.",
-      "head": "fbf6b676ac48442a5f7b77cafab5ac22311fe6b1",
-      "head_changes": [],
-      "commit_subject": "fix: status card chips and the settings jump highlight stay readable on light containers (high-contrast custom accents)",
-      "release": "13.7.0.r3346",
-      "release_url": "https://github.com/thejaustin/ShizukuPlus/releases/tag/13.7.0.r3346",
-      "release_published": "2026-11-17T15:32:42Z",
-      "release_notes": [
-        "🔒 Security & Privacy",
-        "No freezing core system apps** — Freezing an app through Shizuku+ (the app list, the `plus` command or the Plus API) now refuses System UI, Settings, the phone and permission services, and any other a",
-        "🛠 Fixes & Improvements"
+      "head": "4825688daeff772f7e8a25ae7e33074499f97e77",
+      "head_changes": [
+        "fix: suspend/uninstall/patch-reinstall refuse boot-critical packages too; Plus settings writes and settings restores never undo device setup - same boot-loop cl",
+        "fix: Settings status banner text pairs with its container (#687); Device Owner freeze and the pm disable rewrite refuse boot-critical packages (#686) - one shar",
+        "fix: Activate now refuses while other users/profiles exist - the setup-incomplete trick also lifted Android's multi-user check and Samsung then removed Secure F",
+        "feat: Device Owner setup says what it blocks, restores backup and stuck setup state, reports leftovers after removal; experimental Dhizuku limited mode (Profile"
       ],
-      "pushed_at": "2026-11-17T15:32:35Z",
+      "commit_subject": "feat: Device Owner setup says what it blocks, restores backup and stuck setup state, reports leftovers after removal; experimental Dhizuku limited mode (Profile Owner) when other p",
+      "release": "13.7.0.r3350",
+      "release_url": "https://github.com/thejaustin/ShizukuPlus/releases/tag/13.7.0.r3350",
+      "release_published": "2026-11-18T15:23:33Z",
+      "release_notes": [
+        "Dhizuku limited mode (experimental)** — Settings → Experimental → \"Dhizuku limited mode\": when Secure Folder or another profile blocks Device Owner, the setup offers Shizuku+ as Profile Owner of your ",
+        "🔒 Security & Privacy",
+        "Clearer Device Owner setup** — Before \"Activate now\" makes Shizuku+ the Device Owner, it says what that blocks while it's active: new Secure Folder, work profiles, Private Space and Dual Messenger, an"
+      ],
+      "pushed_at": "2026-11-18T15:23:25Z",
       "license": "Apache-2.0",
-      "stars": 1827,
+      "stars": 1834,
       "archived": false,
       "fork": false
     },
@@ -93,11 +98,20 @@
       "origin": "curated",
       "url": "https://github.com/qianyumeng0228/ShizukuX",
       "description": "ShizukuX 是 Shizuku 的增强分支：让普通应用借助 ADB / Root 特权进程直接调用系统级 API，并内置 Dhizuku、Extra API、Root 兼容桥等高级能力。继承自 ShizukuPlus（Apache 2.0）。",
-      "head": "c744a3b1a8da528d4dfd390ee0fa7db2b316d46f",
+      "head": "22caa47647517d13521da4a53424c4b8c8b6481e",
       "head_changes": [
-        "fix(rotation): 用空闲态记住用户真实的自动旋转设置"
+        "docs(devlog): 记录与 Dhizuku 的逐项对齐",
+        "fix(dpdo): shell-first activation, refresh DPMS user-setup state, close role bypass",
+        "fix(motion): home card press no longer buzzes when it turns into a page swipe",
+        "fix(pager): home claims horizontal drags; swipe no longer buzzes or feels damped",
+        "fix(pager): commit from the gesture start page and clamp the drag",
+        "fix(pager): drop the card press on claim, cut the dead zone, shorter settle",
+        "ci(guard): resolve string references across modules, not just manager",
+        "fix(boot): move the restore wait out of the broadcast",
+        "docs(checklist): boot restore is now verified on a real restart",
+        "fix(auth): revoke the Dhizuku grant and delegated scopes together"
       ],
-      "commit_subject": "sync(upstream): 冻结拒绝系统关键包、server 崩溃栈、监听器隔离、终端 su 改 opt-in",
+      "commit_subject": "docs: log the k2816-k2817 upstream picks and their on-device evidence",
       "release": "v13.7.0.k2017",
       "release_url": "https://github.com/qianyumeng0228/ShizukuX/releases/tag/v13.7.0.k2017",
       "release_published": "2026-11-10T19:13:58Z",
@@ -106,9 +120,9 @@
         "tab 高亮与图标**。玻璃 tab 高亮在切换时滑动过渡；ADB 模块 tab 落在「应用」与「终端」之间；应用 tab 换成 Android 机器人、模块 tab 保留拼图；tab 目的地不再显示返回上箭头",
         "WebUI 兼容桥**。接入 shevery 系模块的 WebUI 协议，社区模块可直接打开面板"
       ],
-      "pushed_at": "2026-11-17T19:54:57Z",
+      "pushed_at": "2026-11-18T21:51:08Z",
       "license": "Apache-2.0",
-      "stars": 211,
+      "stars": 215,
       "archived": false,
       "fork": false
     },
@@ -117,7 +131,7 @@
       "origin": "curated",
       "url": "https://github.com/rushiranpise/Shizuku-Next",
       "description": "A feature-rich Shizuku fork with improved setup, reliability, UI, and additional start methods.",
-      "head": "3e93b2ad7d68373e02ae7c4f7ff5ea4b4d91f888",
+      "head": "5cadd421feb9bc1d0786216a86324451953bdfdd",
       "head_changes": [],
       "commit_subject": "chore(i18n): new translations from Crowdin",
       "release": "v14.0.36-next",
@@ -128,9 +142,9 @@
         "add fixed-name latest APK asset",
         "Full Changelog**: https://github.com/rushiranpise/Shizuku-Next/compare/v14.0.35-next...v14.0.36-next"
       ],
-      "pushed_at": "2026-11-17T12:02:36Z",
+      "pushed_at": "2026-11-18T11:54:55Z",
       "license": "Apache-2.0",
-      "stars": 2018,
+      "stars": 2053,
       "archived": false,
       "fork": false
     },
@@ -203,7 +217,7 @@
       "origin": "curated",
       "url": "https://github.com/cr1437/Shizako",
       "description": "猫耳看板娘的系统权限助手：不 Root 也能用特权 API，兼容 Shizuku-API 生态（官方 SDK 应用零改动直连） A catgirl-mascot privileged-API assistant for Android. Shizuku-API compatible — apps built on the official SDK conne",
-      "head": "f31f61c49106ed90879bb892cc2e83d3726c14b8",
+      "head": "6c2f3daef633fc82f15e3e5960b286b3141402f0",
       "head_changes": [],
       "commit_subject": "docs: 刷新徽章计数",
       "release": "zako3.19",
@@ -214,9 +228,9 @@
         "无线调试配对永远「连不上」**：`AdbPairingClient` 为加连接超时改用了 `Socket().apply { connect(InetSocketAddress(host, port), …) }`，而 `apply` 的接收者是 `Socket`，`Socket` 自带 `getPort()`（未连接时恒为 0），于是 `port` 被解析成 0 —— 每次配对都在连 `127.",
         "配对成功但服务起不来（`Untracked pid … received signal 1`）**：通过 ADB shell 启动服务时，adbd 会在 shell 通道关闭的一刻给前台进程组发 SIGHUP；服务子进程在 `fork()` 到 `setsid()` 之间有一个极小的窗口，信号落进去就会把还没 exec 的进程杀掉。现在 starter 在 fork 之前就忽略 SIGHUP/SI"
       ],
-      "pushed_at": "2026-11-17T22:55:18Z",
+      "pushed_at": "2026-11-18T21:59:56Z",
       "license": "Apache-2.0",
-      "stars": 124,
+      "stars": 127,
       "archived": false,
       "fork": false
     },
@@ -238,7 +252,7 @@
       ],
       "pushed_at": "2026-10-18T11:38:12Z",
       "license": "MPL-2.0",
-      "stars": 1896,
+      "stars": 1910,
       "archived": false,
       "fork": false
     },
@@ -260,7 +274,7 @@
       ],
       "pushed_at": "2026-11-01T15:16:29Z",
       "license": "Apache-2.0",
-      "stars": 1577,
+      "stars": 1578,
       "archived": false,
       "fork": false
     },
@@ -304,7 +318,7 @@
       ],
       "pushed_at": "2026-11-15T08:51:48Z",
       "license": "Apache-2.0",
-      "stars": 116,
+      "stars": 117,
       "archived": false,
       "fork": false
     },
@@ -326,7 +340,7 @@
       ],
       "pushed_at": "2026-11-08T08:59:44Z",
       "license": "Apache-2.0",
-      "stars": 250,
+      "stars": 253,
       "archived": false,
       "fork": true
     },
@@ -346,7 +360,7 @@
       ],
       "pushed_at": "2026-07-15T03:12:10Z",
       "license": "Apache-2.0",
-      "stars": 6982,
+      "stars": 6989,
       "archived": false,
       "fork": true
     },
@@ -368,7 +382,7 @@
       ],
       "pushed_at": "2026-11-17T19:45:08Z",
       "license": "GPL-3.0",
-      "stars": 4188,
+      "stars": 4194,
       "archived": false,
       "fork": false
     },
@@ -412,7 +426,7 @@
       ],
       "pushed_at": "2026-11-17T06:16:05Z",
       "license": "Apache-2.0",
-      "stars": 3,
+      "stars": 4,
       "archived": false,
       "fork": false
     },
@@ -434,7 +448,7 @@
       ],
       "pushed_at": "2026-11-17T22:46:10Z",
       "license": "Apache-2.0",
-      "stars": 19,
+      "stars": 20,
       "archived": false,
       "fork": true
     },
