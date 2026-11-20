@@ -18,7 +18,7 @@
       ],
       "pushed_at": "2025-06-18T04:21:02Z",
       "license": "Apache-2.0",
-      "stars": 34042,
+      "stars": 34124,
       "archived": false,
       "fork": false
     },
@@ -40,7 +40,7 @@
       ],
       "pushed_at": "2026-11-13T09:02:54Z",
       "license": "Apache-2.0",
-      "stars": 321,
+      "stars": 323,
       "archived": false,
       "fork": false
     },
@@ -62,7 +62,7 @@
       ],
       "pushed_at": "2026-11-18T17:00:38Z",
       "license": "Apache-2.0",
-      "stars": 1728,
+      "stars": 1733,
       "archived": false,
       "fork": false
     },
@@ -72,12 +72,7 @@
       "url": "https://github.com/thejaustin/ShizukuPlus",
       "description": "Shizuku+ brings Root/ADB/Dhizuku unification, a Plus API suite, OneUI/Android 16+ support, M3E theming, TCP connectivity, improved customization, & more.",
       "head": "4825688daeff772f7e8a25ae7e33074499f97e77",
-      "head_changes": [
-        "fix: suspend/uninstall/patch-reinstall refuse boot-critical packages too; Plus settings writes and settings restores never undo device setup - same boot-loop cl",
-        "fix: Settings status banner text pairs with its container (#687); Device Owner freeze and the pm disable rewrite refuse boot-critical packages (#686) - one shar",
-        "fix: Activate now refuses while other users/profiles exist - the setup-incomplete trick also lifted Android's multi-user check and Samsung then removed Secure F",
-        "feat: Device Owner setup says what it blocks, restores backup and stuck setup state, reports leftovers after removal; experimental Dhizuku limited mode (Profile"
-      ],
+      "head_changes": [],
       "commit_subject": "feat: Device Owner setup says what it blocks, restores backup and stuck setup state, reports leftovers after removal; experimental Dhizuku limited mode (Profile Owner) when other p",
       "release": "13.7.0.r3350",
       "release_url": "https://github.com/thejaustin/ShizukuPlus/releases/tag/13.7.0.r3350",
@@ -89,7 +84,7 @@
       ],
       "pushed_at": "2026-11-18T15:23:25Z",
       "license": "Apache-2.0",
-      "stars": 1834,
+      "stars": 1839,
       "archived": false,
       "fork": false
     },
@@ -98,20 +93,14 @@
       "origin": "curated",
       "url": "https://github.com/qianyumeng0228/ShizukuX",
       "description": "ShizukuX 是 Shizuku 的增强分支：让普通应用借助 ADB / Root 特权进程直接调用系统级 API，并内置 Dhizuku、Extra API、Root 兼容桥等高级能力。继承自 ShizukuPlus（Apache 2.0）。",
-      "head": "22caa47647517d13521da4a53424c4b8c8b6481e",
+      "head": "c0dfe62522da7fa95601384907a2be69eb1bec4a",
       "head_changes": [
-        "docs(devlog): 记录与 Dhizuku 的逐项对齐",
-        "fix(dpdo): shell-first activation, refresh DPMS user-setup state, close role bypass",
-        "fix(motion): home card press no longer buzzes when it turns into a page swipe",
-        "fix(pager): home claims horizontal drags; swipe no longer buzzes or feels damped",
-        "fix(pager): commit from the gesture start page and clamp the drag",
-        "fix(pager): drop the card press on claim, cut the dead zone, shorter settle",
-        "ci(guard): resolve string references across modules, not just manager",
-        "fix(boot): move the restore wait out of the broadcast",
-        "docs(checklist): boot restore is now verified on a real restart",
-        "fix(auth): revoke the Dhizuku grant and delegated scopes together"
+        "fix(manager): stop refusing grants when GRANT_RUNTIME_PERMISSIONS is blocked",
+        "feat(manager): arm adbd through the running server when the ROM blocks the grant (k2819)",
+        "fix(update): match the APK by variant, stop uninstalling before install, fail on non-2xx (k2820)",
+        "fix(update): give the Cloudflare mirror the release tag it needs (k2821)"
       ],
-      "commit_subject": "docs: log the k2816-k2817 upstream picks and their on-device evidence",
+      "commit_subject": "feat(update): 四源接力下载 + 更新下载卡片（关闭/后台下载）",
       "release": "v13.7.0.k2017",
       "release_url": "https://github.com/qianyumeng0228/ShizukuX/releases/tag/v13.7.0.k2017",
       "release_published": "2026-11-10T19:13:58Z",
@@ -120,7 +109,7 @@
         "tab 高亮与图标**。玻璃 tab 高亮在切换时滑动过渡；ADB 模块 tab 落在「应用」与「终端」之间；应用 tab 换成 Android 机器人、模块 tab 保留拼图；tab 目的地不再显示返回上箭头",
         "WebUI 兼容桥**。接入 shevery 系模块的 WebUI 协议，社区模块可直接打开面板"
       ],
-      "pushed_at": "2026-11-18T21:51:08Z",
+      "pushed_at": "2026-11-19T18:31:29Z",
       "license": "Apache-2.0",
       "stars": 215,
       "archived": false,
@@ -131,8 +120,19 @@
       "origin": "curated",
       "url": "https://github.com/rushiranpise/Shizuku-Next",
       "description": "A feature-rich Shizuku fork with improved setup, reliability, UI, and additional start methods.",
-      "head": "5cadd421feb9bc1d0786216a86324451953bdfdd",
-      "head_changes": [],
+      "head": "7fb573c58150bfe4f4cc191d58bbf218b16709e5",
+      "head_changes": [
+        "fix(auth): authenticate one-time grants",
+        "fix(pairing): use the code dialog when manual pairing is chosen",
+        "fix(pairing): name the tutorial shortcut developer options",
+        "fix(pairing): ask for network permission before the in-app dialog",
+        "fix(pairing): allow the code dialog without split screen",
+        "fix(pairing): reuse the pairing dialog after rotation",
+        "fix(pairing): stop the code dialog buttons from stacking",
+        "fix(pairing): add split screen fallback hint",
+        "fix(pairing): give the in-app pairing steps their own string",
+        "fix(pairing): skip the chooser when legacy pairing is on"
+      ],
       "commit_subject": "chore(i18n): new translations from Crowdin",
       "release": "v14.0.36-next",
       "release_url": "https://github.com/rushiranpise/Shizuku-Next/releases/tag/v14.0.36-next",
@@ -142,9 +142,9 @@
         "add fixed-name latest APK asset",
         "Full Changelog**: https://github.com/rushiranpise/Shizuku-Next/compare/v14.0.35-next...v14.0.36-next"
       ],
-      "pushed_at": "2026-11-18T11:54:55Z",
+      "pushed_at": "2026-11-19T11:51:35Z",
       "license": "Apache-2.0",
-      "stars": 2053,
+      "stars": 2090,
       "archived": false,
       "fork": false
     },
@@ -166,7 +166,7 @@
       ],
       "pushed_at": "2026-11-13T07:18:38Z",
       "license": "Apache-2.0",
-      "stars": 354,
+      "stars": 356,
       "archived": false,
       "fork": false
     },
@@ -186,7 +186,7 @@
       ],
       "pushed_at": "2026-11-14T11:42:15Z",
       "license": "Apache-2.0",
-      "stars": 30,
+      "stars": 32,
       "archived": false,
       "fork": false
     },
@@ -208,7 +208,7 @@
       ],
       "pushed_at": "2026-10-19T19:03:48Z",
       "license": "Apache-2.0",
-      "stars": 43,
+      "stars": 44,
       "archived": false,
       "fork": true
     },
@@ -217,7 +217,7 @@
       "origin": "curated",
       "url": "https://github.com/cr1437/Shizako",
       "description": "猫耳看板娘的系统权限助手：不 Root 也能用特权 API，兼容 Shizuku-API 生态（官方 SDK 应用零改动直连） A catgirl-mascot privileged-API assistant for Android. Shizuku-API compatible — apps built on the official SDK conne",
-      "head": "6c2f3daef633fc82f15e3e5960b286b3141402f0",
+      "head": "db82f2072a1f044473fdcf7d528ebf29001b8686",
       "head_changes": [],
       "commit_subject": "docs: 刷新徽章计数",
       "release": "zako3.19",
@@ -228,7 +228,7 @@
         "无线调试配对永远「连不上」**：`AdbPairingClient` 为加连接超时改用了 `Socket().apply { connect(InetSocketAddress(host, port), …) }`，而 `apply` 的接收者是 `Socket`，`Socket` 自带 `getPort()`（未连接时恒为 0），于是 `port` 被解析成 0 —— 每次配对都在连 `127.",
         "配对成功但服务起不来（`Untracked pid … received signal 1`）**：通过 ADB shell 启动服务时，adbd 会在 shell 通道关闭的一刻给前台进程组发 SIGHUP；服务子进程在 `fork()` 到 `setsid()` 之间有一个极小的窗口，信号落进去就会把还没 exec 的进程杀掉。现在 starter 在 fork 之前就忽略 SIGHUP/SI"
       ],
-      "pushed_at": "2026-11-18T21:59:56Z",
+      "pushed_at": "2026-11-19T22:11:17Z",
       "license": "Apache-2.0",
       "stars": 127,
       "archived": false,
@@ -252,7 +252,7 @@
       ],
       "pushed_at": "2026-10-18T11:38:12Z",
       "license": "MPL-2.0",
-      "stars": 1910,
+      "stars": 1916,
       "archived": false,
       "fork": false
     },
@@ -296,7 +296,7 @@
       ],
       "pushed_at": "2026-10-21T08:40:43Z",
       "license": "Apache-2.0",
-      "stars": 23,
+      "stars": 24,
       "archived": false,
       "fork": false
     },
@@ -360,7 +360,7 @@
       ],
       "pushed_at": "2026-07-15T03:12:10Z",
       "license": "Apache-2.0",
-      "stars": 6989,
+      "stars": 7003,
       "archived": false,
       "fork": true
     },
@@ -382,7 +382,7 @@
       ],
       "pushed_at": "2026-11-17T19:45:08Z",
       "license": "GPL-3.0",
-      "stars": 4194,
+      "stars": 4199,
       "archived": false,
       "fork": false
     },
@@ -435,9 +435,14 @@
       "origin": "curated",
       "url": "https://github.com/Youngupdatesource/fOxygen",
       "description": "fOxygen: ADB/Root environment manager for Android with plugins, WebUI, permission manager, and an axsh terminal shell. Fork of AxManager.",
-      "head": "59c44bd435ed023230c21c2a548c58fdbd7efdce",
-      "head_changes": [],
-      "commit_subject": "remove unecesary logging",
+      "head": "04810ab65403e7507f09113c8978b9639e28a051",
+      "head_changes": [
+        "added rootless debugging in priveleage manager",
+        "minor fixes",
+        "ui revision",
+        "adjust UI"
+      ],
+      "commit_subject": "align some icon in privileage manager",
       "release": "v1.2",
       "release_url": "https://github.com/Youngupdatesource/fOxygen/releases/tag/v1.2",
       "release_published": "2026-10-24T07:25:01Z",
@@ -446,7 +451,7 @@
         "Rootless debugging (root mode only, per app): run an app's axsh sessions as the shell user (uid 2000, like `adb shell`) instead of root",
         "Privilege Manager: filter by Shizuku API apps, terminal apps, or both. Granted apps stay on top and are remembered between launches, so the list no longer flickers, and apps that are already allowed s"
       ],
-      "pushed_at": "2026-11-17T22:46:10Z",
+      "pushed_at": "2026-11-19T16:58:40Z",
       "license": "Apache-2.0",
       "stars": 20,
       "archived": false,
@@ -532,7 +537,7 @@
       ],
       "pushed_at": "2026-10-30T11:42:28Z",
       "license": "Apache-2.0",
-      "stars": 1,
+      "stars": 2,
       "archived": false,
       "fork": false
     },
