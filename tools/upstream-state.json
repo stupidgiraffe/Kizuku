@@ -18,7 +18,7 @@
       ],
       "pushed_at": "2025-06-18T04:21:02Z",
       "license": "Apache-2.0",
-      "stars": 34124,
+      "stars": 34200,
       "archived": false,
       "fork": false
     },
@@ -40,7 +40,7 @@
       ],
       "pushed_at": "2026-11-13T09:02:54Z",
       "license": "Apache-2.0",
-      "stars": 323,
+      "stars": 325,
       "archived": false,
       "fork": false
     },
@@ -62,7 +62,7 @@
       ],
       "pushed_at": "2026-11-18T17:00:38Z",
       "license": "Apache-2.0",
-      "stars": 1733,
+      "stars": 1744,
       "archived": false,
       "fork": false
     },
@@ -71,20 +71,31 @@
       "origin": "curated",
       "url": "https://github.com/thejaustin/ShizukuPlus",
       "description": "Shizuku+ brings Root/ADB/Dhizuku unification, a Plus API suite, OneUI/Android 16+ support, M3E theming, TCP connectivity, improved customization, & more.",
-      "head": "4825688daeff772f7e8a25ae7e33074499f97e77",
-      "head_changes": [],
-      "commit_subject": "feat: Device Owner setup says what it blocks, restores backup and stuck setup state, reports leftovers after removal; experimental Dhizuku limited mode (Profile Owner) when other p",
-      "release": "13.7.0.r3350",
-      "release_url": "https://github.com/thejaustin/ShizukuPlus/releases/tag/13.7.0.r3350",
-      "release_published": "2026-11-18T15:23:33Z",
-      "release_notes": [
-        "Dhizuku limited mode (experimental)** — Settings → Experimental → \"Dhizuku limited mode\": when Secure Folder or another profile blocks Device Owner, the setup offers Shizuku+ as Profile Owner of your ",
-        "🔒 Security & Privacy",
-        "Clearer Device Owner setup** — Before \"Activate now\" makes Shizuku+ the Device Owner, it says what that blocks while it's active: new Secure Folder, work profiles, Private Space and Dual Messenger, an"
+      "head": "14a728cf0759312092dfae1fdbf19d01d11ade63",
+      "head_changes": [
+        "feat: Doctor suggests a fix when Battery Saver is on with Watchdog or Start on Boot - Battery Saver defers the restart alarms so the service can stay stopped af",
+        "fix: hidden app wording no longer shows as text in the update dialog or the other release-note views - only the timeline parser understood it",
+        "fix: first-run Doctor level buttons stay on one line - four equal-width buttons could wrap labels on narrow phones",
+        "fix: Doctor assistance 'Custom' was a dead menu choice and the docked nav bar showed content through it - Custom is now display-only and the docked bar is opaqu",
+        "docs: changelog for the Custom level and docked bar fixes",
+        "fix: release-note rows show Read more / Show less when cut off, and Settings loses its dot - collapsed text had no visible way to open and the dot duplicated th",
+        "fix: tapping a release-note row opens it - link-enabled text swallowed taps so rows never expanded",
+        "fix: release-note rows open on tap and show where text is cut - the text views ate the tap and the clamped layout never ellipsized",
+        "feat: option to restart Shizuku+ automatically after an app update - the old server kept running stale code until the user tapped Restart",
+        "ci: take back .git ownership after the Crowdin action - it runs as root, so the branch checkout failed"
       ],
-      "pushed_at": "2026-11-18T15:23:25Z",
+      "commit_subject": "ci: take back .git ownership after the Crowdin action - it runs as root, so the branch checkout failed",
+      "release": "13.7.0.r3379",
+      "release_url": "https://github.com/thejaustin/ShizukuPlus/releases/tag/13.7.0.r3379",
+      "release_published": "2026-11-21T01:42:28Z",
+      "release_notes": [
+        "🛠 Fixes & Improvements",
+        "🚀 **Most recent major release — [13.7.0.r3370](https://github.com/thejaustin/ShizukuPlus/releases/tag/13.7.0.r3370)**",
+        "Crash notice names a likely cause; Service Doctor asks how much to help at setup; Dhizuku limited mode (experimental); Compact Home cards (experimental)"
+      ],
+      "pushed_at": "2026-11-21T02:24:43Z",
       "license": "Apache-2.0",
-      "stars": 1839,
+      "stars": 1844,
       "archived": false,
       "fork": false
     },
@@ -94,12 +105,7 @@
       "url": "https://github.com/qianyumeng0228/ShizukuX",
       "description": "ShizukuX 是 Shizuku 的增强分支：让普通应用借助 ADB / Root 特权进程直接调用系统级 API，并内置 Dhizuku、Extra API、Root 兼容桥等高级能力。继承自 ShizukuPlus（Apache 2.0）。",
       "head": "c0dfe62522da7fa95601384907a2be69eb1bec4a",
-      "head_changes": [
-        "fix(manager): stop refusing grants when GRANT_RUNTIME_PERMISSIONS is blocked",
-        "feat(manager): arm adbd through the running server when the ROM blocks the grant (k2819)",
-        "fix(update): match the APK by variant, stop uninstalling before install, fail on non-2xx (k2820)",
-        "fix(update): give the Cloudflare mirror the release tag it needs (k2821)"
-      ],
+      "head_changes": [],
       "commit_subject": "feat(update): 四源接力下载 + 更新下载卡片（关闭/后台下载）",
       "release": "v13.7.0.k2017",
       "release_url": "https://github.com/qianyumeng0228/ShizukuX/releases/tag/v13.7.0.k2017",
@@ -111,7 +117,7 @@
       ],
       "pushed_at": "2026-11-19T18:31:29Z",
       "license": "Apache-2.0",
-      "stars": 215,
+      "stars": 226,
       "archived": false,
       "fork": false
     },
@@ -120,20 +126,9 @@
       "origin": "curated",
       "url": "https://github.com/rushiranpise/Shizuku-Next",
       "description": "A feature-rich Shizuku fork with improved setup, reliability, UI, and additional start methods.",
-      "head": "7fb573c58150bfe4f4cc191d58bbf218b16709e5",
-      "head_changes": [
-        "fix(auth): authenticate one-time grants",
-        "fix(pairing): use the code dialog when manual pairing is chosen",
-        "fix(pairing): name the tutorial shortcut developer options",
-        "fix(pairing): ask for network permission before the in-app dialog",
-        "fix(pairing): allow the code dialog without split screen",
-        "fix(pairing): reuse the pairing dialog after rotation",
-        "fix(pairing): stop the code dialog buttons from stacking",
-        "fix(pairing): add split screen fallback hint",
-        "fix(pairing): give the in-app pairing steps their own string",
-        "fix(pairing): skip the chooser when legacy pairing is on"
-      ],
-      "commit_subject": "chore(i18n): new translations from Crowdin",
+      "head": "380fc9bc8b0ea836717c7a8f9cea50fbb192ad16",
+      "head_changes": [],
+      "commit_subject": "feat(apps): remember sort order for app lists",
       "release": "v14.0.36-next",
       "release_url": "https://github.com/rushiranpise/Shizuku-Next/releases/tag/v14.0.36-next",
       "release_published": "2026-11-16T05:18:53Z",
@@ -142,9 +137,9 @@
         "add fixed-name latest APK asset",
         "Full Changelog**: https://github.com/rushiranpise/Shizuku-Next/compare/v14.0.35-next...v14.0.36-next"
       ],
-      "pushed_at": "2026-11-19T11:51:35Z",
+      "pushed_at": "2026-11-21T01:43:59Z",
       "license": "Apache-2.0",
-      "stars": 2090,
+      "stars": 2118,
       "archived": false,
       "fork": false
     },
@@ -166,7 +161,7 @@
       ],
       "pushed_at": "2026-11-13T07:18:38Z",
       "license": "Apache-2.0",
-      "stars": 356,
+      "stars": 358,
       "archived": false,
       "fork": false
     },
@@ -217,20 +212,23 @@
       "origin": "curated",
       "url": "https://github.com/cr1437/Shizako",
       "description": "猫耳看板娘的系统权限助手：不 Root 也能用特权 API，兼容 Shizuku-API 生态（官方 SDK 应用零改动直连） A catgirl-mascot privileged-API assistant for Android. Shizuku-API compatible — apps built on the official SDK conne",
-      "head": "db82f2072a1f044473fdcf7d528ebf29001b8686",
-      "head_changes": [],
-      "commit_subject": "docs: 刷新徽章计数",
-      "release": "zako3.19",
-      "release_url": "https://github.com/cr1437/Shizako/releases/tag/zako3.19",
-      "release_published": "2026-11-14T09:52:02Z",
-      "release_notes": [
-        "这一版真正修好了「无线调试配对/激活」：定位到两个根因 —— 配对连接被连到 0 号端口、服务进程被 ADB shell 的挂断信号在 exec 前杀掉；同时移除了只用于排查的首页「诊断日志」测试功能，它不会再出现在源码与发布包里。**",
-        "无线调试配对永远「连不上」**：`AdbPairingClient` 为加连接超时改用了 `Socket().apply { connect(InetSocketAddress(host, port), …) }`，而 `apply` 的接收者是 `Socket`，`Socket` 自带 `getPort()`（未连接时恒为 0），于是 `port` 被解析成 0 —— 每次配对都在连 `127.",
-        "配对成功但服务起不来（`Untracked pid … received signal 1`）**：通过 ADB shell 启动服务时，adbd 会在 shell 通道关闭的一刻给前台进程组发 SIGHUP；服务子进程在 `fork()` 到 `setsid()` 之间有一个极小的窗口，信号落进去就会把还没 exec 的进程杀掉。现在 starter 在 fork 之前就忽略 SIGHUP/SI"
+      "head": "c5db28f58e4d054dbf440c151e150e81c91578fa",
+      "head_changes": [
+        "fix(dhizuku): 修复设备所有者组件名并新增「取消设备所有者」（zako3.19hp, #12 #13）",
+        "fix(ci): 徽章工作流在 release 事件下检出 main，修复 detached HEAD 推送失败；更新日志补「相关 issue」段落"
       ],
-      "pushed_at": "2026-11-19T22:11:17Z",
+      "commit_subject": "docs: 刷新徽章计数",
+      "release": "zako3.19hp",
+      "release_url": "https://github.com/cr1437/Shizako/releases/tag/zako3.19hp",
+      "release_published": "2026-11-20T15:02:08Z",
+      "release_notes": [
+        "热修复版：把 Dhizuku（设备所有者）这条线补完整 —— 激活/委派用的组件名从 3.10 起就是错的（#13），「一键激活」因此从未成功；成为设备所有者之后也没有任何退出入口，adb 也移不掉（#12）。这一版两个都修了，并回应了 Play Protect 误报的说明（#11）。**",
+        "Dhizuku 激活命令组件名错误（#13）**：应用内拼的是 `com.churan.shizako.dhizuku.DhizukuAdminReceiver`，但 manifest 里 `.dhizuku.DhizukuAdminReceiver` 实际相对 **namespace**（`moe.shizuku.manager`）解析，真实组件是 `com.churan.shizako/moe",
+        "已授权应用拿不到设备所有者权限（#13 关联）**：同一个错误组件也被 `setDelegatedScopes` / `getDelegatedScopes` 使用，调用必抛 `SecurityException`。这正是「能授权、但应用用不了设备所有者权限」的原因，已随组件修复一并解决"
+      ],
+      "pushed_at": "2026-11-21T02:21:29Z",
       "license": "Apache-2.0",
-      "stars": 127,
+      "stars": 131,
       "archived": false,
       "fork": false
     },
@@ -252,7 +250,7 @@
       ],
       "pushed_at": "2026-10-18T11:38:12Z",
       "license": "MPL-2.0",
-      "stars": 1916,
+      "stars": 1924,
       "archived": false,
       "fork": false
     },
@@ -274,7 +272,7 @@
       ],
       "pushed_at": "2026-11-01T15:16:29Z",
       "license": "Apache-2.0",
-      "stars": 1578,
+      "stars": 1580,
       "archived": false,
       "fork": false
     },
@@ -340,7 +338,7 @@
       ],
       "pushed_at": "2026-11-08T08:59:44Z",
       "license": "Apache-2.0",
-      "stars": 253,
+      "stars": 254,
       "archived": false,
       "fork": true
     },
@@ -360,7 +358,7 @@
       ],
       "pushed_at": "2026-07-15T03:12:10Z",
       "license": "Apache-2.0",
-      "stars": 7003,
+      "stars": 7020,
       "archived": false,
       "fork": true
     },
@@ -382,7 +380,7 @@
       ],
       "pushed_at": "2026-11-17T19:45:08Z",
       "license": "GPL-3.0",
-      "stars": 4199,
+      "stars": 4203,
       "archived": false,
       "fork": false
     },
@@ -435,23 +433,26 @@
       "origin": "curated",
       "url": "https://github.com/Youngupdatesource/fOxygen",
       "description": "fOxygen: ADB/Root environment manager for Android with plugins, WebUI, permission manager, and an axsh terminal shell. Fork of AxManager.",
-      "head": "04810ab65403e7507f09113c8978b9639e28a051",
+      "head": "243a9ed842afeb74a0a2180fc56df12c7ea246b4",
       "head_changes": [
-        "added rootless debugging in priveleage manager",
-        "minor fixes",
-        "ui revision",
-        "adjust UI"
+        "Migrate to Axeron-API v3.0.0 fork",
+        "Apply kotlin-android plugin to library subprojects for Axeron-API v3",
+        "Opt-in InternalAxeronApi for axsh-dependent modules",
+        "Fix Kotlin property access in AxeronService and keep libaxshboot symbols",
+        "Fix remaining Axeron-API v3 nullable and resetManagerNative calls in manager",
+        "Fix Privilege Manager Launch scope cancellation and API v3 mechanisms",
+        "Fix crash on legacy 14800 server restart during API v3 migration"
       ],
-      "commit_subject": "align some icon in privileage manager",
-      "release": "v1.2",
-      "release_url": "https://github.com/Youngupdatesource/fOxygen/releases/tag/v1.2",
-      "release_published": "2026-10-24T07:25:01Z",
+      "commit_subject": "Release v1.4 (30000)",
+      "release": "v1.4",
+      "release_url": "https://github.com/Youngupdatesource/fOxygen/releases/tag/v1.4",
+      "release_published": "2026-11-20T11:12:31Z",
       "release_notes": [
-        "Terminal (axsh): a native client gives any terminal app a full interactive shell through the server (real PTY, `vi`, `top`, job control, window resizing), the same way in Root and ADB mode. Start it f",
-        "Rootless debugging (root mode only, per app): run an app's axsh sessions as the shell user (uid 2000, like `adb shell`) instead of root",
-        "Privilege Manager: filter by Shizuku API apps, terminal apps, or both. Granted apps stay on top and are remembered between launches, so the list no longer flickers, and apps that are already allowed s"
+        "Axeron-API v3.0.0 (`30000`) Migration**: Switched the `api` submodule to `Youngupdatesource/Axeron-API` (`30000`), aligned `versionCode` to follow `api_version_code` (`30000`), removed legacy `:rish`,",
+        "Direct AIDL v3 Server & Rootless Support**: Updated `AxeronService`, `ClientCapability`, `AxshServer`, and `ShellBinderRequestHandler` to implement the official API v3 AIDL methods (`newAxshProcess`, ",
+        "Privilege Manager Terminal Launch Fix**: Fixed `TerminalAppDialog` (`libtermux.so`) Launch cancellation in `Privilege.kt` by hoisting the coroutine scope outside the dialog condition, added parent dir"
       ],
-      "pushed_at": "2026-11-19T16:58:40Z",
+      "pushed_at": "2026-11-20T11:12:31Z",
       "license": "Apache-2.0",
       "stars": 20,
       "archived": false,
