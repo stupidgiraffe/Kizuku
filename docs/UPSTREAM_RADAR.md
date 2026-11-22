@@ -1,31 +1,42 @@
 # Kizuku upstream radar
 
-Last changed: 2026-11-21 02:28 UTC. Automated metadata check; **not** a source-code, security, or compatibility audit.
+Last changed: 2026-11-22 02:29 UTC. Automated metadata check; **not** a source-code, security, or compatibility audit.
 
 Source discovery is best-effort and not exhaustive. No upstream code, APKs, or dependencies are copied or upgraded.
 
 ## Recent signals
 
-- **[Youngupdatesource/fOxygen](https://github.com/Youngupdatesource/fOxygen/releases/tag/v1.4)** — Release v1.2 → v1.4
-  - Axeron-API v3.0.0 (`30000`) Migration**: Switched the `api` submodule to `Youngupdatesource/Axeron-API` (`30000`), aligned `versionCode` to follow `api_version_code` (`30000`), rem
-  - Direct AIDL v3 Server & Rootless Support**: Updated `AxeronService`, `ClientCapability`, `AxshServer`, and `ShellBinderRequestHandler` to implement the official API v3 AIDL methods
-  - Privilege Manager Terminal Launch Fix**: Fixed `TerminalAppDialog` (`libtermux.so`) Launch cancellation in `Privilege.kt` by hoisting the coroutine scope outside the dialog conditi
-- **[cr1437/Shizako](https://github.com/cr1437/Shizako/releases/tag/zako3.19hp)** — Release zako3.19 → zako3.19hp
-  - 热修复版：把 Dhizuku（设备所有者）这条线补完整 —— 激活/委派用的组件名从 3.10 起就是错的（#13），「一键激活」因此从未成功；成为设备所有者之后也没有任何退出入口，adb 也移不掉（#12）。这一版两个都修了，并回应了 Play Protect 误报的说明（#11）。**
-  - Dhizuku 激活命令组件名错误（#13）**：应用内拼的是 `com.churan.shizako.dhizuku.DhizukuAdminReceiver`，但 manifest 里 `.dhizuku.DhizukuAdminReceiver` 实际相对 **namespace**（`moe.shizuku.manager`）解析，真实组件是 `co
-  - 已授权应用拿不到设备所有者权限（#13 关联）**：同一个错误组件也被 `setDelegatedScopes` / `getDelegatedScopes` 使用，调用必抛 `SecurityException`。这正是「能授权、但应用用不了设备所有者权限」的原因，已随组件修复一并解决
-- **[thejaustin/ShizukuPlus](https://github.com/thejaustin/ShizukuPlus/releases/tag/13.7.0.r3379)** — Release 13.7.0.r3350 → 13.7.0.r3379
-  - 🛠 Fixes & Improvements
+- **[kerneldroid/Nightzuku](https://github.com/kerneldroid/Nightzuku/releases/tag/v13.7.1-r63)** — Release v13.7.1-r62 → v13.7.1-r63
+  - FD-backed transport and argv trampoline for app_process command lines over 1 MiB (API + server).
+  - User isolation for Knox and secondary profiles; Security & Access settings tab.
+  - Wireless ADB boot autostart via Wi-Fi JobScheduler: mDNS ServiceInfoCallback with MulticastLock, ADB Wi-Fi 2.0, TCP port and lockscreen handling, Root/Wireless selector, fallback n
+- **[qianyumeng0228/ShizukuX](https://github.com/qianyumeng0228/ShizukuX/releases/tag/v13.7.0.k2018)** — Release v13.7.0.k2017 → v13.7.0.k2018
+  - 本版本首次随 Release 提供 **OPPO / ColorOS 专用的 AOSP testkey 签名 Drop-In 包**：不用退出系统账户，也不用删除工作资料或应用分身，即可把 ShizukuX 激活为设备所有者（Device Owner）。同时修复 OPPO 签名包的内置更新通道，避免它被推送普通 Drop-In 更新后报 `INSTALL_F
+  - 这是一个可直接覆盖原版 Shizuku 的 Drop-In 包，包名 `moe.shizuku.privileged.api`，使用 AOSP testkey 签名；专门用于 OPPO / ColorOS 系 ROM 上激活 Device Owner，激活后可进入 Dhizuku 模式，使用设备所有者级能力（无线调试常驻、应用冻结/停止、权限管理等）
+  - 激活优先以 shell 身份执行，与上游 Dhizuku 的路径一致；应用身份作为回退。`cmd role add-role-holder` 失败不再中断整个激活，`role` 旁路在 `finally` 中强制收回，避免激活失败后留下“任何应用都能跳过 Role 资格”的口子
+- **[thejaustin/ShizukuPlus](https://github.com/thejaustin/ShizukuPlus/releases/tag/13.7.0.r3395)** — Release 13.7.0.r3379 → 13.7.0.r3395
+  - Issue triage - forms ask flavor and device, auto-labels from clear keywords, a one-time needs-info nudge, and a fixed-in notice - sorting and answering issues by hand doesn't scale
   - 🚀 **Most recent major release — [13.7.0.r3370](https://github.com/thejaustin/ShizukuPlus/releases/tag/13.7.0.r3370)**
   - Crash notice names a likely cause; Service Doctor asks how much to help at setup; Dhizuku limited mode (experimental); Compact Home cards (experimental)
-- **[rushiranpise/Shizuku-Next](https://github.com/rushiranpise/Shizuku-Next)** — New HEAD feat(apps): remember sort order for app lists
+- **[Sharif-bot-cmd/ShizuPosed](https://github.com/Sharif-bot-cmd/ShizuPosed/releases/tag/1.5.0)** — Release 1.4.10 → 1.5.0
+- **[rushiranpise/Shizuku-Next](https://github.com/rushiranpise/Shizuku-Next)** — New HEAD fix(start): recheck the classic port fallback after discovery
+  - fix(adb): guard notification bubbles on older platforms
+  - fix(start): keep a user-enabled ADB port user-owned
+  - fix(start): serialize ADB port writes with the user toggle
+- **[xeonleonreal/Xhizuku](https://github.com/xeonleonreal/Xhizuku)** — New HEAD Revise project status and caution notes in README
+- **[cr1437/Shizako](https://github.com/cr1437/Shizako)** — New HEAD docs: 刷新徽章计数
+- **[iamr0s/Dhizuku](https://github.com/iamr0s/Dhizuku)** — New HEAD Translated using Weblate (Arabic)
 
 ## Feature opportunities to evaluate
 
-- **Device Owner / Dhizuku interoperability** — [thejaustin/ShizukuPlus](https://github.com/thejaustin/ShizukuPlus/releases/tag/13.7.0.r3379): 🛠 Fixes & Improvements
-- **Android 16/17 and stock Shizuku compatibility** — [rushiranpise/Shizuku-Next](https://github.com/rushiranpise/Shizuku-Next): feat(apps): remember sort order for app lists
-- **Device Owner / Dhizuku interoperability** — [cr1437/Shizako](https://github.com/cr1437/Shizako/releases/tag/zako3.19hp): 热修复版：把 Dhizuku（设备所有者）这条线补完整 —— 激活/委派用的组件名从 3.10 起就是错的（#13），「一键激活」因此从未成功；成为设备所有者之后也没有任何退出入口，adb 也移不掉（#12）。这一版两个都修了，并回应了 Play Protect 误报的说明（#1
-- **Axeron runtime, modules and WebUI** — [Youngupdatesource/fOxygen](https://github.com/Youngupdatesource/fOxygen/releases/tag/v1.4): Axeron-API v3.0.0 (`30000`) Migration**: Switched the `api` submodule to `Youngupdatesource/Axeron-API` (`30000`), aligned `versionCode` to 
+- **Device Owner / Dhizuku interoperability** — [thejaustin/ShizukuPlus](https://github.com/thejaustin/ShizukuPlus/releases/tag/13.7.0.r3395): Issue triage - forms ask flavor and device, auto-labels from clear keywords, a one-time needs-info nudge, and a fixed-in notice - sorting an
+- **Device Owner / Dhizuku interoperability** — [qianyumeng0228/ShizukuX](https://github.com/qianyumeng0228/ShizukuX/releases/tag/v13.7.0.k2018): 本版本首次随 Release 提供 **OPPO / ColorOS 专用的 AOSP testkey 签名 Drop-In 包**：不用退出系统账户，也不用删除工作资料或应用分身，即可把 ShizukuX 激活为设备所有者（Device Owner）。同时修复 OPPO 签名包
+- **Android 16/17 and stock Shizuku compatibility** — [rushiranpise/Shizuku-Next](https://github.com/rushiranpise/Shizuku-Next): fix(adb): guard notification bubbles on older platforms
+- **Capability security and grants** — [kerneldroid/Nightzuku](https://github.com/kerneldroid/Nightzuku/releases/tag/v13.7.1-r63): FD-backed transport and argv trampoline for app_process command lines over 1 MiB (API + server).
+- **Capability security and grants** — [xeonleonreal/Xhizuku](https://github.com/xeonleonreal/Xhizuku): Revise project status and caution notes in README
+- **Device Owner / Dhizuku interoperability** — [cr1437/Shizako](https://github.com/cr1437/Shizako): docs: 刷新徽章计数
+- **Review change against Kizuku feature gaps** — [Sharif-bot-cmd/ShizuPosed](https://github.com/Sharif-bot-cmd/ShizuPosed/releases/tag/1.5.0): readme
+- **ADB activation and service recovery** — [iamr0s/Dhizuku](https://github.com/iamr0s/Dhizuku): Translated using Weblate (Arabic)
 
 ## Tracked projects
 
@@ -38,18 +49,18 @@ Source discovery is best-effort and not exhaustive. No upstream code, APKs, or d
 | [fahrez182/AxManager](https://github.com/fahrez182/AxManager) | Axeron, plugins, WebUI and security | v3.0.0 | 2026-11-01 | Apache-2.0 |
 | [HmnDev-Tech/shevery](https://github.com/HmnDev-Tech/shevery) | UX, permissions, Dhizuku, modules | 14.6.5 | 2026-11-18 | Apache-2.0 |
 | [HSSkyBoy/Shizuku](https://github.com/HSSkyBoy/Shizuku) | device and wireless fixes | v13.6.2 | 2026-11-08 | Apache-2.0 |
-| [iamr0s/Dhizuku](https://github.com/iamr0s/Dhizuku) | Device Owner protocol reference | v2.13.0 | 2026-11-17 | GPL-3.0 |
-| [kerneldroid/Nightzuku](https://github.com/kerneldroid/Nightzuku) | Android platform fixes; paused project | v13.7.1-r62 | 2026-11-13 | Apache-2.0 |
-| [krishna3163/OmniShizuku](https://github.com/krishna3163/OmniShizuku) | app management and utilities | latest | 2026-11-14 | Apache-2.0 |
-| [qianyumeng0228/ShizukuX](https://github.com/qianyumeng0228/ShizukuX) | compatibility features | v13.7.0.k2017 | 2026-11-19 | Apache-2.0 |
+| [iamr0s/Dhizuku](https://github.com/iamr0s/Dhizuku) | Device Owner protocol reference | v2.13.0 | 2026-11-21 | GPL-3.0 |
+| [kerneldroid/Nightzuku](https://github.com/kerneldroid/Nightzuku) | Android platform fixes; paused project | v13.7.1-r63 | 2026-11-21 | Apache-2.0 |
+| [krishna3163/OmniShizuku](https://github.com/krishna3163/OmniShizuku) | app management and utilities | latest | 2026-11-21 | Apache-2.0 |
+| [qianyumeng0228/ShizukuX](https://github.com/qianyumeng0228/ShizukuX) | compatibility features | v13.7.0.k2018 | 2026-11-21 | Apache-2.0 |
 | [revBlackCore/RevCoreManager](https://github.com/revBlackCore/RevCoreManager) | Axora-derived plugin runtime compatibility and UI reference | v26.10.21.r1 | 2026-11-17 | Apache-2.0 |
 | [RikkaApps/Shizuku](https://github.com/RikkaApps/Shizuku) | baseline protocol | v13.6.0 | 2025-06-18 | Apache-2.0 |
 | [roro2239/Stellar](https://github.com/roro2239/Stellar) | boot recovery and script execution | v1.1(101000) | 2026-10-18 | MPL-2.0 |
 | [rushiranpise/Shizuku-Next](https://github.com/rushiranpise/Shizuku-Next) | ADB and diagnostics | v14.0.36-next | 2026-11-21 | Apache-2.0 |
-| [Sharif-bot-cmd/ShizuPosed](https://github.com/Sharif-bot-cmd/ShizuPosed) | optional Labs inspiration | 1.4.10 | 2026-11-15 | Apache-2.0 |
+| [Sharif-bot-cmd/ShizuPosed](https://github.com/Sharif-bot-cmd/ShizuPosed) | optional Labs inspiration | 1.5.0 | 2026-11-21 | Apache-2.0 |
 | [thedjchi/Shizuku](https://github.com/thedjchi/Shizuku) | legacy startup and automation | v13.7.0-thedjchi | 2026-07-15 | Apache-2.0 |
-| [thejaustin/ShizukuPlus](https://github.com/thejaustin/ShizukuPlus) | extended compatibility and SU bridge | 13.7.0.r3379 | 2026-11-21 | Apache-2.0 |
-| [xeonleonreal/Xhizuku](https://github.com/xeonleonreal/Xhizuku) | module lifecycle and diagnostics | v4.0.0 | 2026-10-19 | Apache-2.0 |
+| [thejaustin/ShizukuPlus](https://github.com/thejaustin/ShizukuPlus) | extended compatibility and SU bridge | 13.7.0.r3395 | 2026-11-21 | Apache-2.0 |
+| [xeonleonreal/Xhizuku](https://github.com/xeonleonreal/Xhizuku) | module lifecycle and diagnostics | v4.0.0 | 2026-11-21 | Apache-2.0 |
 | [Youngupdatesource/fOxygen](https://github.com/Youngupdatesource/fOxygen) | AxManager-derived terminal PTY, axsh, WebUI, plugin lifecycle, low-power recovery and UI performance | v1.4 | 2026-11-20 | Apache-2.0 |
 | [asrtroh-netizen/shizuku](https://github.com/asrtroh-netizen/shizuku) | discovered — review before adoption | V15.5.0 | 2026-09-06 | Apache-2.0 |
 | [Batestinha/shizuku-thedjchi-daemonstatebroadcast](https://github.com/Batestinha/shizuku-thedjchi-daemonstatebroadcast) | discovered — review before adoption | v13.7.0.r1365-thedjchi | 2026-09-10 | Apache-2.0 |
