@@ -89,6 +89,7 @@ final class KizukuService extends IKizukuService.Stub {
     }
     void sweepResources() {
         legacy.removeStaleProcesses();
+        axeron.sweepClients();
         if (runtime != null && !closed) runtime.sweepOwners(this::activeIdentity);
     }
     void close() {
@@ -351,6 +352,42 @@ final class KizukuService extends IKizukuService.Stub {
     @Override public Bundle systemSetting(String table, String key, String value, String operation) {
         return managerRuntime(runtime -> runtime.setting(table, key, value, operation));
     }
+    @Override public Bundle runtimePackageAction(Bundle snapshot, String action, String name, String value) {
+        return managerRuntime(runtime -> {
+            if (snapshot == null || snapshot.getInt("authorization_host_uid", -1) != android.os.Process.myUid())
+                throw new SecurityException("The host privilege level changed. Reopen app details.");
+            var expected = io.github.stupidgiraffe.kizuku.api.AndroidIdentity.decode(
+                new org.json.JSONObject(snapshot.getString("identity", "{}")));
+            var actual = platform.identity(expected.uid(), expected.packageName());
+            if (!expected.equals(actual)) throw new SecurityException("The app identity changed. Reopen app details.");
+            String pkg = actual.packageName();
+            PackageInfo installed = platform.packageInfo(pkg, actual.uid() / 100000, PackageManager.GET_PERMISSIONS);
+            if (actual.uid() / 100000 != 0 || Protocol.MANAGER.equals(pkg) ||
+                    "moe.shizuku.privileged.api".equals(pkg) || "com.rosan.dhizuku".equals(pkg))
+                throw new SecurityException("This app cannot be changed here");
+            String[] argv;
+            switch (action) {
+                case "force-stop" -> argv = new String[]{"/system/bin/am", "force-stop", "--user", "0", pkg};
+                case "permission" -> {
+                    if (!java.util.Arrays.asList(installed.requestedPermissions == null ? new String[0] : installed.requestedPermissions).contains(name) ||
+                            !("grant".equals(value) || "revoke".equals(value)))
+                        throw new IllegalArgumentException("Invalid permission change");
+                    argv = new String[]{"/system/bin/pm", value, "--user", "0", pkg, name};
+                }
+                case "appops-get" -> argv = new String[]{"/system/bin/cmd", "appops", "get", "--user", "0", pkg};
+                case "appops-set" -> {
+                    boolean declared = java.util.Arrays.stream(installed.requestedPermissions == null ? new String[0] : installed.requestedPermissions)
+                        .map(android.app.AppOpsManager::permissionToOp).anyMatch(op -> op != null && op.equals(name));
+                    if (!declared || !java.util.Set.of("allow", "ignore", "deny", "default", "foreground").contains(value))
+                        throw new IllegalArgumentException("Invalid AppOps change");
+                    argv = new String[]{"/system/bin/cmd", "appops", "set", "--user", "0", pkg, name, value};
+                }
+                default -> throw new IllegalArgumentException("Unsupported package action");
+            }
+            return runtime.run(null, argv, runtime.home, null, 10);
+        });
+    }
+
     @Override public Bundle setPackageEnabled(String packageName, boolean enabled) {
         return managerRuntime(runtime -> {
             PackageInfo info = platform.packageInfo(packageName, 0);

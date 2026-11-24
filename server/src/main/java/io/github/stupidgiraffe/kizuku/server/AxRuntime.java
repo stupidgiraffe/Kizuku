@@ -139,7 +139,9 @@ final class AxRuntime {
             Future<byte[]> err = io.submit(() -> capture(job.child.getErrorStream()));
             if (stdin.length == 0) job.child.getOutputStream().close();
             else io.execute(() -> copy(new java.io.ByteArrayInputStream(stdin), job.child.getOutputStream()));
-            boolean completed = job.child.waitFor(seconds, TimeUnit.SECONDS);
+            boolean completed;
+            if (seconds <= 0) { job.child.waitFor(); completed = true; }
+            else completed = job.child.waitFor(seconds, TimeUnit.SECONDS);
             if (!completed) job.stop();
             byte[] stdout = collect(out);
             byte[] stderr = collect(err);
@@ -155,19 +157,12 @@ final class AxRuntime {
         }
     }
 
-    void service(String id, File script, File directory) throws IOException {
-        Job job = start(null, id, new String[]{SHELL, script.getPath()}, directory, null);
-        job.child.getOutputStream().close();
-        io.execute(() -> copy(job.child.getInputStream(), DISCARD));
-        io.execute(() -> copy(job.child.getErrorStream(), DISCARD));
-    }
-
     void moduleService(String id, String[] argv, File directory, Map<String, String> env,
             java.util.function.Consumer<Bundle> result) throws IOException {
         Job job = start(null, id, argv, directory, env);
         io.execute(() -> {
             Bundle completed;
-            try { completed = complete(job, 60, new byte[0]); }
+            try { completed = complete(job, 0, new byte[0]); }
             catch (Exception failure) {
                 if (failure instanceof InterruptedException) Thread.currentThread().interrupt();
                 completed = new Bundle();
@@ -181,6 +176,12 @@ final class AxRuntime {
     IAxshProcess launch(ClientIdentity owner, String[] argv, String[] env, String dir,
             ParcelFileDescriptor stdin, ParcelFileDescriptor stdout, ParcelFileDescriptor stderr,
             boolean pty, long size, ParcelFileDescriptor status) throws Exception {
+        return launch(owner, null, argv, env, dir, stdin, stdout, stderr, pty, size, status);
+    }
+
+    IAxshProcess launch(ClientIdentity owner, String plugin, String[] argv, String[] env, String dir,
+            ParcelFileDescriptor stdin, ParcelFileDescriptor stdout, ParcelFileDescriptor stderr,
+            boolean pty, long size, ParcelFileDescriptor status) throws Exception {
         File work = dir == null || dir.isEmpty() ? home : new File(dir);
         if (!work.isAbsolute() || !work.isDirectory()) throw new IllegalArgumentException("Invalid working directory");
         Map<String, String> extra = new HashMap<>();
@@ -191,7 +192,7 @@ final class AxRuntime {
             extra.put(variable.substring(0, separator), variable.substring(separator + 1));
         }
         if (pty) return startTerminal(owner, argv, work, extra, stdin, stdout, stderr, status, size);
-        Job job = start(owner, null, argv, work, extra);
+        Job job = start(owner, plugin, argv, work, extra);
         var input = new ParcelFileDescriptor.AutoCloseInputStream(stdin);
         io.execute(() -> copy(input, job.child.getOutputStream()));
         Future<?> out = io.submit(() -> copy(job.child.getInputStream(), new ParcelFileDescriptor.AutoCloseOutputStream(stdout)));

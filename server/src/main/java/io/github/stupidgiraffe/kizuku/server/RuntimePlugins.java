@@ -80,6 +80,7 @@ final class RuntimePlugins {
                 row.putString("moduleDir", file.getPath());
                 row.putBoolean("enabled", enabled(file));
                 row.putBoolean("background", isShevery(row) && new File(file, BACKGROUND).isFile());
+                row.putBoolean("service_running", serviceRuns.containsKey(row.getString("id")));
                 rows.add(row);
             } catch (IOException | IllegalArgumentException failure) {
                 Bundle row = new Bundle();
@@ -217,6 +218,7 @@ final class RuntimePlugins {
             }
             case "action-log" -> { return lastLog(directory, "action"); }
             case "service-log" -> { return lastLog(directory, "service"); }
+            case "post-fs-data-log" -> { return lastLog(directory, "post-fs-data"); }
             case "web-read", "web-shell" -> {
                 requireEnabled(directory);
                 if (!row.getBoolean("webui")) throw new IOException("This plugin has no WebUI");
@@ -367,12 +369,29 @@ final class RuntimePlugins {
         Bundle result = script(id, directory, "post-fs-data.sh");
         if (result != null) requireSuccess(result);
         File service = child(directory, "service.sh");
-        if (service.isFile()) runtime.service(id, service, directory);
+        if (service.isFile()) {
+            String run = UUID.randomUUID().toString();
+            serviceRuns.put(id, run);
+            runtime.moduleService(id, new String[]{AxRuntime.SHELL, service.getPath()}, directory,
+                moduleEnv(id, directory, directory), result -> {
+                    synchronized (this) {
+                        if (!run.equals(serviceRuns.get(id))) return;
+                        serviceRuns.remove(id);
+                        try { writeLog(directory, "service", result); }
+                        catch (IOException failure) { Log.w("KizukuRuntime", "Cannot write service log", failure); }
+                    }
+                });
+        }
     }
 
     private Bundle script(String id, File directory, String name) throws Exception {
         File script = child(directory, name);
-        return script.isFile() ? runtime.run(id, new String[]{AxRuntime.SHELL, script.getPath()}, directory, null, 20) : null;
+                if (!script.isFile()) return null;
+        String kind = name.replace(".sh", "");
+        Bundle result = runtime.run(id, new String[]{AxRuntime.SHELL, script.getPath()}, directory,
+            moduleEnv(id, directory, directory), 20);
+        writeLog(directory, kind, result);
+        return result;
     }
 
     private Bundle moduleScript(String id, File directory, Bundle row, String kind) throws Exception {

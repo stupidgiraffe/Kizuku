@@ -14,14 +14,20 @@ candidate=$artifacts/manager/build/outputs/apk/release/manager-release.apk
 probe_apk=$artifacts/test-client/build/outputs/apk/release/test-client-release.apk
 instrumentation=$artifacts/manager/build/outputs/apk/androidTest/release/manager-release-androidTest.apk
 temp=$(mktemp -d)
-trap 'rm -rf "$temp"' EXIT
+fixture_server=
+cleanup() {
+  if [[ -n "$fixture_server" ]]; then kill "$fixture_server" 2>/dev/null || true; fi
+  adb reverse --remove tcp:38443 || true
+  rm -rf "$temp"
+}
+trap cleanup EXIT
 
-preview=$temp/Kizuku-v0.2.0-preview.3.apk
-preview_code=6
-preview_hash=b634a1099a4cb6c736f5436b82662f5422f174b0bffc80f2e84eb31c32fbee0d
+preview=$temp/Kizuku-v0.2.0-preview.4.apk
+preview_code=7
+preview_hash=303bde32afa6e03ad9ea5154dddaa6f70c97f8a7ee7cb70474ddb694fbff2d2a
 fingerprint=83c9b70c57b2666f8eb48f0cfe74013053c804fd0b452addfdeed451629d2bce
 curl --fail --silent --show-error --location --retry 3 --max-time 90 \
-  https://github.com/stupidgiraffe/Kizuku/releases/download/v0.2.0-preview.3/Kizuku-v0.2.0-preview.3.apk \
+  https://github.com/stupidgiraffe/Kizuku/releases/download/v0.2.0-preview.4/Kizuku-v0.2.0-preview.4.apk \
   --output "$preview"
 printf '%s  %s\n' "$preview_hash" "$preview" | sha256sum -c | tee "$evidence/fixture.txt"
 
@@ -44,7 +50,7 @@ if (( candidate_code < minimum_code )); then
   echo "Candidate versionCode $candidate_code must be at least $minimum_code"
   exit 1
 fi
-printf '0.2.0 Preview 3 versionCode %s to candidate versionCode %s\n' "$preview_code" "$candidate_code" | tee "$evidence/versions.txt"
+printf '0.2.0 Preview 4 versionCode %s to candidate versionCode %s\n' "$preview_code" "$candidate_code" | tee "$evidence/versions.txt"
 
 if adb shell pm path "$manager" | grep -q '^package:'; then
   echo 'Start signed update acceptance with the manager absent'
@@ -77,7 +83,30 @@ timeout 120 adb install -t "$probe_apk"
 timeout 120 adb install -t "$instrumentation"
 record_installation before "$preview_code" "$preview"
 instrument before
-timeout 120 adb install -r "$candidate" | tee "$evidence/replace.txt"
+openssl req -x509 -newkey rsa:2048 -nodes -days 1 -subj "/CN=localhost" \
+  -addext "subjectAltName=DNS:localhost" -keyout "$temp/key.pem" -out "$temp/cert.pem" >/dev/null 2>&1
+python3 scripts/update-download-server.py "$candidate" "$temp/cert.pem" "$temp/key.pem" >"$evidence/download-server.txt" 2>&1 &
+fixture_server=$!
+adb reverse tcp:38443 tcp:38443
+adb shell appops set "$manager" REQUEST_INSTALL_PACKAGES allow
+if (( $(adb shell getprop ro.build.version.sdk | tr -d '\r') >= 37 )); then
+  adb shell pm grant "$manager" android.permission.ACCESS_LOCAL_NETWORK
+fi
+candidate_version=$(sed -n 's/^versionName=//p' release.properties)
+candidate_sha=$(sha256sum "$candidate" | cut -d' ' -f1)
+candidate_size=$(stat -c %s "$candidate")
+# Android ends the instrumentation process while replacing its target package.
+timeout 100 adb shell am instrument -w -e class "$manager.UpdateInstallTest" \
+  -e candidate_version "$candidate_version" -e candidate_sha256 "$candidate_sha" \
+  -e candidate_size "$candidate_size" "$manager.test/androidx.test.runner.AndroidJUnitRunner" \
+  >"$evidence/download-install.txt" 2>&1 || true
+grep -Fq "kizuku_update_download_verified=$candidate_sha" "$evidence/download-install.txt"
+for attempt in $(seq 1 30); do
+  if adb shell dumpsys package "$manager" | grep -Eq "^[[:space:]]*versionCode=$candidate_code([[:space:]]|$)"; then break; fi
+  sleep 1
+done
+grep -Fq 'GET /candidate.apk HTTP/1.1" 200' "$evidence/download-server.txt"
+cat "$evidence/download-install.txt"
 record_installation after "$candidate_code" "$candidate"
 cmp "$evidence/uid-before.txt" "$evidence/uid-after.txt"
 instrument after

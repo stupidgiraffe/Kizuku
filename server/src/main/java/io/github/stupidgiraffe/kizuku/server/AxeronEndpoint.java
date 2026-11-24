@@ -189,6 +189,12 @@ final class AxeronEndpoint {
         capabilities.values().forEach(ClientCapability::closeFiles);
     }
 
+    void sweepClients() {
+        capabilities.values().forEach(capability -> {
+            if (!host.activeIdentity(capability.identity)) capability.closeFiles();
+        });
+    }
+
     void close() {
         suspendClients();
         nativeShell.close();

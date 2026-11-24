@@ -27,4 +27,5 @@ interface IKizukuService {
     IBinder openRuntimeTerminal(in String[] argv, in String[] environment, String directory,
         in ParcelFileDescriptor stdin, in ParcelFileDescriptor stdout, in ParcelFileDescriptor status,
         IBinder lifetime);
+    Bundle runtimePackageAction(in Bundle identity, String action, String name, String value);
 }
