@@ -74,7 +74,20 @@ final class AxRuntime {
         ProcessBuilder builder = new ProcessBuilder(isolated).directory(directory);
         String tag = ROLE + UUID.randomUUID();
         configureEnvironment(builder.environment(), extra, plugin, tag);
-        Job job = new Job(owner, plugin, tag, builder.start());
+        java.lang.Process child = builder.start();
+        int pid;
+        try {
+            // Android's UNIXProcess has no SDK-visible pid() method. This host
+            // already runs outside the app hidden-API boundary.
+            var field = child.getClass().getDeclaredField("pid");
+            field.setAccessible(true);
+            pid = field.getInt(child);
+            if (pid <= 1) throw new IllegalStateException("Invalid child PID");
+        } catch (ReflectiveOperationException | RuntimeException failure) {
+            child.destroyForcibly();
+            throw new IOException("Cannot track the runtime process", failure);
+        }
+        Job job = new Job(owner, plugin, tag, child, pid);
         jobs.add(job);
         return job;
     }
@@ -101,13 +114,13 @@ final class AxRuntime {
         env.put(MARKER, tag);
     }
 
-    private record Job(ClientIdentity owner, String plugin, String tag, java.lang.Process child) {
+    private record Job(ClientIdentity owner, String plugin, String tag, java.lang.Process child, int pid) {
         boolean groupAlive() {
-            try { Os.kill(-(int) child.pid(), 0); return true; }
+            try { Os.kill(-pid, 0); return true; }
             catch (android.system.ErrnoException gone) { return false; }
         }
         void stop() {
-            try { Os.kill(-(int) child.pid(), OsConstants.SIGKILL); }
+            try { Os.kill(-pid, OsConstants.SIGKILL); }
             catch (android.system.ErrnoException gone) {}
             if (child.isAlive()) child.destroyForcibly();
             LegacyRemoteProcess.reapMarkedChildren(MARKER + "=" + tag, false);

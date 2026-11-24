@@ -98,8 +98,8 @@ final class LegacyRemoteProcess extends IRemoteProcess.Stub {
                     for (String entry : new String(buffer, 0, used, StandardCharsets.UTF_8).split("\u0000")) {
                         if (prefix ? entry.startsWith(marker) : entry.equals(marker)) {
                             if (!kill) return true;
-                            int group = Os.getpgid(pid);
-                            if (group != Os.getpgid(android.os.Process.myPid()))
+                            int group = processGroup(pid);
+                            if (group > 1 && group != processGroup(android.os.Process.myPid()))
                                 Os.kill(-group, OsConstants.SIGKILL);
                             else Os.kill(pid, OsConstants.SIGKILL);
                             break;
@@ -111,6 +111,14 @@ final class LegacyRemoteProcess extends IRemoteProcess.Stub {
             }
         }
         return false;
+    }
+
+    private static int processGroup(int pid) throws IOException {
+        String stat = new String(java.nio.file.Files.readAllBytes(
+                new File("/proc/" + pid + "/stat").toPath()), StandardCharsets.UTF_8);
+        // comm is parenthesized and may itself contain spaces or parentheses.
+        String[] fields = stat.substring(stat.lastIndexOf(')') + 2).split("\\s+");
+        return Integer.parseInt(fields[2]); // state, ppid, pgrp
     }
 
     @Override public synchronized ParcelFileDescriptor getOutputStream() {
