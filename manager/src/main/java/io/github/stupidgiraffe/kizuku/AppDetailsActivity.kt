@@ -55,7 +55,8 @@ class AppDetailsActivity : ComponentActivity() {
             if ((details.protectionLevel and PermissionInfo.PROTECTION_MASK_BASE) != PermissionInfo.PROTECTION_DANGEROUS)
                 return@mapIndexedNotNull null
             AppPermission(permission, details.loadLabel(packageManager).toString(),
-                (info.requestedPermissionsFlags[index] and PackageInfo.REQUESTED_PERMISSION_GRANTED) != 0, AppOpsManager.permissionToOp(permission))
+                ((info.requestedPermissionsFlags?.getOrNull(index) ?: 0) and PackageInfo.REQUESTED_PERMISSION_GRANTED) != 0,
+                AppOpsManager.permissionToOp(permission))
         }
     }
 
