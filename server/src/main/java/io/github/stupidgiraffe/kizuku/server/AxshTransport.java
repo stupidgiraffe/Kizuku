@@ -76,7 +76,7 @@ final class AxshTransport implements AutoCloseable {
                     }
                 }
             } catch (Exception ended) {
-                // Closing or revoking the channel ends the helper's connection.
+                if (!closed) android.util.Log.w("KizukuAxeron", "Native channel ended", ended);
             } finally {
                 channels.remove(pair[0]);
                 close(pair[0]);
@@ -98,11 +98,14 @@ final class AxshTransport implements AutoCloseable {
             try (socket) {
                 var peer = socket.getPeerCredentials();
                 ClientIdentity owner = expected == null ? authorize.apply(peer.getUid()) : expected;
-                if (owner == null || owner.uid() != peer.getUid() || !active.test(owner)) return;
+                if (owner == null || owner.uid() != peer.getUid() || !active.test(owner)) {
+                    android.util.Log.w("KizukuAxeron", "Native peer rejected: uid=" + peer.getUid());
+                    return;
+                }
                 owners.put(socket, owner);
                 serve(socket, owner);
             } catch (Exception invalid) {
-                // A malformed or disconnected client owns only its own session.
+                if (!closed) android.util.Log.w("KizukuAxeron", "Native session ended", invalid);
             } finally {
                 sockets.remove(socket);
                 owners.remove(socket);

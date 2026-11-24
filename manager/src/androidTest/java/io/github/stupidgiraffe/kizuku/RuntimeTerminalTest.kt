@@ -21,6 +21,7 @@ class RuntimeTerminalTest {
     private val context = instrumentation.targetContext
 
     @Test fun interactiveActivityRendersAnsiResizesAndReportsExit() {
+        awaitRuntimeTestHost()
         val activity = instrumentation.startActivitySync(
             Intent(context, TerminalActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         )

@@ -16,7 +16,7 @@ class AppDetailsTest {
     @Test fun realPermissionAppOpsAndForceStopRespectTheSelectedIdentity() {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         val app = instrumentation.targetContext
-        val host = checkNotNull(CoreConnection.service)
+        val host = awaitRuntimeTestHost()
         val pkg = "${app.packageName}.testclient"
         val permission = "android.permission.CAMERA"
         val info = app.packageManager.getApplicationInfo(pkg, 0)

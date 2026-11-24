@@ -21,7 +21,7 @@ class ThirdPartyAxshTest {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         val app = instrumentation.targetContext
         val demo = "dev.frb.demo_axsh"
-        val host = checkNotNull(CoreConnection.service)
+        val host = awaitRuntimeTestHost()
         val uid = host.status().getInt("uid")
         val info = app.packageManager.getApplicationInfo(demo, 0)
         val identity = AndroidIdentity.resolve(app.packageManager, info.uid, demo)

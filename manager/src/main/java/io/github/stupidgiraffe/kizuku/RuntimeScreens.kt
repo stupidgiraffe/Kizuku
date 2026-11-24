@@ -147,6 +147,7 @@ private fun PluginsPanel(ready: Boolean) {
                 if (result?.containsKey("exit") == true) output = result
                 result?.getString("module_log")?.let { log = it }
                 result?.getString("startup_error")?.let { message = "Installed and disabled after startup failed. $it" }
+                result?.getString("warning")?.let { message = it }
             } catch (failure: Exception) {
                 if (failure is CancellationException) throw failure
                 message = failure.message ?: "Plugin operation failed."

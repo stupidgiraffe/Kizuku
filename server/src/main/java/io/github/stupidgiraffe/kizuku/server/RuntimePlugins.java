@@ -246,9 +246,14 @@ final class RuntimePlugins {
                 invalidate(id);
                 runtime.stopPlugin(id);
                 Bundle result = isShevery(row) ? null : script(id, directory, "uninstall.sh");
-                if (result != null) requireSuccess(result);
                 delete(directory.toPath());
                 updatePath();
+                if (result != null) {
+                    result.putBoolean("removed", true);
+                    if (result.getInt("exit") != 0 || result.getBoolean("timed_out"))
+                        result.putString("warning", "Plugin removed. Its uninstall script failed with exit " + result.getInt("exit") + ". Review the script output.");
+                    return result;
+                }
             }
             default -> throw new IllegalArgumentException("Invalid plugin operation");
         }
