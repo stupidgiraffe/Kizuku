@@ -29,6 +29,7 @@ public final class TerminalSession extends TerminalOutput {
     private final Transport transport;
     private final ByteQueue received = new ByteQueue(64 * 1024);
     private final Handler main = new Handler(Looper.getMainLooper());
+    private final java.util.concurrent.atomic.AtomicBoolean drainPending = new java.util.concurrent.atomic.AtomicBoolean();
     private final ThreadPoolExecutor writes = new ThreadPoolExecutor(1, 1, 30, TimeUnit.SECONDS,
         new ArrayBlockingQueue<>(32));
     private final byte[] screenBuffer = new byte[8192];
@@ -65,7 +66,7 @@ public final class TerminalSession extends TerminalOutput {
                     result = -1;
                     main.post(() -> client.logError("Terminal", "Terminal connection ended: " + failure.getMessage()));
                 }
-                main.post(this::drain);
+                scheduleDrain();
             }, "kizuku-terminal-exit").start();
         }
     }
@@ -75,17 +76,21 @@ public final class TerminalSession extends TerminalOutput {
             byte[] buffer = new byte[8192];
             for (int count; (count = input.read(buffer)) >= 0;) {
                 if (!received.write(buffer, 0, count)) break;
-                if (!main.hasCallbacks(drainTask)) main.post(drainTask);
+                scheduleDrain();
             }
         } catch (IOException failure) {
             if (running) main.post(() -> client.logWarn("Terminal", "Output ended: " + failure.getMessage()));
         } finally {
             readerDone = true;
-            main.post(drainTask);
+            scheduleDrain();
         }
     }
 
-    private final Runnable drainTask = this::drain;
+    private final Runnable drainTask = () -> { drainPending.set(false); drain(); };
+
+    private void scheduleDrain() {
+        if (drainPending.compareAndSet(false, true)) main.post(drainTask);
+    }
 
     private void drain() {
         if (emulator == null) return;
@@ -97,7 +102,7 @@ public final class TerminalSession extends TerminalOutput {
             if (count > 0) { emulator.append(screenBuffer, count); changed = true; }
         } while (count > 0 && SystemClock.uptimeMillis() < deadline);
         if (changed) client.onTextChanged(this);
-        if (count > 0) main.post(drainTask);
+        if (count > 0) scheduleDrain();
         else if (readerDone && result != null && running) {
             exitStatus = result;
             running = false;
