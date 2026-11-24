@@ -215,7 +215,7 @@ final class AxRuntime {
         });
         return new IAxshProcess.Stub() {
             private void enforceOwner() {
-                if (android.os.Binder.getCallingUid() != owner.uid()) throw new SecurityException("Shell session belongs to another UID");
+                if (android.os.Binder.getCallingUid() != owner.uid() && android.os.Binder.getCallingPid() != android.os.Process.myPid()) throw new SecurityException("Shell session belongs to another UID");
             }
             @Override public void setWindowSize(long size) { enforceOwner(); }
             @Override public int waitFor() {
@@ -323,7 +323,7 @@ final class AxRuntime {
         }
 
         private void enforceOwner() {
-            if (android.os.Binder.getCallingUid() != owner.uid())
+            if (android.os.Binder.getCallingUid() != owner.uid() && android.os.Binder.getCallingPid() != android.os.Process.myPid())
                 throw new SecurityException("Terminal belongs to another UID");
         }
 

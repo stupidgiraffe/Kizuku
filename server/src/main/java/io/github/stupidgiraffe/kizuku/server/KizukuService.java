@@ -96,6 +96,7 @@ final class KizukuService extends IKizukuService.Stub {
         closed = true;
         runtimeLifecycle.shutdownNow();
         legacy.stopAllProcesses();
+        axeron.close();
         if (runtime != null) runtime.close();
     }
     private static String key(ClientIdentity c) { return c.uid() + ":" + c.packageName(); }
@@ -241,7 +242,7 @@ final class KizukuService extends IKizukuService.Stub {
         enforceManager();
         if (safeMode != enabled) {
             safeMode = enabled;
-            if (enabled) legacy.stopAllProcesses();
+            if (enabled) { legacy.stopAllProcesses(); axeron.suspendClients(); }
             if (runtime != null) {
                 if (enabled) {
                     runtime.pause();
@@ -270,6 +271,62 @@ final class KizukuService extends IKizukuService.Stub {
         catch (RuntimeException failure) { throw failure; }
         catch (Exception failure) { throw new IllegalStateException(failure.getMessage(), failure); }
     }
+    java.util.List<frb.axeron.server.PluginInfo> axeronPlugins() {
+        var result = new java.util.ArrayList<frb.axeron.server.PluginInfo>();
+        for (Bundle row : requireRuntime().plugins.list()) {
+            if (row.containsKey("error")) continue;
+            org.json.JSONObject json = new org.json.JSONObject();
+            try {
+                org.json.JSONObject prop = new org.json.JSONObject();
+                for (String key : new String[]{"id", "name", "version", "author", "description"})
+                    prop.put(key, row.getString(key, ""));
+                prop.put("versionCode", row.getLong("versionCode"));
+                prop.put("axeronPlugin", 30000);
+                json.put("prop", prop);
+                json.put("dir_id", row.getString("id"));
+                json.put("enabled", row.getBoolean("enabled"));
+                json.put("web", row.getBoolean("webui"));
+                json.put("action", row.getBoolean("action"));
+                json.put("remove", false);
+                result.add(new frb.axeron.server.PluginInfo(json.toString()));
+            } catch (org.json.JSONException invalid) { throw new IllegalStateException(invalid); }
+        }
+        return result;
+    }
+
+    @Override public IBinder openRuntimeTerminal(String[] argv, String[] env, String directory,
+            ParcelFileDescriptor stdin, ParcelFileDescriptor stdout, ParcelFileDescriptor status, IBinder lifetime) {
+        try {
+            return managerRuntime(runtime -> {
+                if (lifetime == null) throw new IllegalArgumentException("Terminal lifetime is required");
+                var process = runtime.launch(manager, argv, env, directory, stdin, stdout, null, true,
+                    24L | (80L << 16), status);
+                IBinder.DeathRecipient death = () -> runtime.stopOwner(manager);
+                try { lifetime.linkToDeath(death, 0); }
+                catch (RemoteException gone) { runtime.stopOwner(manager); throw gone; }
+                return new frb.axeron.server.IAxshProcess.Stub() {
+                    @Override public void setWindowSize(long size) throws RemoteException {
+                        enforceManager();
+                        process.setWindowSize(size);
+                    }
+                    @Override public int waitFor() throws RemoteException {
+                        enforceManager();
+                        try { return process.waitFor(); }
+                        finally { lifetime.unlinkToDeath(death, 0); }
+                    }
+                    @Override public void destroy() throws RemoteException {
+                        enforceManager();
+                        try { process.destroy(); }
+                        finally { lifetime.unlinkToDeath(death, 0); }
+                    }
+                };
+            });
+        } finally {
+            for (ParcelFileDescriptor fd : new ParcelFileDescriptor[]{stdin, stdout, status})
+                if (fd != null) try { fd.close(); } catch (java.io.IOException ignored) {}
+        }
+    }
+
     @Override public Bundle runtimeCommand(String command) { return managerRuntime(runtime -> runtime.shell(command)); }
     @Override public Bundle[] runtimePlugins() { return managerRuntime(runtime -> runtime.plugins.list()); }
     @Override public Bundle installRuntimePlugin(ParcelFileDescriptor archive) {

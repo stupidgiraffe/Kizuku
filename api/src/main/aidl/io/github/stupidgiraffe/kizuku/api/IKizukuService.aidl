@@ -24,4 +24,7 @@ interface IKizukuService {
     void requestAxeronAccess(String packageName, int uid);
     ParcelFileDescriptor openRuntimeWebSessionAsset(String id, String session, String path);
     Bundle runtimeWebSessionCommand(String id, String session, String command, String options);
+    IBinder openRuntimeTerminal(in String[] argv, in String[] environment, String directory,
+        in ParcelFileDescriptor stdin, in ParcelFileDescriptor stdout, in ParcelFileDescriptor status,
+        IBinder lifetime);
 }

@@ -42,7 +42,13 @@ internal fun RuntimeScreen(state: CoreState) {
             FilterChip(selected = choice == page, onClick = { page = choice }, label = { Text(choice) })
         }
     }
-    if (page == "Shell") ShellPanel(ready) else PluginsPanel(ready)
+    if (page == "Shell") {
+        val context = LocalContext.current
+        Button(enabled = ready, onClick = { context.startActivity(Intent(context, TerminalActivity::class.java)) }) {
+            Text("Open interactive terminal")
+        }
+        ShellPanel(ready)
+    } else PluginsPanel(ready)
 }
 
 @Composable

@@ -34,6 +34,7 @@ android {
 }
 dependencies {
     implementation(project(":api"))
+    implementation(project(":terminal"))
     implementation("org.bouncycastle:bcpkix-jdk18on:1.86")
     implementation("io.github.vvb2060.ndk:boringssl:20251124")
     implementation("org.lsposed.hiddenapibypass:hiddenapibypass:6.1")
@@ -69,7 +70,7 @@ androidComponents.onVariants { variant ->
     val title = kind.replaceFirstChar { it.uppercase() }
     val bundle = tasks.register<BundleCompanionTask>("bundle${title}Companion") {
         dependsOn(":compat:assemble${title}", ":dhizuku-compat:assemble${title}")
-        notices.from(rootProject.file("LICENSE"), rootProject.file("NOTICE"), rootProject.file("BORINGSSL-LICENSE.txt"), rootProject.file("BOUNCYCASTLE-LICENSE.txt"), rootProject.file("AXERON-API-LICENSE.txt"))
+        notices.from(rootProject.file("LICENSE"), rootProject.file("NOTICE"), rootProject.file("BORINGSSL-LICENSE.txt"), rootProject.file("BOUNCYCASTLE-LICENSE.txt"), rootProject.file("AXERON-API-LICENSE.txt"), rootProject.file("TERMINAL-LICENSE.txt"))
         apk.set(project(":compat").layout.buildDirectory.file("outputs/apk/${kind}/compat-${kind}.apk"))
         dhizukuApk.set(project(":dhizuku-compat").layout.buildDirectory.file("outputs/apk/${kind}/dhizuku-compat-${kind}.apk"))
         outputDirectory.set(layout.buildDirectory.dir("generated/companion/${kind}"))

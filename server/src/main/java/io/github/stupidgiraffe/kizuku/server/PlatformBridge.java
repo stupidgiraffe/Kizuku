@@ -48,6 +48,18 @@ final class PlatformBridge {
         if (!(value instanceof PackageInfo)) throw new SecurityException("Package is not installed");
         return (PackageInfo) value;
     }
+    @SuppressWarnings("unchecked")
+    java.util.List<PackageInfo> installedPackages(int flags, int user) throws Exception {
+        Object slice;
+        try {
+            slice = packageManager.getClass().getMethod("getInstalledPackages", long.class, int.class)
+                .invoke(packageManager, Integer.toUnsignedLong(flags), user);
+        } catch (NoSuchMethodException older) {
+            slice = packageManager.getClass().getMethod("getInstalledPackages", int.class, int.class)
+                .invoke(packageManager, flags, user);
+        }
+        return (java.util.List<PackageInfo>) slice.getClass().getMethod("getList").invoke(slice);
+    }
     static Set<String> signers(PackageInfo info) throws Exception {
         Signature[] signatures = Build.VERSION.SDK_INT >= 28 && info.signingInfo != null
             ? info.signingInfo.getApkContentsSigners() : info.signatures;
