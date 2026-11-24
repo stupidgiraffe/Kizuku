@@ -60,6 +60,7 @@ if [[ "${KIZUKU_TEST_THIRD_PARTY:-false}" == true ]]; then
 fi
 instrument "$manager" action runtime RuntimeSmokeTest || extra_status=1
 instrument "$manager" action terminal RuntimeTerminalTest || extra_status=1
+instrument "$manager" action app-details AppDetailsTest || extra_status=1
 if [[ "${KIZUKU_TEST_THIRD_PARTY:-false}" == true ]]; then
   instrument "$manager" action original-axsh ThirdPartyAxshTest || extra_status=1
 fi

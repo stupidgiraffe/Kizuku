@@ -50,15 +50,25 @@ internal class RuntimeTerminalModel : ViewModel() {
         if (starting || session != null) return
         starting = true
         viewModelScope.launch {
+            var opened: TerminalSession.Transport? = null
             try {
                 val transport = withContext(Dispatchers.IO) {
                     val host = checkNotNull(CoreConnection.service) { "Start Kizuku first." }
-                    open(host)
+                    open(host).also { opened = it }
                 }
                 session = TerminalSession(transport, callbacks)
+                opened = null
             } catch (failure: Exception) {
                 notice = failure.message ?: "Cannot open a terminal."
-            } finally { starting = false }
+            } finally {
+                opened?.let { orphan ->
+                    withContext(kotlinx.coroutines.NonCancellable + Dispatchers.IO) {
+                        runCatching { orphan.destroy() }
+                        orphan.close()
+                    }
+                }
+                starting = false
+            }
         }
     }
 
@@ -85,6 +95,7 @@ internal class RuntimeTerminalModel : ViewModel() {
                     return try {
                         val bytes = ByteArray(4)
                         report.readFully(bytes)
+                        remote.waitFor() // Release the host's manager-death registration.
                         ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN).int
                     } catch (_: java.io.EOFException) {
                         remote.waitFor()
