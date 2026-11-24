@@ -28,4 +28,7 @@ interface IKizukuService {
         in ParcelFileDescriptor stdin, in ParcelFileDescriptor stdout, in ParcelFileDescriptor status,
         IBinder lifetime);
     Bundle runtimePackageAction(in Bundle identity, String action, String name, String value);
+    IBinder openRuntimeWebProcess(String id, String session, String command, String arguments, String options,
+        in ParcelFileDescriptor stdin, in ParcelFileDescriptor stdout, in ParcelFileDescriptor stderr,
+        in ParcelFileDescriptor status);
 }

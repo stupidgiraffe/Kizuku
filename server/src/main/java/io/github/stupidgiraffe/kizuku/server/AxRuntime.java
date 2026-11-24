@@ -33,10 +33,6 @@ final class AxRuntime {
     private static final String MARKER = "KIZUKU_AXERON_PROCESS";
     private static final int MAX_OUTPUT = 32 * 1024;
     private static final String ROLE = android.os.Process.myUid() == 0 ? "root-" : "shell-";
-    private static final OutputStream DISCARD = new OutputStream() {
-        @Override public void write(int unused) {}
-        @Override public void write(byte[] unused, int offset, int count) {}
-    };
     private final ExecutorService io = Executors.newCachedThreadPool();
     private final Set<Job> jobs = new HashSet<>();
     private final Set<AxTerminalSession> terminals = new HashSet<>();
@@ -52,7 +48,7 @@ final class AxRuntime {
         home = new File(android.os.Process.myUid() == 0 ? "/data/adb/kizuku" : "/data/user_de/0/com.android.shell/kizuku");
         cache = new File(home, "cache");
         bins = new File(home, "xbin");
-        for (File directory : new File[]{home, cache, bins, new File(home, "bin")}) secureDirectory(directory);
+        for (File directory : new File[]{home, cache, bins, new File(home, "bin"), new File(home, "logs")}) secureDirectory(directory);
         LegacyRemoteProcess.reapMarkedChildren(MARKER + "=" + ROLE, true);
         plugins = new RuntimePlugins(this);
     }
@@ -68,11 +64,14 @@ final class AxRuntime {
     private synchronized Job start(ClientIdentity owner, String plugin, String[] argv, File directory, Map<String, String> extra) throws IOException {
         if (paused) throw new IllegalStateException("Runtime is suspended");
         for (Job job : new ArrayList<>(jobs)) {
-            if (!job.child.isAlive() && !LegacyRemoteProcess.hasMarkedChildren(MARKER + "=" + job.tag)) jobs.remove(job);
+            if (!job.child.isAlive() && !job.groupAlive() && !LegacyRemoteProcess.hasMarkedChildren(MARKER + "=" + job.tag)) jobs.remove(job);
         }
         if (jobs.size() + terminals.size() >= 16) throw new IllegalStateException("Runtime process limit reached");
         validateArgv(argv);
-        ProcessBuilder builder = new ProcessBuilder(argv).directory(directory);
+        String[] isolated = new String[argv.length + 1];
+        isolated[0] = "/system/bin/setsid";
+        System.arraycopy(argv, 0, isolated, 1, argv.length);
+        ProcessBuilder builder = new ProcessBuilder(isolated).directory(directory);
         String tag = ROLE + UUID.randomUUID();
         configureEnvironment(builder.environment(), extra, plugin, tag);
         Job job = new Job(owner, plugin, tag, builder.start());
@@ -103,7 +102,13 @@ final class AxRuntime {
     }
 
     private record Job(ClientIdentity owner, String plugin, String tag, java.lang.Process child) {
+        boolean groupAlive() {
+            try { Os.kill(-(int) child.pid(), 0); return true; }
+            catch (android.system.ErrnoException gone) { return false; }
+        }
         void stop() {
+            try { Os.kill(-(int) child.pid(), OsConstants.SIGKILL); }
+            catch (android.system.ErrnoException gone) {}
             if (child.isAlive()) child.destroyForcibly();
             LegacyRemoteProcess.reapMarkedChildren(MARKER + "=" + tag, false);
         }
@@ -134,6 +139,10 @@ final class AxRuntime {
     }
 
     private Bundle complete(Job job, int seconds, byte[] stdin) throws Exception {
+        return complete(job, seconds, stdin, false);
+    }
+
+    private Bundle complete(Job job, int seconds, byte[] stdin, boolean retainChildren) throws Exception {
         try {
             Future<byte[]> out = io.submit(() -> capture(job.child.getInputStream()));
             Future<byte[]> err = io.submit(() -> capture(job.child.getErrorStream()));
@@ -153,8 +162,12 @@ final class AxRuntime {
             result.putString("stderr", new String(stderr, 0, Math.min(stderr.length, MAX_OUTPUT), StandardCharsets.UTF_8));
             return result;
         } finally {
-            stop(job::equals);
+            if (!retainChildren) stop(job::equals);
         }
+    }
+
+    synchronized boolean pluginRunning(String id) {
+        return jobs.stream().anyMatch(job -> id.equals(job.plugin()) && (job.child().isAlive() || job.groupAlive()));
     }
 
     void moduleService(String id, String[] argv, File directory, Map<String, String> env,
@@ -162,8 +175,9 @@ final class AxRuntime {
         Job job = start(null, id, argv, directory, env);
         io.execute(() -> {
             Bundle completed;
-            try { completed = complete(job, 0, new byte[0]); }
+            try { completed = complete(job, 0, new byte[0], true); }
             catch (Exception failure) {
+                stop(job::equals);
                 if (failure instanceof InterruptedException) Thread.currentThread().interrupt();
                 completed = new Bundle();
                 completed.putInt("exit", -1);

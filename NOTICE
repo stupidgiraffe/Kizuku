@@ -61,3 +61,8 @@ Native axsh stream framing follows Axeron-API revision
 37eb6a3521828458394797e7166ff2e90946304e, MIT, Copyright (c) 2025-2026 FahrezRB.
 Kizuku implements that wire in its single host with verified peer credentials,
 per-client capability checks, limits and process cleanup.
+
+The bundled js/kernelsu.js WebUI helper is unchanged AxManager source,
+revision 7ed7f508464076d2617a9172c9de5bca2e7bcf7a, Apache-2.0.
+Kizuku's WebUI bridge supplies its own authorization, origin isolation,
+streaming processes, package metadata and lifecycle cleanup.

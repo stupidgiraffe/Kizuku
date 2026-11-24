@@ -1,6 +1,7 @@
 package io.github.stupidgiraffe.kizuku.server;
 
 import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
 import android.os.Binder;
 import android.os.Bundle;
 import android.os.Handler;
@@ -345,6 +346,18 @@ final class KizukuService extends IKizukuService.Stub {
     }
     @Override public ParcelFileDescriptor openRuntimeWebSessionAsset(String id, String session, String path) {
         return managerRuntime(runtime -> runtime.plugins.webSessionAsset(id, session, path));
+    }
+    @Override public IBinder openRuntimeWebProcess(String id, String session, String command, String arguments,
+            String options, ParcelFileDescriptor stdin, ParcelFileDescriptor stdout, ParcelFileDescriptor stderr,
+            ParcelFileDescriptor status) {
+        try {
+            return managerRuntime(runtime -> runtime.plugins.webSpawn(manager, id, session, command, arguments, options,
+                stdin, stdout, stderr, status).asBinder());
+        } catch (RuntimeException failure) {
+            for (ParcelFileDescriptor fd : new ParcelFileDescriptor[]{stdin, stdout, stderr, status})
+                if (fd != null) try { fd.close(); } catch (java.io.IOException ignored) {}
+            throw failure;
+        }
     }
     @Override public Bundle runtimeWebSessionCommand(String id, String session, String command, String options) {
         return managerRuntime(runtime -> runtime.plugins.webSessionCommand(id, session, command, options));

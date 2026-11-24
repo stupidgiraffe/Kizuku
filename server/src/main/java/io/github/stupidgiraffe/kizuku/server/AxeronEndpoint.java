@@ -85,7 +85,7 @@ final class AxeronEndpoint {
         this.nativeShell = new AxshTransport(launcher, uid -> capabilities.values().stream()
             .map(capability -> capability.identity)
             .filter(identity -> identity.uid() == uid && host.allowed(identity, Capability.AXERON, false))
-            .findFirst().orElse(null));
+            .findFirst().orElse(null), identity -> host.allowed(identity, Capability.AXERON, false));
         delivery.allowCoreThreadTimeOut(true);
     }
 
@@ -177,7 +177,7 @@ final class AxeronEndpoint {
                 deliver(identity);
             } else {
                 if (capability != null) capability.closeFiles();
-                nativeShell.revoke();
+                nativeShell.revoke(identity);
                 discoverable.remove(principal, identity);
                 delivered.removeIf(item -> item.principal().equals(principal));
             }

@@ -98,7 +98,10 @@ final class LegacyRemoteProcess extends IRemoteProcess.Stub {
                     for (String entry : new String(buffer, 0, used, StandardCharsets.UTF_8).split("\u0000")) {
                         if (prefix ? entry.startsWith(marker) : entry.equals(marker)) {
                             if (!kill) return true;
-                            Os.kill(pid, OsConstants.SIGKILL);
+                            int group = Os.getpgid(pid);
+                            if (group != Os.getpgid(android.os.Process.myPid()))
+                                Os.kill(-group, OsConstants.SIGKILL);
+                            else Os.kill(pid, OsConstants.SIGKILL);
                             break;
                         }
                     }

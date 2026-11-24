@@ -62,6 +62,7 @@ internal object AppUpdates {
         val release: KizukuRelease? = null,
         val downloaded: String? = null,
         val message: String? = null,
+        val downloadProgress: Float? = null,
     )
 
     private fun preferences(context: Context) = context.getSharedPreferences("app_updates", Context.MODE_PRIVATE)
@@ -137,7 +138,7 @@ internal object AppUpdates {
             } catch (failure: Exception) {
                 mutable.value = mutable.value.copy(message = failure.message?.take(160) ?: "Update failed. Try again.")
             } finally {
-                mutable.value = mutable.value.copy(busy = false)
+                mutable.value = mutable.value.copy(busy = false, downloadProgress = null)
             }
         }
     }
@@ -161,6 +162,7 @@ internal object AppUpdates {
                         check(size <= release.size) { "The APK exceeded its published size." }
                         output.write(buffer, 0, read)
                         digest.update(buffer, 0, read)
+                        mutable.value = mutable.value.copy(downloadProgress = size.toFloat() / release.size)
                     }
                     check(size == release.size) { "The APK download was incomplete." }
                 }
@@ -213,7 +215,7 @@ internal object AppUpdates {
             .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
         val action = PendingIntent.getActivity(context, 0, intent, PendingIntent.FLAG_IMMUTABLE)
         val notification = Notification.Builder(context, UPDATE_CHANNEL)
-            .setSmallIcon(R.mipmap.ic_kizuku)
+            .setSmallIcon(R.drawable.ic_kizuku)
             .setContentTitle(title)
             .setContentIntent(action)
             .setAutoCancel(true)

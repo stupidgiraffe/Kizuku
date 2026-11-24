@@ -207,6 +207,10 @@ private fun PluginsPanel(ready: Boolean) {
                     }
                 }
                 Row {
+                    if (enabled && plugin.getBoolean("webui")) TextButton(enabled = !busy, onClick = {
+                        runCatching { pinPluginShortcut(context, plugin) }
+                            .onFailure { message = it.message ?: "Could not create the shortcut." }
+                    }) { Text("Add shortcut") }
                     if (enabled && !shevery) TextButton(enabled = !busy, onClick = { operate { runtime().controlRuntimePlugin(id, "restart") } }) { Text("Restart") }
                     if (!shevery && plugin.getBoolean("service")) TextButton(enabled = !busy, onClick = {
                         operate { runtime().controlRuntimePlugin(id, "service-log") }

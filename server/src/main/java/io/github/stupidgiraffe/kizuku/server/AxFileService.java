@@ -104,7 +104,7 @@ final class AxFileService extends IFileService.Stub {
 
     @Override public List<FileStat> list(String name, int filter, int sortBy, boolean ascending, int offset, int limit) {
         if (filter < FILTER_ALL || filter > FILTER_DIRECTORIES || sortBy < SORT_NAME || sortBy > SORT_LENGTH ||
-                offset < 0 || limit < 0 || limit > 256) throw new IllegalArgumentException("Invalid directory page");
+                offset < 0 || limit < -1 || limit > 4096) throw new IllegalArgumentException("Invalid directory page");
         File[] files = path(name).listFiles();
         if (files == null) throw new IllegalStateException("Cannot read this directory");
         Comparator<File> comparator = switch (sortBy) {
@@ -114,10 +114,17 @@ final class AxFileService extends IFileService.Stub {
         };
         comparator = comparator.thenComparing(File::getName);
         if (!ascending) comparator = comparator.reversed();
-        return Arrays.stream(files)
+        List<FileStat> result = Arrays.stream(files)
             .filter(file -> filter == FILTER_ALL || filter == FILTER_FILES && file.isFile() ||
                 filter == FILTER_DIRECTORIES && file.isDirectory())
-            .sorted(comparator).skip(offset).limit(limit).map(AxFileService::metadata).toList();
+            .sorted(comparator).skip(offset).limit(limit <= 0 ? 4097 : limit).map(AxFileService::metadata).toList();
+        Parcel encoded = Parcel.obtain();
+        try {
+            encoded.writeTypedList(result);
+            if (result.size() > 4096 || encoded.dataSize() > Protocol.MAX_IPC_BYTES)
+                throw new IllegalArgumentException("Directory is too large. Use offset and limit to read it in pages.");
+        } finally { encoded.recycle(); }
+        return result;
     }
 
     @Override public boolean setLastModified(String name, long time) { return path(name).setLastModified(time); }

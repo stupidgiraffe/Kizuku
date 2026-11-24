@@ -19,6 +19,7 @@
         </activity>
         <activity android:name=".AppDetailsActivity" android:exported="false" />
         <activity android:name=".TerminalActivity" android:exported="false" android:windowSoftInputMode="adjustResize" />
+        <activity android:name=".PluginShortcutActivity" android:exported="true" android:excludeFromRecents="true" />
         <activity android:name=".PluginWebActivity" android:exported="false" />
         <activity android:name=".AxeronAccessActivity" android:exported="true">
             <intent-filter>

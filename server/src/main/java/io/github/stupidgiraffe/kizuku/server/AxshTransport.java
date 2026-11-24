@@ -29,15 +29,19 @@ final class AxshTransport implements AutoCloseable {
     private final IntFunction<ClientIdentity> authorize;
     private final java.util.concurrent.ExecutorService io = Executors.newCachedThreadPool();
     private final Set<LocalSocket> sockets = ConcurrentHashMap.newKeySet();
-    private final Set<ParcelFileDescriptor> channels = ConcurrentHashMap.newKeySet();
+    private final java.util.Map<ParcelFileDescriptor, ClientIdentity> channels = new ConcurrentHashMap<>();
+    private final java.util.Map<LocalSocket, ClientIdentity> owners = new ConcurrentHashMap<>();
+    private final java.util.function.Predicate<ClientIdentity> active;
     private final Semaphore slots = new Semaphore(16);
     private volatile boolean closed;
     private LocalServerSocket listener;
     private String name;
 
-    AxshTransport(AxeronEndpoint.ProcessLauncher launcher, IntFunction<ClientIdentity> authorize) {
+    AxshTransport(AxeronEndpoint.ProcessLauncher launcher, IntFunction<ClientIdentity> authorize,
+            java.util.function.Predicate<ClientIdentity> active) {
         this.launcher = launcher;
         this.authorize = authorize;
+        this.active = active;
     }
 
     synchronized String socketName() {
@@ -59,7 +63,7 @@ final class AxshTransport implements AutoCloseable {
     ParcelFileDescriptor channel(ClientIdentity owner) throws Exception {
         if (closed || channels.size() >= 8) throw new IllegalStateException("Axsh channel limit reached");
         ParcelFileDescriptor[] pair = ParcelFileDescriptor.createSocketPair();
-        channels.add(pair[0]);
+        channels.put(pair[0], owner);
         io.execute(() -> {
             try (LocalSocket channel = socket(pair[0].getFileDescriptor())) {
                 InputStream input = channel.getInputStream();
@@ -93,13 +97,15 @@ final class AxshTransport implements AutoCloseable {
         io.execute(() -> {
             try (socket) {
                 var peer = socket.getPeerCredentials();
-                ClientIdentity owner = authorize.apply(peer.getUid());
-                if (owner == null || expected != null && !expected.equals(owner)) return;
+                ClientIdentity owner = expected == null ? authorize.apply(peer.getUid()) : expected;
+                if (owner == null || owner.uid() != peer.getUid() || !active.test(owner)) return;
+                owners.put(socket, owner);
                 serve(socket, owner);
             } catch (Exception invalid) {
                 // A malformed or disconnected client owns only its own session.
             } finally {
                 sockets.remove(socket);
+                owners.remove(socket);
                 slots.release();
             }
         });
@@ -216,8 +222,18 @@ final class AxshTransport implements AutoCloseable {
         sockets.forEach(socket -> {
             try { socket.shutdownInput(); socket.shutdownOutput(); } catch (IOException ignored) {}
         });
-        channels.forEach(descriptor -> {
+        channels.keySet().forEach(descriptor -> {
             try { Os.shutdown(descriptor.getFileDescriptor(), OsConstants.SHUT_RDWR); } catch (Exception ignored) {}
+        });
+    }
+
+    void revoke(ClientIdentity owner) {
+        owners.forEach((socket, identity) -> {
+            if (owner.equals(identity)) try { socket.shutdownInput(); socket.shutdownOutput(); } catch (IOException ignored) {}
+        });
+        channels.forEach((descriptor, identity) -> {
+            if (owner.equals(identity)) try { Os.shutdown(descriptor.getFileDescriptor(), OsConstants.SHUT_RDWR); }
+                catch (Exception ignored) {}
         });
     }
 

@@ -69,7 +69,11 @@ internal fun UpdateSettings() {
         }
     }
 
-    if (state.busy) LinearProgressIndicator(Modifier.fillMaxWidth())
+    if (state.busy) {
+        val progress = state.downloadProgress
+        if (progress == null) LinearProgressIndicator(Modifier.fillMaxWidth())
+        else LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth())
+    }
     state.downloaded?.let { Text("Kizuku $it is ready to install.", style = MaterialTheme.typography.bodyMedium) }
     val available = state.release?.takeIf { it.version != state.downloaded }
     available?.let { Text("Kizuku ${it.version} is available.", style = MaterialTheme.typography.bodyMedium) }
