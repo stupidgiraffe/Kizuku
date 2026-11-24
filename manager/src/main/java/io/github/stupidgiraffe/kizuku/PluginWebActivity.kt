@@ -103,10 +103,10 @@ class PluginWebActivity : ComponentActivity() {
 
                 override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse {
                     if (!shevery && request.method == "GET" && request.url.scheme == "ax" &&
-                        request.url.host == "kernelsu.js" && request.url.path in listOf("", "/")
+                        request.url.host in listOf("kernelsu.js", "axeron.js") && request.url.path in listOf("", "/")
                     ) return WebResourceResponse("application/javascript", "UTF-8", 200, "OK",
                         headers + ("Access-Control-Allow-Origin" to "https://$origin"),
-                        assets.open("js/kernelsu.js"))
+                        assets.open("js/${request.url.host}"))
                     if (!local(request.url) || request.method != "GET") return unavailable(403, "Blocked")
                     val path = request.url.path?.removePrefix("/")?.ifEmpty { "index.html" } ?: "index.html"
                     val descriptor = runCatching { host.openRuntimeWebSessionAsset(plugin, session, path) }.getOrNull()

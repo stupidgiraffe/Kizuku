@@ -238,3 +238,43 @@ stores, separate Reignite host, native BusyBox/resetprop binaries or artwork.
 Any copied application code needs its Apache attribution; copied API protocol
 code needs the separate MIT notice. This review performed no phone changes and
 establishes source compatibility requirements, not device acceptance.
+
+### Preview 5 integration candidate
+
+This candidate preserves Preview 4's working activation, immediate bulk/single
+Shizuku controls, hidden companion, scoped Dhizuku subset and SU wrapper.
+The user confirmed all personally tested Preview 4 features worked. New code
+below requires signed acceptance; implementation is not a full-compatibility claim.
+
+| Area | Decision | Candidate behavior and boundary |
+| --- | --- | --- |
+| Interactive terminal | **Adopt / improve** | Termux's Apache emulator and view render the existing host PTY. Live input/output, ANSI cursor and colors, resize, control keys, termination, actual exits, searchable/copyable transcript and persistent snippets. No second terminal engine or daemon. |
+| Native axsh | **Adopt** | AXSH v1, forwarded socket FDs, peer UID verification and role-specific AXERON grants dispatch to the existing process launcher. The unchanged AxManager DemoAxsh release is an acceptance fixture; arbitrary SDK/client combinations remain unproven. |
+| File, package and plugin queries | **Adopt** | Original release wire layouts; caller UID/current signer on each file transaction, directional pipes, completion after flush/fsync, bounded pagination and accurate installed package/plugin state. |
+| Module lifecycle | **Improve** | Original installer variables and permission helpers, real current-UID `setprop`, separate shell/root homes, install/update/remove, action/service/post-fs logs and owned process-group cleanup. Unsupported installer conventions fail or remain documented; no bundled BusyBox/resetprop. |
+| Local WebUI | **Improve** | Consent per open; streamed `ksu.spawn`, original local `kernelsu.js`, exec, package metadata, fullscreen/insets and shortcuts which request command access. Asset paths and session tokens are checked by the host. |
+| Apps details | **Adopt selectively** | Secondary permissions/AppOps screen, force-stop and Android battery settings. Snapshot signer and host role are checked before changes. Bulk Shizuku controls stay immediate. |
+| Update handling | **Improve** | Visible download progress; acceptance downloads the candidate through Preview 4, verifies its signer/hash and approves Android's installer before checking retained UID, grants and ADB identity. |
+| Donor manager controls and every native API | **Defer** | Axeron grant mutation, manager initialization, embedded Shizuku controls, environment mutation, wake locks and user-service attach are explicitly unavailable. Use Kizuku's own separately authorized APIs. |
+| Network WebUI, catalog and full donor installer environment | **Defer** | Local pages only. BusyBox standalone/`SKIPUNZIP`, all boot-stage semantics and unrestricted network APIs require demonstrated clients and separate acceptance. |
+| Second host, shared root/shell grants, unrestricted relay | **Reject** | Preserve one privileged host and independent Kizuku authorization; Linux privilege failures remain failures. |
+
+The temporary CI fixtures are the original AxManager v3.0.0
+`DemoAxsh_v2.0.0_30000-release_2610291728.apk` (SHA-256
+`17219acd16c8ba56ab7801a6c082c43a0678368ba94c0f2eebd0b01b01d0eecd`)
+and `test_function-v2.0.0.zip` (SHA-256
+`b5c6328f17800c91bce2440de5cd947f25142bbb9ec85264d310517613e10e9f`).
+No competing manager is installed and neither binary is committed. Test Function
+includes donor-specific diagnostics such as BusyBox, direct log FDs and exact
+installer paths; a successful lifecycle test does not imply every diagnostic
+matches AxManager. Record verified operations and remaining differences in STATUS.
+
+Security review: manager calls require its installed signer and UID; client file
+and native channel calls validate the current client identity and AXERON grant;
+revocation closes streams/channels and stops owned jobs. Remembered shell/root
+grants use different stores. ZIP path, symlink and expansion checks remain in the
+existing installer. WebUI assets are local, subframes/network/file access are
+blocked, commands require a current module token, and closing a page terminates
+its streamed processes. Terminal OSC 52 clipboard writes are disabled. Physical
+phone/OEM behavior and hostile-module containment are not established by emulator
+tests: a user-approved shell-capable module has the host's actual authority.

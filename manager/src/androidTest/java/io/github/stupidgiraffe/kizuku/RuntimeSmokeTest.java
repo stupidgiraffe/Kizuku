@@ -180,13 +180,56 @@ public final class RuntimeSmokeTest {
                 })()
                 """;
             verifyWebView(plugin, verifyStreaming);
+            // Run the original plugin's own helper tests without rewriting its JavaScript.
+            verifyWebView(plugin, """
+                (() => {
+                  if (typeof tests === 'undefined') return false;
+                  if (!window.kizukuHelperStarted) {
+                    window.kizukuHelperStarted = true;
+                    window.kizukuHelperLogs = [];
+                    Promise.all(['kernelsu-module', 'axeron-module'].map(id =>
+                      tests.find(test => test.id === id).run(text => window.kizukuHelperLogs.push(text))))
+                      .then(results => { window.kizukuHelpersPassed = results.every(Boolean); })
+                      .catch(error => { window.kizukuHelperLogs.push(String(error)); });
+                  }
+                  return window.kizukuHelpersPassed === true;
+                })()
+                """);
             // Update the exact upstream plugin, exercise restart and validate the API's JSON query.
+            String previousPids = pluginDaemonPids(host, plugin);
             assertTrue(install(host, fixture).getBoolean("updated"));
+            assertProcessesStopped(host, previousPids);
+            // The original service deliberately creates an env -i child with no marker.
+            String restartedPids = pluginDaemonPids(host, plugin);
             host.controlRuntimePlugin(plugin, "disable");
+            assertProcessesStopped(host, restartedPids);
             host.controlRuntimePlugin(plugin, "enable");
         } finally {
             host.controlRuntimePlugin(plugin, "remove");
         }
+    }
+
+    private static String pluginDaemonPids(IKizukuService host, String plugin) throws Exception {
+        String directory = findPlugin(host, plugin).getString("moduleDir");
+        long deadline = android.os.SystemClock.elapsedRealtime() + 5_000;
+        do {
+            Bundle output = host.runtimeCommand("cat " + directory + "/run/heartbeat.pid " + directory + "/run/clean-env.pid");
+            String pids = output.getString("stdout", "").trim().replace('\n', ' ');
+            if (output.getInt("exit") == 0 && pids.matches("[1-9][0-9]* [1-9][0-9]*")) return pids;
+            android.os.SystemClock.sleep(100);
+        } while (android.os.SystemClock.elapsedRealtime() < deadline);
+        throw new AssertionError("The original plugin service did not create its two real processes");
+    }
+
+    private static void assertProcessesStopped(IKizukuService host, String pids) throws Exception {
+        long deadline = android.os.SystemClock.elapsedRealtime() + 5_000;
+        do {
+            Bundle output = host.runtimeCommand("for pid in " + pids + "; do " +
+                "[ ! -e /proc/$pid/stat ] || [ \"$(cut -d' ' -f3 /proc/$pid/stat)\" = Z ] || exit 1; done");
+            if (output.getInt("exit") == 0) return;
+            android.os.SystemClock.sleep(100);
+        } while (android.os.SystemClock.elapsedRealtime() < deadline);
+        throw new AssertionError("Plugin update/disable left a daemon or its clean-environment child running");
     }
 
     private static void verifyWebView(String plugin, String expression) throws Exception {
