@@ -71,8 +71,15 @@ if [[ "${KIZUKU_TEST_SHEVERY_COMPARISON:-false}" == true ]]; then
   scripts/shevery-comparison.sh
   exit
 fi
+update_status=0
 if [[ "${KIZUKU_TEST_SIGNED_UPDATE:-false}" == true ]]; then
-  scripts/signed-update-acceptance.sh "${1:-artifacts}"
+  scripts/signed-update-acceptance.sh "${1:-artifacts}" || update_status=$?
+  if (( update_status != 0 )); then
+    # Independent runtime evidence must still run on this disposable emulator.
+    for package in io.github.stupidgiraffe.kizuku.test io.github.stupidgiraffe.kizuku.testclient io.github.stupidgiraffe.kizuku; do
+      adb uninstall "$package" || true
+    done
+  fi
 fi
 case "${KIZUKU_TEST_DEVICE_OWNER:-false}" in
   only) scripts/device-owner-acceptance.sh "${1:-artifacts}"; exit 0 ;;
@@ -91,4 +98,5 @@ if [[ "${KIZUKU_TEST_ROOT:-false}" == true ]]; then
   fi
   KIZUKU_EVIDENCE_DIR=smoke-evidence/root scripts/emulator-smoke.sh "${1:-artifacts}"
 fi
-exit "$shell_status"
+if (( shell_status != 0 )); then exit "$shell_status"; fi
+exit "$update_status"

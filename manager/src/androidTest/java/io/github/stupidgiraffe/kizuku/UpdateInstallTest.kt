@@ -30,7 +30,7 @@ class UpdateInstallTest {
         val original = HttpsURLConnection.getDefaultSSLSocketFactory()
         val tls = SSLContext.getInstance("TLS")
         // This certificate override exists only in signed instrumentation, on a disposable emulator.
-        // Hostname verification still requires the fixture's localhost SAN.
+        // Hostname verification still requires the fixture's loopback IP SAN.
         tls.init(null, arrayOf(object : X509TrustManager {
             override fun getAcceptedIssuers() = emptyArray<X509Certificate>()
             override fun checkClientTrusted(chain: Array<X509Certificate>, auth: String) = Unit
@@ -38,7 +38,7 @@ class UpdateInstallTest {
         }), SecureRandom())
         try {
             HttpsURLConnection.setDefaultSSLSocketFactory(tls.socketFactory)
-            AppUpdates.requestDownload(context, KizukuRelease(version, "https://localhost:38443/candidate.apk", sha, size))
+            AppUpdates.requestDownload(context, KizukuRelease(version, "https://127.0.0.1:38443/candidate.apk", sha, size))
             val deadline = SystemClock.elapsedRealtime() + 60_000
             while (AppUpdates.state.value.downloaded != version && SystemClock.elapsedRealtime() < deadline) {
                 SystemClock.sleep(200)
@@ -73,6 +73,7 @@ class UpdateInstallTest {
     }
 
     private fun nodes(instrumentation: Instrumentation): List<AccessibilityNodeInfo> = buildList {
+        if (android.os.Build.VERSION.SDK_INT >= 34) instrumentation.uiAutomation.clearCache()
         fun visit(node: AccessibilityNodeInfo) {
             add(node)
             for (index in 0 until node.childCount) node.getChild(index)?.let(::visit)

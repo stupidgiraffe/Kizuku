@@ -84,7 +84,7 @@ timeout 120 adb install -t "$instrumentation"
 record_installation before "$preview_code" "$preview"
 instrument before
 openssl req -x509 -newkey rsa:2048 -nodes -days 1 -subj "/CN=localhost" \
-  -addext "subjectAltName=DNS:localhost" -keyout "$temp/key.pem" -out "$temp/cert.pem" >/dev/null 2>&1
+  -addext "subjectAltName=IP:127.0.0.1" -keyout "$temp/key.pem" -out "$temp/cert.pem" >/dev/null 2>&1
 python3 scripts/update-download-server.py "$candidate" "$temp/cert.pem" "$temp/key.pem" >"$evidence/download-server.txt" 2>&1 &
 fixture_server=$!
 adb reverse tcp:38443 tcp:38443
@@ -100,13 +100,13 @@ timeout 100 adb shell am instrument -w -e class "$manager.UpdateInstallTest" \
   -e candidate_version "$candidate_version" -e candidate_sha256 "$candidate_sha" \
   -e candidate_size "$candidate_size" "$manager.test/androidx.test.runner.AndroidJUnitRunner" \
   >"$evidence/download-install.txt" 2>&1 || true
+cat "$evidence/download-install.txt"
 grep -Fq "kizuku_update_download_verified=$candidate_sha" "$evidence/download-install.txt"
 for attempt in $(seq 1 30); do
   if adb shell dumpsys package "$manager" | grep -Eq "^[[:space:]]*versionCode=$candidate_code([[:space:]]|$)"; then break; fi
   sleep 1
 done
 grep -Fq 'GET /candidate.apk HTTP/1.1" 200' "$evidence/download-server.txt"
-cat "$evidence/download-install.txt"
 record_installation after "$candidate_code" "$candidate"
 cmp "$evidence/uid-before.txt" "$evidence/uid-after.txt"
 instrument after
