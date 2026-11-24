@@ -95,6 +95,7 @@ class CompanionLifecycleTest {
     }
 
     private fun nodes(): List<AccessibilityNodeInfo> = buildList {
+        if (android.os.Build.VERSION.SDK_INT >= 34) instrumentation.uiAutomation.clearCache()
         fun visit(node: AccessibilityNodeInfo) {
             add(node)
             for (index in 0 until node.childCount) node.getChild(index)?.let(::visit)
