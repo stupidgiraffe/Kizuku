@@ -18,7 +18,7 @@
       ],
       "pushed_at": "2025-06-18T04:21:02Z",
       "license": "Apache-2.0",
-      "stars": 34426,
+      "stars": 34509,
       "archived": false,
       "fork": false
     },
@@ -40,7 +40,7 @@
       ],
       "pushed_at": "2026-11-13T09:02:54Z",
       "license": "Apache-2.0",
-      "stars": 332,
+      "stars": 334,
       "archived": false,
       "fork": false
     },
@@ -62,7 +62,7 @@
       ],
       "pushed_at": "2026-11-18T17:00:38Z",
       "license": "Apache-2.0",
-      "stars": 1760,
+      "stars": 1766,
       "archived": false,
       "fork": false
     },
@@ -74,17 +74,17 @@
       "head": "3d49a941390afe4dc00c2699b4e141d58311364f",
       "head_changes": [],
       "commit_subject": "ci: pre-push guard reads every values/strings*.xml - new strings live in their own files and the guard reported them missing, failing Build App on master",
-      "release": "13.7.0.r3395",
-      "release_url": "https://github.com/thejaustin/ShizukuPlus/releases/tag/13.7.0.r3395",
-      "release_published": "2026-11-21T03:48:38Z",
+      "release": "13.7.0.r3445",
+      "release_url": "https://github.com/thejaustin/ShizukuPlus/releases/tag/13.7.0.r3445",
+      "release_published": "2026-11-24T01:35:04Z",
       "release_notes": [
-        "Issue triage - forms ask flavor and device, auto-labels from clear keywords, a one-time needs-info nudge, and a fixed-in notice - sorting and answering issues by hand doesn't scale with this many user",
-        "🚀 **Most recent major release — [13.7.0.r3370](https://github.com/thejaustin/ShizukuPlus/releases/tag/13.7.0.r3370)**",
-        "Crash notice names a likely cause; Service Doctor asks how much to help at setup; Dhizuku limited mode (experimental); Compact Home cards (experimental)"
+        "Nav bar - icon shortcut menu with grouped Customize, spring drag and settle, TalkBack move left/right, one save per customizer drag; fix Pill corner, reveal state and popup leak (b6fd6f74)",
+        "Pairing code dialog stays open on a missing port or a code that isn't 6 digits and says which - a typo closed the dialog with nothing sent (e7e811d6)",
+        "Pairing screen shows what's in the way and the one thing to do next - Developer options, Wi-Fi, Wireless debugging, local network and notification problems used to surface only as a failed pairing (7e"
       ],
-      "pushed_at": "2026-11-23T02:19:33Z",
+      "pushed_at": "2026-11-24T01:34:57Z",
       "license": "Apache-2.0",
-      "stars": 1873,
+      "stars": 1886,
       "archived": false,
       "fork": false
     },
@@ -94,9 +94,7 @@
       "url": "https://github.com/qianyumeng0228/ShizukuX",
       "description": "ShizukuX 是 Shizuku 的增强分支：让普通应用借助 ADB / Root 特权进程直接调用系统级 API，并内置 Dhizuku、Extra API、Root 兼容桥等高级能力。继承自 ShizukuPlus（Apache 2.0）。",
       "head": "d76d4a851b998cdca92b68eacafdbb51c4110c11",
-      "head_changes": [
-        "Polish Liquid Glass UI and simplify Appearance"
-      ],
+      "head_changes": [],
       "commit_subject": "Polish Liquid Glass UI and simplify Appearance",
       "release": "v13.7.0.k2018",
       "release_url": "https://github.com/qianyumeng0228/ShizukuX/releases/tag/v13.7.0.k2018",
@@ -108,7 +106,7 @@
       ],
       "pushed_at": "2026-11-22T21:04:48Z",
       "license": "Apache-2.0",
-      "stars": 231,
+      "stars": 232,
       "archived": false,
       "fork": false
     },
@@ -117,20 +115,24 @@
       "origin": "curated",
       "url": "https://github.com/rushiranpise/Shizuku-Next",
       "description": "A feature-rich Shizuku fork with improved setup, reliability, UI, and additional start methods.",
-      "head": "9a792ef5cb5f751c2f1219533b0e16ac5da7da3b",
-      "head_changes": [],
-      "commit_subject": "chore(i18n): new translations from Crowdin",
-      "release": "v14.0.36-next",
-      "release_url": "https://github.com/rushiranpise/Shizuku-Next/releases/tag/v14.0.36-next",
-      "release_published": "2026-11-16T05:18:53Z",
-      "release_notes": [
-        "start:** handle redacted wireless debugging on Android 17",
-        "add fixed-name latest APK asset",
-        "Full Changelog**: https://github.com/rushiranpise/Shizuku-Next/compare/v14.0.35-next...v14.0.36-next"
+      "head": "09e3cc5dc21ab7809c723d78343b452dccb9eccc",
+      "head_changes": [
+        "fix(adb): promote the pairing service below Android 10",
+        "fix(hiding): keep apps held while open, and restart before hiding the shell's transport",
+        "fix(work): set WorkManager up through androidx.startup to stop a boot crash"
       ],
-      "pushed_at": "2026-11-22T11:38:35Z",
+      "commit_subject": "fix(work): set WorkManager up through androidx.startup to stop a boot crash",
+      "release": "v14.0.38-next",
+      "release_url": "https://github.com/rushiranpise/Shizuku-Next/releases/tag/v14.0.38-next",
+      "release_published": "2026-11-23T07:35:04Z",
+      "release_notes": [
+        "Wear OS watch layouts and pairing support.",
+        "More reliable ADB and wireless debugging: pairing below Android 10, port fallback and restore, and cancellation handling.",
+        "App hiding fixes, including permissions for renamed apps and Android 17 debug switches."
+      ],
+      "pushed_at": "2026-11-23T18:13:22Z",
       "license": "Apache-2.0",
-      "stars": 2214,
+      "stars": 2248,
       "archived": false,
       "fork": false
     },
@@ -140,9 +142,7 @@
       "url": "https://github.com/kerneldroid/Nightzuku",
       "description": "Shizuku fork with Material 3 Expressive and Android SDK 37 updates",
       "head": "01a4d0f0510a43874847f6e08f4ad1de6765b37a",
-      "head_changes": [
-        "refactor(module): replace hand-written tar sync codec with commons-compress"
-      ],
+      "head_changes": [],
       "commit_subject": "refactor(module): replace hand-written tar sync codec with commons-compress",
       "release": "v13.7.1-r63",
       "release_url": "https://github.com/kerneldroid/Nightzuku/releases/tag/v13.7.1-r63",
@@ -154,7 +154,7 @@
       ],
       "pushed_at": "2026-11-22T06:47:08Z",
       "license": "Apache-2.0",
-      "stars": 359,
+      "stars": 361,
       "archived": false,
       "fork": false
     },
@@ -196,7 +196,7 @@
       ],
       "pushed_at": "2026-11-21T09:47:30Z",
       "license": "Apache-2.0",
-      "stars": 46,
+      "stars": 47,
       "archived": false,
       "fork": true
     },
@@ -205,7 +205,7 @@
       "origin": "curated",
       "url": "https://github.com/cr1437/Shizako",
       "description": "猫耳看板娘的系统权限助手：不 Root 也能用特权 API，兼容 Shizuku-API 生态（官方 SDK 应用零改动直连） A catgirl-mascot privileged-API assistant for Android. Shizuku-API compatible — apps built on the official SDK conne",
-      "head": "46261d1c898e7d8e4106d60326745f3bdc044f89",
+      "head": "9242ecc936f0587b2a7cc4915f1cb99679748479",
       "head_changes": [],
       "commit_subject": "docs: 刷新徽章计数",
       "release": "zako4",
@@ -216,9 +216,9 @@
         "首页状态只探活一次**：单次 binder 探活失败不再把整页判成「服务未运行」，`onResume` 再校准，减少无效重载与状态闪烁",
         "特权存储代理 `IStorageProxy`**：shell/root 服务进程提供的受限文件接口（列目录 / 开文件 / tar 打包 / 安全解压 / 复制 / 删除 / 建目录 / 存在性），四层访问降级（直连 → shell 管道 → run-as（仅 debuggable）→ content://），所有路径先过白名单与注入校验；第三方应用需在「第三方调用」页单独授权，每次调用写审计"
       ],
-      "pushed_at": "2026-11-22T21:49:59Z",
+      "pushed_at": "2026-11-24T00:56:20Z",
       "license": "Apache-2.0",
-      "stars": 138,
+      "stars": 140,
       "archived": false,
       "fork": false
     },
@@ -240,7 +240,7 @@
       ],
       "pushed_at": "2026-10-18T11:38:12Z",
       "license": "MPL-2.0",
-      "stars": 1938,
+      "stars": 1945,
       "archived": false,
       "fork": false
     },
@@ -262,7 +262,7 @@
       ],
       "pushed_at": "2026-11-01T15:16:29Z",
       "license": "Apache-2.0",
-      "stars": 1587,
+      "stars": 1590,
       "archived": false,
       "fork": false
     },
@@ -302,7 +302,7 @@
       "release_notes": [],
       "pushed_at": "2026-11-22T09:08:48Z",
       "license": "Apache-2.0",
-      "stars": 120,
+      "stars": 123,
       "archived": false,
       "fork": false
     },
@@ -344,7 +344,7 @@
       ],
       "pushed_at": "2026-07-15T03:12:10Z",
       "license": "Apache-2.0",
-      "stars": 7053,
+      "stars": 7066,
       "archived": false,
       "fork": true
     },
@@ -353,9 +353,9 @@
       "origin": "curated",
       "url": "https://github.com/iamr0s/Dhizuku",
       "description": "A tool that can share DeviceOwner permissions to other application.",
-      "head": "0b0ef59bbceb377ab3e8aa35486a6bf7619f5ebb",
+      "head": "f16275dce36f8247720ed494fb652b818c11cc6c",
       "head_changes": [],
-      "commit_subject": "Translated using Weblate (Arabic)",
+      "commit_subject": "Bump the maven-dependencies group with 3 updates (#360)",
       "release": "v2.13.0",
       "release_url": "https://github.com/iamr0s/Dhizuku/releases/tag/v2.13.0",
       "release_published": "2026-10-30T07:34:33Z",
@@ -364,9 +364,9 @@
         "Fix error when battery optimization settings screen is unavailable",
         "Fix a startup race condition that could prevent the service from starting on some devices"
       ],
-      "pushed_at": "2026-11-21T17:51:45Z",
+      "pushed_at": "2026-11-23T05:17:31Z",
       "license": "GPL-3.0",
-      "stars": 4218,
+      "stars": 4226,
       "archived": false,
       "fork": false
     },
