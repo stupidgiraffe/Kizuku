@@ -39,6 +39,9 @@ class AppDetailsTest {
             action("appops-set", "android:camera", "ignore")
             assertTrue(action("appops-get").getString("stdout", "").contains("CAMERA: ignore"))
             action("appops-set", "android:camera", "allow")
+            android.os.ParcelFileDescriptor.AutoCloseInputStream(instrumentation.uiAutomation.executeShellCommand(
+                "am start -W -n $pkg/.ProbeActivity")).use { it.readBytes() }
+            assertTrue(app.packageManager.getApplicationInfo(pkg, 0).flags and ApplicationInfo.FLAG_STOPPED == 0)
             val activity = instrumentation.startActivitySync(
                 Intent(app, AppDetailsActivity::class.java).putExtra("snapshot", snapshot)
                     .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))

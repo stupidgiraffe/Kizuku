@@ -258,7 +258,20 @@ public final class RuntimeSmokeTest {
                 if (completed.await(3, TimeUnit.SECONDS) && "true".equals(answer.get())) return;
                 android.os.SystemClock.sleep(250);
             }
-            fail(plugin + " did not render and execute through its original WebUI bridge");
+            var diagnostics = new AtomicReference<String>();
+            var ready = new CountDownLatch(1);
+            tests.runOnMainSync(() -> {
+                android.view.ViewGroup page = activity.findViewById(android.R.id.content);
+                if (page != null && page.getChildAt(0) instanceof WebView view) {
+                    view.evaluateJavascript("JSON.stringify({title:document.title,ready:document.readyState," +
+                        "exec:window.kizukuTestResult,spawnExit:window.kizukuSpawnExit,spawnError:window.kizukuSpawnError," +
+                        "chunks:window.kizukuChunks,helpers:window.kizukuHelperLogs})", value -> {
+                            diagnostics.set(value); ready.countDown();
+                        });
+                } else ready.countDown();
+            });
+            ready.await(3, TimeUnit.SECONDS);
+            fail(plugin + " did not render and execute through its original WebUI bridge: " + diagnostics.get());
         } finally {
             tests.runOnMainSync(activity::finish);
         }

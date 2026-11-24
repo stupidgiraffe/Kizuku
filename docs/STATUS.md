@@ -1,7 +1,28 @@
 # Implementation state
 
-Updated 2026-11-17 JST. Canonical Plane mainline #3:
+Updated 2026-11-24. Canonical Plane mainline #3:
 `68ff91b5-1e6c-4a37-b755-8d284b4fffb4`.
+
+## Preview 5 integration candidate — not published
+
+[Implementation PR #6](https://github.com/stupidgiraffe/Kizuku/pull/6) continues
+from current main. The user confirmed every personally tested Preview 4 feature
+worked. Preserve that release's identities, data, immediate toggles and activation.
+
+- Added an interactive ANSI terminal over the existing host PTY, Axeron native
+  channels and file/package/plugin queries, streamed local WebUI processes and
+  helpers, module logs/cleanup, secondary app details and full updater acceptance.
+- The [first signed candidate](https://github.com/stupidgiraffe/Kizuku/actions/runs/45502543786)
+  passed compilation, unit tests, lint, permanent signer and bundled companion
+  verification. Both Android 16/17 device-policy suites passed, including Amarok
+  and profile cleanup. Android 17 downloaded and installed the update through
+  Preview 4, preserving its app UID, grants and ADB identity.
+- That candidate failed the runtime gates: Android 16 fixture DNS, stale installer
+  state, cold instrumentation host reattachment, shell native channel and plugin
+  cleanup/reporting. Fixes and diagnostic evidence are being tested. No new APK
+  has been published and no physical phone was changed.
+- Full AxManager compatibility and 0.3 Beta are not established. The precise
+  implemented/deferred boundaries and pinned sources are in UPSTREAMS.md.
 
 ## Published 0.2.0 Preview 4
 
