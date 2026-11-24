@@ -129,6 +129,34 @@ public final class AxeronWireSmokeTest {
         assertTrue(fileCall(files, 0, p -> p.writeString(path), p -> p.readInt() != 0));
         assertTrue(fileCall(files, 1, p -> p.writeString(path + "/one"), p -> p.readInt() != 0));
         assertTrue(fileCall(files, 3, p -> p.writeString(path + "/one"), p -> p.readInt() != 0));
+        ParcelFileDescriptor[] input = ParcelFileDescriptor.createPipe();
+        CountDownLatch written = new CountDownLatch(1);
+        java.util.concurrent.atomic.AtomicReference<String> problem = new java.util.concurrent.atomic.AtomicReference<>();
+        IBinder callback = new Binder() {
+            @Override protected boolean onTransact(int code, Parcel data, Parcel reply, int flags) {
+                data.enforceInterface("frb.axeron.server.IOutputStreamCallback");
+                if (code != IBinder.FIRST_CALL_TRANSACTION) problem.set("File write failed");
+                written.countDown();
+                reply.writeNoException();
+                return true;
+            }
+        };
+        fileCall(files, 12, p -> {
+            p.writeString(path + "/one"); p.writeTypedObject(input[0], 0); p.writeStrongBinder(callback); p.writeInt(0);
+        }, null);
+        input[0].close();
+        try (var target = new ParcelFileDescriptor.AutoCloseOutputStream(input[1])) {
+            target.write("original-file-wire".getBytes(StandardCharsets.UTF_8));
+        }
+        assertTrue(written.await(5, TimeUnit.SECONDS));
+        assertNull(problem.get());
+        ParcelFileDescriptor[] output = ParcelFileDescriptor.createPipe();
+        assertTrue(fileCall(files, 11, p -> {
+            p.writeString(path + "/one"); p.writeTypedObject(output[1], 0);
+        }, p -> p.readInt() != 0));
+        output[1].close();
+        assertEquals("original-file-wire", new String(readPipe(output[0]), StandardCharsets.UTF_8));
+
         assertTrue(fileCall(files, 9, p -> {
             p.writeString(path + "/one"); p.writeInt(0600);
         }, p -> p.readInt() != 0));

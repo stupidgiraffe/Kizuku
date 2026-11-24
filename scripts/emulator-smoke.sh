@@ -56,9 +56,13 @@ instrument "$manager" action connected
 if [[ "${KIZUKU_TEST_THIRD_PARTY:-false}" == true ]]; then
   scripts/prepare-shevery-module-test.sh
   scripts/prepare-axeron-webui-test.sh
+  scripts/axsh-client-acceptance.sh
 fi
 instrument "$manager" action runtime RuntimeSmokeTest || extra_status=1
 instrument "$manager" action terminal RuntimeTerminalTest || extra_status=1
+if [[ "${KIZUKU_TEST_THIRD_PARTY:-false}" == true ]]; then
+  instrument "$manager" action original-axsh ThirdPartyAxshTest || extra_status=1
+fi
 instrument "$manager" action labs LabsSmokeTest || extra_status=1
 instrument "$manager" action stale
 probe denied

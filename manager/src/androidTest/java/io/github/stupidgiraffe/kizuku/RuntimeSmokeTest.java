@@ -146,8 +146,13 @@ public final class RuntimeSmokeTest {
         File fixture = new File("/data/local/tmp/kizuku-axmanager-webui.zip");
         if (!fixture.isFile()) return;
         String plugin = "test_function";
-        assertEquals(plugin, install(host, fixture).getString("id"));
+        Bundle installed = install(host, fixture);
+        assertEquals(plugin, installed.getString("id"));
+        assertFalse(installed.getString("startup_error"), installed.containsKey("startup_error"));
         try {
+            Bundle action = host.controlRuntimePlugin(plugin, "action");
+            assertEquals(action.getString("stderr"), 0, action.getInt("exit"));
+            assertTrue(host.controlRuntimePlugin(plugin, "action-log").getString("module_log").contains("exit 0"));
             String verifyOriginalBridge = """
                 (() => {
                   if (document.title !== 'Test Function' || typeof axeronExecAsync !== 'function') return false;
@@ -160,6 +165,25 @@ public final class RuntimeSmokeTest {
                 })()
                 """.formatted(uid);
             verifyWebView(plugin, verifyOriginalBridge);
+            String verifyStreaming = """
+                (() => {
+                  if (!window.kizukuSpawnStarted) {
+                    window.kizukuSpawnStarted = true;
+                    const child = spawnDirect('sh', ['-c', 'printf STREAM_ONE; sleep 1; printf STREAM_TWO; exit 19'], {});
+                    window.kizukuChunks = [];
+                    child.stdout.on('data', value => window.kizukuChunks.push(value));
+                    child.on('error', value => { window.kizukuSpawnError = String(value); });
+                    child.on('exit', code => { window.kizukuSpawnExit = code; });
+                  }
+                  return window.kizukuSpawnExit === 19 && window.kizukuChunks.length >= 2 &&
+                         window.kizukuChunks.join('').includes('STREAM_ONESTREAM_TWO');
+                })()
+                """;
+            verifyWebView(plugin, verifyStreaming);
+            // Update the exact upstream plugin, exercise restart and validate the API's JSON query.
+            assertTrue(install(host, fixture).getBoolean("updated"));
+            host.controlRuntimePlugin(plugin, "disable");
+            host.controlRuntimePlugin(plugin, "enable");
         } finally {
             host.controlRuntimePlugin(plugin, "remove");
         }
