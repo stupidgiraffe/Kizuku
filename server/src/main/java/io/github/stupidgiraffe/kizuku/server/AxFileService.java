@@ -24,13 +24,14 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 /** The Axeron file contract, always using the current host's actual Linux privileges. */
 final class AxFileService extends IFileService.Stub {
     private final KizukuService host;
     private final ClientIdentity owner;
-    private final ExecutorService streams = Executors.newFixedThreadPool(2);
+    // No queued open files: rejected transfers close their file and pipe in the caller.
+    private final ExecutorService streams = new java.util.concurrent.ThreadPoolExecutor(0, 2, 30,
+        java.util.concurrent.TimeUnit.SECONDS, new java.util.concurrent.SynchronousQueue<>());
     private final Set<ParcelFileDescriptor> active = ConcurrentHashMap.newKeySet();
 
     AxFileService(KizukuService host, ClientIdentity owner) {
