@@ -18,7 +18,7 @@
       ],
       "pushed_at": "2025-06-18T04:21:02Z",
       "license": "Apache-2.0",
-      "stars": 34509,
+      "stars": 34596,
       "archived": false,
       "fork": false
     },
@@ -40,7 +40,7 @@
       ],
       "pushed_at": "2026-11-13T09:02:54Z",
       "license": "Apache-2.0",
-      "stars": 334,
+      "stars": 340,
       "archived": false,
       "fork": false
     },
@@ -60,9 +60,9 @@
         "Rewrote the legacy C/C++ native layer (`starter`, `rish`, `adb_pairing`) in **Rust**, removing BoringSSL and `libc++` native build dependencies:",
         "`rish`: PTY management, raw `termios`, `SIGWINCH` self-pipe handling, and JNI bridges."
       ],
-      "pushed_at": "2026-11-18T17:00:38Z",
+      "pushed_at": "2026-11-24T20:16:28Z",
       "license": "Apache-2.0",
-      "stars": 1766,
+      "stars": 1774,
       "archived": false,
       "fork": false
     },
@@ -71,9 +71,20 @@
       "origin": "curated",
       "url": "https://github.com/thejaustin/ShizukuPlus",
       "description": "Shizuku+ brings Root/ADB/Dhizuku unification, a Plus API suite, OneUI/Android 16+ support, M3E theming, TCP connectivity, improved customization, & more.",
-      "head": "3d49a941390afe4dc00c2699b4e141d58311364f",
-      "head_changes": [],
-      "commit_subject": "ci: pre-push guard reads every values/strings*.xml - new strings live in their own files and the guard reported them missing, failing Build App on master",
+      "head": "71cc956d8bfc0d223827c30a66fd7c462c9854fc",
+      "head_changes": [
+        "fix: Settings status banner check icon uses the banner's on-colour so it stays visible in high-contrast schemes (#687); note the status card/banner/AMOLED treat",
+        "fix: stability pass - temporary root counts (server uid 0) and the su check refreshes instead of caching forever; switches that only pretend or can't work yet a",
+        "fix: long-press row stays visible without swipe, Support row tolerates unknown value, Home recreates on look changes; feat: language list and Translation row sh",
+        "feat: nav bar - icon shortcut menu with grouped Customize, spring drag and settle, TalkBack move left/right, one save per customizer drag; fix Pill corner, reve",
+        "fix: surface style Auto means regular system dark; AMOLED only when chosen",
+        "fix: temporary root (server uid 0) counts where only 'can root work now' matters; root cache no longer blanked on binder events",
+        "fix: re-apply TCP mode / On-Device ADB TCP directly on boot, not just via RUNNING",
+        "fix(server): stop force-stopping the manager when a binder died mid-send; fix ADB auth-timeout write NPE and limit it to ADB-started servers",
+        "Make the ADB authorization time limit a user setting",
+        "Devlog: Task Manager Plus API"
+      ],
+      "commit_subject": "Devlog: Task Manager Plus API",
       "release": "13.7.0.r3445",
       "release_url": "https://github.com/thejaustin/ShizukuPlus/releases/tag/13.7.0.r3445",
       "release_published": "2026-11-24T01:35:04Z",
@@ -82,9 +93,9 @@
         "Pairing code dialog stays open on a missing port or a code that isn't 6 digits and says which - a typo closed the dialog with nothing sent (e7e811d6)",
         "Pairing screen shows what's in the way and the one thing to do next - Developer options, Wi-Fi, Wireless debugging, local network and notification problems used to surface only as a failed pairing (7e"
       ],
-      "pushed_at": "2026-11-24T01:34:57Z",
+      "pushed_at": "2026-11-24T07:35:55Z",
       "license": "Apache-2.0",
-      "stars": 1886,
+      "stars": 1890,
       "archived": false,
       "fork": false
     },
@@ -106,7 +117,7 @@
       ],
       "pushed_at": "2026-11-22T21:04:48Z",
       "license": "Apache-2.0",
-      "stars": 232,
+      "stars": 236,
       "archived": false,
       "fork": false
     },
@@ -115,24 +126,27 @@
       "origin": "curated",
       "url": "https://github.com/rushiranpise/Shizuku-Next",
       "description": "A feature-rich Shizuku fork with improved setup, reliability, UI, and additional start methods.",
-      "head": "09e3cc5dc21ab7809c723d78343b452dccb9eccc",
+      "head": "2cbf6012e86d19fa7e97800a615805438d94707f",
       "head_changes": [
-        "fix(adb): promote the pairing service below Android 10",
-        "fix(hiding): keep apps held while open, and restart before hiding the shell's transport",
-        "fix(work): set WorkManager up through androidx.startup to stop a boot crash"
+        "fix(apps): keep granted apps in the app list",
+        "fix(tiles): name hiding tiles apart from the switches",
+        "fix(adb): fall back when the keystore cannot make the ADB key",
+        "fix(pairing): drive Settings when the accessibility service is already on",
+        "fix(adb): keep the software fallback key out of exported settings",
+        "Merge branch 'master' of https://github.com/rushiranpise/Shizuku-Next"
       ],
-      "commit_subject": "fix(work): set WorkManager up through androidx.startup to stop a boot crash",
-      "release": "v14.0.38-next",
-      "release_url": "https://github.com/rushiranpise/Shizuku-Next/releases/tag/v14.0.38-next",
-      "release_published": "2026-11-23T07:35:04Z",
+      "commit_subject": "chore: bump version to 14.0.40 [skip ci]",
+      "release": "v14.0.40-next",
+      "release_url": "https://github.com/rushiranpise/Shizuku-Next/releases/tag/v14.0.40-next",
+      "release_published": "2026-11-24T21:45:19Z",
       "release_notes": [
-        "Wear OS watch layouts and pairing support.",
-        "More reliable ADB and wireless debugging: pairing below Android 10, port fallback and restore, and cancellation handling.",
-        "App hiding fixes, including permissions for renamed apps and Android 17 debug switches."
+        "adb:** keep the software fallback key out of exported settings",
+        "pairing:** drive Settings when the accessibility service is already on",
+        "Full Changelog**: https://github.com/rushiranpise/Shizuku-Next/compare/v14.0.39-next...v14.0.40-next"
       ],
-      "pushed_at": "2026-11-23T18:13:22Z",
+      "pushed_at": "2026-11-24T21:36:42Z",
       "license": "Apache-2.0",
-      "stars": 2248,
+      "stars": 2285,
       "archived": false,
       "fork": false
     },
@@ -154,7 +168,7 @@
       ],
       "pushed_at": "2026-11-22T06:47:08Z",
       "license": "Apache-2.0",
-      "stars": 361,
+      "stars": 362,
       "archived": false,
       "fork": false
     },
@@ -196,7 +210,7 @@
       ],
       "pushed_at": "2026-11-21T09:47:30Z",
       "license": "Apache-2.0",
-      "stars": 47,
+      "stars": 48,
       "archived": false,
       "fork": true
     },
@@ -205,7 +219,7 @@
       "origin": "curated",
       "url": "https://github.com/cr1437/Shizako",
       "description": "猫耳看板娘的系统权限助手：不 Root 也能用特权 API，兼容 Shizuku-API 生态（官方 SDK 应用零改动直连） A catgirl-mascot privileged-API assistant for Android. Shizuku-API compatible — apps built on the official SDK conne",
-      "head": "9242ecc936f0587b2a7cc4915f1cb99679748479",
+      "head": "e005f3d99fd330826e2a3156993b6f1faabb1ebe",
       "head_changes": [],
       "commit_subject": "docs: 刷新徽章计数",
       "release": "zako4",
@@ -216,9 +230,9 @@
         "首页状态只探活一次**：单次 binder 探活失败不再把整页判成「服务未运行」，`onResume` 再校准，减少无效重载与状态闪烁",
         "特权存储代理 `IStorageProxy`**：shell/root 服务进程提供的受限文件接口（列目录 / 开文件 / tar 打包 / 安全解压 / 复制 / 删除 / 建目录 / 存在性），四层访问降级（直连 → shell 管道 → run-as（仅 debuggable）→ content://），所有路径先过白名单与注入校验；第三方应用需在「第三方调用」页单独授权，每次调用写审计"
       ],
-      "pushed_at": "2026-11-24T00:56:20Z",
+      "pushed_at": "2026-11-24T21:16:56Z",
       "license": "Apache-2.0",
-      "stars": 140,
+      "stars": 144,
       "archived": false,
       "fork": false
     },
@@ -240,7 +254,7 @@
       ],
       "pushed_at": "2026-10-18T11:38:12Z",
       "license": "MPL-2.0",
-      "stars": 1945,
+      "stars": 1948,
       "archived": false,
       "fork": false
     },
@@ -262,7 +276,7 @@
       ],
       "pushed_at": "2026-11-01T15:16:29Z",
       "license": "Apache-2.0",
-      "stars": 1590,
+      "stars": 1592,
       "archived": false,
       "fork": false
     },
@@ -302,7 +316,7 @@
       "release_notes": [],
       "pushed_at": "2026-11-22T09:08:48Z",
       "license": "Apache-2.0",
-      "stars": 123,
+      "stars": 124,
       "archived": false,
       "fork": false
     },
@@ -344,7 +358,7 @@
       ],
       "pushed_at": "2026-07-15T03:12:10Z",
       "license": "Apache-2.0",
-      "stars": 7066,
+      "stars": 7080,
       "archived": false,
       "fork": true
     },
@@ -366,7 +380,7 @@
       ],
       "pushed_at": "2026-11-23T05:17:31Z",
       "license": "GPL-3.0",
-      "stars": 4226,
+      "stars": 4238,
       "archived": false,
       "fork": false
     },
@@ -432,7 +446,7 @@
       ],
       "pushed_at": "2026-11-20T11:12:31Z",
       "license": "Apache-2.0",
-      "stars": 20,
+      "stars": 21,
       "archived": false,
       "fork": true
     },
@@ -454,7 +468,7 @@
       ],
       "pushed_at": "2026-09-06T03:12:28Z",
       "license": "Apache-2.0",
-      "stars": 55,
+      "stars": 57,
       "archived": false,
       "fork": false
     },
@@ -644,24 +658,6 @@
       "archived": false,
       "fork": false
     },
-    "Terminator7245/Kitsune-Shizuku": {
-      "name": "Terminator7245/Kitsune-Shizuku",
-      "origin": "GitHub search",
-      "url": "https://github.com/Terminator7245/Kitsune-Shizuku",
-      "description": "Just a everyday shizuku fork 🙃",
-      "head": "26aea4ad5743c59b5317d098827128157467747f",
-      "head_changes": [],
-      "commit_subject": "feat(binder): implement Shizuku privileged IPC service",
-      "release": "",
-      "release_url": "",
-      "release_published": "",
-      "release_notes": [],
-      "pushed_at": "2026-08-26T02:42:47Z",
-      "license": "UNKNOWN",
-      "stars": 0,
-      "archived": false,
-      "fork": false
-    },
     "yagribochek/shevery-info-via-prop": {
       "name": "yagribochek/shevery-info-via-prop",
       "origin": "GitHub search",
@@ -676,6 +672,24 @@
       "release_notes": [],
       "pushed_at": "2026-11-15T10:18:02Z",
       "license": "MIT",
+      "stars": 0,
+      "archived": false,
+      "fork": false
+    },
+    "Terminator7245/Kitsune-Shizuku": {
+      "name": "Terminator7245/Kitsune-Shizuku",
+      "origin": "GitHub search",
+      "url": "https://github.com/Terminator7245/Kitsune-Shizuku",
+      "description": "Just a everyday shizuku fork 🙃",
+      "head": "26aea4ad5743c59b5317d098827128157467747f",
+      "head_changes": [],
+      "commit_subject": "feat(binder): implement Shizuku privileged IPC service",
+      "release": "",
+      "release_url": "",
+      "release_published": "",
+      "release_notes": [],
+      "pushed_at": "2026-08-26T02:42:47Z",
+      "license": "UNKNOWN",
       "stars": 0,
       "archived": false,
       "fork": false

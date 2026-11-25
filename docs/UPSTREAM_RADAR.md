@@ -1,28 +1,26 @@
 # Kizuku upstream radar
 
-Last changed: 2026-11-24 02:29 UTC. Automated metadata check; **not** a source-code, security, or compatibility audit.
+Last changed: 2026-11-25 02:30 UTC. Automated metadata check; **not** a source-code, security, or compatibility audit.
 
 Source discovery is best-effort and not exhaustive. No upstream code, APKs, or dependencies are copied or upgraded.
 
 ## Recent signals
 
-- **[rushiranpise/Shizuku-Next](https://github.com/rushiranpise/Shizuku-Next/releases/tag/v14.0.38-next)** — Release v14.0.36-next → v14.0.38-next
-  - Wear OS watch layouts and pairing support.
-  - More reliable ADB and wireless debugging: pairing below Android 10, port fallback and restore, and cancellation handling.
-  - App hiding fixes, including permissions for renamed apps and Android 17 debug switches.
-- **[thejaustin/ShizukuPlus](https://github.com/thejaustin/ShizukuPlus/releases/tag/13.7.0.r3445)** — Release 13.7.0.r3395 → 13.7.0.r3445
-  - Nav bar - icon shortcut menu with grouped Customize, spring drag and settle, TalkBack move left/right, one save per customizer drag; fix Pill corner, reveal state and popup leak (b
-  - Pairing code dialog stays open on a missing port or a code that isn't 6 digits and says which - a typo closed the dialog with nothing sent (e7e811d6)
-  - Pairing screen shows what's in the way and the one thing to do next - Developer options, Wi-Fi, Wireless debugging, local network and notification problems used to surface only as 
+- **[rushiranpise/Shizuku-Next](https://github.com/rushiranpise/Shizuku-Next/releases/tag/v14.0.40-next)** — Release v14.0.38-next → v14.0.40-next
+  - adb:** keep the software fallback key out of exported settings
+  - pairing:** drive Settings when the accessibility service is already on
+  - Full Changelog**: https://github.com/rushiranpise/Shizuku-Next/compare/v14.0.39-next...v14.0.40-next
 - **[cr1437/Shizako](https://github.com/cr1437/Shizako)** — New HEAD docs: 刷新徽章计数
-- **[iamr0s/Dhizuku](https://github.com/iamr0s/Dhizuku)** — New HEAD Bump the maven-dependencies group with 3 updates (#360)
+- **[thejaustin/ShizukuPlus](https://github.com/thejaustin/ShizukuPlus)** — New HEAD Devlog: Task Manager Plus API
+  - fix: Settings status banner check icon uses the banner's on-colour so it stays visible in high-contrast schemes (#687); note the status card/banner/AMOLED treat
+  - fix: stability pass - temporary root counts (server uid 0) and the su check refreshes instead of caching forever; switches that only pretend or can't work yet a
+  - fix: long-press row stays visible without swipe, Support row tolerates unknown value, Home recreates on look changes; feat: language list and Translation row sh
 
 ## Feature opportunities to evaluate
 
-- **ADB activation and service recovery** — [thejaustin/ShizukuPlus](https://github.com/thejaustin/ShizukuPlus/releases/tag/13.7.0.r3445): Nav bar - icon shortcut menu with grouped Customize, spring drag and settle, TalkBack move left/right, one save per customizer drag; fix Pil
-- **Capability security and grants** — [rushiranpise/Shizuku-Next](https://github.com/rushiranpise/Shizuku-Next/releases/tag/v14.0.38-next): Wear OS watch layouts and pairing support.
+- **Capability security and grants** — [thejaustin/ShizukuPlus](https://github.com/thejaustin/ShizukuPlus): fix: Settings status banner check icon uses the banner's on-colour so it stays visible in high-contrast schemes (#687); note the status card
+- **Capability security and grants** — [rushiranpise/Shizuku-Next](https://github.com/rushiranpise/Shizuku-Next/releases/tag/v14.0.40-next): adb:** keep the software fallback key out of exported settings
 - **Android 16/17 and stock Shizuku compatibility** — [cr1437/Shizako](https://github.com/cr1437/Shizako): docs: 刷新徽章计数
-- **ADB activation and service recovery** — [iamr0s/Dhizuku](https://github.com/iamr0s/Dhizuku): Bump the maven-dependencies group with 3 updates (#360)
 
 ## Tracked projects
 
@@ -33,7 +31,7 @@ Source discovery is best-effort and not exhaustive. No upstream code, APKs, or d
 | [cr1437/Shizako](https://github.com/cr1437/Shizako) | compatibility and manager UX | zako4 | 2026-11-24 | Apache-2.0 |
 | [d4rken-org/porter](https://github.com/d4rken-org/porter) | compatibility, companion, authorization | v0.8.2-rc0 | 2026-11-13 | Apache-2.0 |
 | [fahrez182/AxManager](https://github.com/fahrez182/AxManager) | Axeron, plugins, WebUI and security | v3.0.0 | 2026-11-01 | Apache-2.0 |
-| [HmnDev-Tech/shevery](https://github.com/HmnDev-Tech/shevery) | UX, permissions, Dhizuku, modules | 14.6.5 | 2026-11-18 | Apache-2.0 |
+| [HmnDev-Tech/shevery](https://github.com/HmnDev-Tech/shevery) | UX, permissions, Dhizuku, modules | 14.6.5 | 2026-11-24 | Apache-2.0 |
 | [HSSkyBoy/Shizuku](https://github.com/HSSkyBoy/Shizuku) | device and wireless fixes | v13.6.2 | 2026-11-08 | Apache-2.0 |
 | [iamr0s/Dhizuku](https://github.com/iamr0s/Dhizuku) | Device Owner protocol reference | v2.13.0 | 2026-11-23 | GPL-3.0 |
 | [kerneldroid/Nightzuku](https://github.com/kerneldroid/Nightzuku) | Android platform fixes; paused project | v13.7.1-r63 | 2026-11-22 | Apache-2.0 |
@@ -42,7 +40,7 @@ Source discovery is best-effort and not exhaustive. No upstream code, APKs, or d
 | [revBlackCore/RevCoreManager](https://github.com/revBlackCore/RevCoreManager) | Axora-derived plugin runtime compatibility and UI reference | v26.10.21.r1 | 2026-11-17 | Apache-2.0 |
 | [RikkaApps/Shizuku](https://github.com/RikkaApps/Shizuku) | baseline protocol | v13.6.0 | 2025-06-18 | Apache-2.0 |
 | [roro2239/Stellar](https://github.com/roro2239/Stellar) | boot recovery and script execution | v1.1(101000) | 2026-10-18 | MPL-2.0 |
-| [rushiranpise/Shizuku-Next](https://github.com/rushiranpise/Shizuku-Next) | ADB and diagnostics | v14.0.38-next | 2026-11-23 | Apache-2.0 |
+| [rushiranpise/Shizuku-Next](https://github.com/rushiranpise/Shizuku-Next) | ADB and diagnostics | v14.0.40-next | 2026-11-24 | Apache-2.0 |
 | [Sharif-bot-cmd/ShizuPosed](https://github.com/Sharif-bot-cmd/ShizuPosed) | optional Labs inspiration | 1.5.1 | 2026-11-22 | Apache-2.0 |
 | [thedjchi/Shizuku](https://github.com/thedjchi/Shizuku) | legacy startup and automation | v13.7.0-thedjchi | 2026-07-15 | Apache-2.0 |
 | [thejaustin/ShizukuPlus](https://github.com/thejaustin/ShizukuPlus) | extended compatibility and SU bridge | 13.7.0.r3445 | 2026-11-24 | Apache-2.0 |
