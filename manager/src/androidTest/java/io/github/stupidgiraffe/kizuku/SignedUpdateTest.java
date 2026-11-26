@@ -42,11 +42,25 @@ public class SignedUpdateTest {
                     .put(AndroidIdentity.encode(identity).put("mask", SCOPES)).toString();
             assertTrue(app.getSharedPreferences("authorization", Context.MODE_PRIVATE)
                     .edit().putString("grants", legacyGrants).commit());
+            AuthorizationStore.INSTANCE.replaceRemembered(app, identity, SCOPES, Capability.SHIZUKU, 0);
             assertTrue("Saved the pairing preference", adb.edit().putBoolean("paired", true).commit());
+            long deadline = android.os.SystemClock.elapsedRealtime() + 15_000;
+            while (CoreConnection.INSTANCE.getService() == null && android.os.SystemClock.elapsedRealtime() < deadline)
+                android.os.SystemClock.sleep(100);
+            assertTrue("The previous signed version has a real running host", CoreConnection.INSTANCE.getService() != null);
+            assertEquals("The previous host runs as ADB shell", 2000, CoreConnection.INSTANCE.getService().status().getInt("uid"));
+            CoreConnection.INSTANCE.getService().grant(CLIENT, uid, SCOPES, 2, identity.fingerprint());
+            boolean activeGrant = false;
+            for (Bundle row : CoreConnection.INSTANCE.getService().applications())
+                if (CLIENT.equals(row.getString("package"))) activeGrant = row.getLong("granted") == SCOPES;
+            assertTrue("The old host is serving the remembered client approvals", activeGrant);
         } else if (stage.equals("after")) {
             assertTrue("Pairing preference survives the update", adb.getBoolean("paired", false));
-            assertEquals("Previous grants cannot authorize a root host", "[]",
-                    AuthorizationStore.INSTANCE.load(app, 0));
+            JSONArray root = new JSONArray(AuthorizationStore.INSTANCE.load(app, 0));
+            assertEquals("The explicitly approved root identity survives", 1, root.length());
+            assertEquals("Shell Axeron approval does not become a root approval", Capability.SHIZUKU,
+                    root.getJSONObject(0).getLong("mask"));
+            assertEquals(AndroidIdentity.resolve(app.getPackageManager(), uid, CLIENT), AndroidIdentity.decode(root.getJSONObject(0)));
         } else {
             fail("Unknown signed update stage: " + stage);
         }

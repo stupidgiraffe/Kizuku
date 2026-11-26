@@ -9,11 +9,11 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: kizuku-release
+  group: kizuku-release-${{ inputs.publish && 'publish' || github.sha }}
   cancel-in-progress: false
 jobs:
   build:
-    if: github.ref == 'refs/heads/main' || (!inputs.publish && github.ref == 'refs/heads/feat/selective-integration')
+    if: github.ref == 'refs/heads/main' || (!inputs.publish && (github.ref == 'refs/heads/feat/selective-integration' || github.ref == 'refs/heads/feat/axora-runtime'))
     runs-on: ubuntu-latest
     timeout-minutes: 25
     env:

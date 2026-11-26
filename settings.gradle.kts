@@ -4,4 +4,4 @@ dependencyResolutionManagement {
     repositories { google(); mavenCentral() }
 }
 rootProject.name = "Kizuku"
-include(":core", ":api", ":server", ":manager", ":test-client", ":compat", ":dhizuku-compat")
+include(":terminal", ":core", ":api", ":server", ":manager", ":test-client", ":compat", ":dhizuku-compat")

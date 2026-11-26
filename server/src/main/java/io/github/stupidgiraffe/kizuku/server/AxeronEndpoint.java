@@ -65,6 +65,7 @@ final class AxeronEndpoint {
     private final KizukuService host;
     private final Handler handler;
     private final ProcessLauncher launcher;
+    private final AxshTransport nativeShell;
     private final long starting = SystemClock.elapsedRealtime();
     private final Map<Principal, ClientCapability> capabilities = new ConcurrentHashMap<>();
     private final Map<Principal, ClientIdentity> discoverable = new ConcurrentHashMap<>();
@@ -81,6 +82,10 @@ final class AxeronEndpoint {
         this.host = host;
         this.handler = handler;
         this.launcher = launcher;
+        this.nativeShell = new AxshTransport(launcher, uid -> capabilities.values().stream()
+            .map(capability -> capability.identity)
+            .filter(identity -> identity.uid() == uid && host.allowed(identity, Capability.AXERON, false))
+            .findFirst().orElse(null), identity -> host.allowed(identity, Capability.AXERON, false));
         delivery.allowCoreThreadTimeOut(true);
     }
 
@@ -171,10 +176,30 @@ final class AxeronEndpoint {
             if (allowed) {
                 deliver(identity);
             } else {
+                if (capability != null) capability.closeFiles();
+                nativeShell.revoke(identity);
                 discoverable.remove(principal, identity);
                 delivered.removeIf(item -> item.principal().equals(principal));
             }
         });
+    }
+
+    void suspendClients() {
+        nativeShell.revoke();
+        capabilities.values().forEach(ClientCapability::closeFiles);
+    }
+
+    void sweepClients() {
+        capabilities.values().forEach(capability -> {
+            if (!host.activeIdentity(capability.identity)) capability.closeFiles();
+        });
+    }
+
+    void close() {
+        suspendClients();
+        capabilities.values().forEach(ClientCapability::disposeFiles);
+        nativeShell.close();
+        delivery.shutdownNow();
     }
 
     IBinder capability(String packageName, int uid) {
@@ -183,8 +208,14 @@ final class AxeronEndpoint {
     }
 
     private ClientCapability capabilityFor(ClientIdentity identity) {
-        return capabilities.compute(principal(identity), (key, current) ->
-            current != null && current.identity.equals(identity) ? current : new ClientCapability(identity));
+        return capabilities.compute(principal(identity), (key, current) -> {
+            if (current != null && current.identity.equals(identity)) return current;
+            if (current != null) {
+                current.disposeFiles();
+                nativeShell.revoke(current.identity);
+            }
+            return new ClientCapability(identity);
+        });
     }
 
     private static Principal principal(ClientIdentity identity) {
@@ -217,10 +248,22 @@ final class AxeronEndpoint {
 
     private final class ClientCapability extends IAxeronService.Stub {
         private final ClientIdentity identity;
+        private AxFileService files;
         private final Map<Integer, Attachment> attached = new ConcurrentHashMap<>();
 
         ClientCapability(ClientIdentity identity) {
             this.identity = identity;
+        }
+
+        synchronized void closeFiles() {
+            // The upstream SDK caches IFileService until Binder death. Keep that
+            // identity-bound handle usable after a fresh approval of the same app.
+            if (files != null) files.cancelTransfers();
+        }
+
+        synchronized void disposeFiles() {
+            if (files != null) files.close();
+            files = null;
         }
 
         @Override public boolean onTransact(int code, Parcel data, Parcel reply, int flags) throws RemoteException {
@@ -387,7 +430,7 @@ final class AxeronEndpoint {
         // A null socket name tells an AxBroker client to use its ordinary Binder-backed broker.
         @Override public String getAxshSocketName() {
             if (!checkSelfPermission()) throw new SecurityException("Axeron capability is required");
-            return null;
+            return nativeShell.socketName();
         }
 
         @Override public Environment getEnvironment(int envType) {
@@ -398,11 +441,43 @@ final class AxeronEndpoint {
             return new Environment(Map.of());
         }
 
-        @Override public ParcelFileDescriptor openAxshChannel() { throw unsupported("Native axsh channel"); }
-        @Override public IFileService getFileService() { throw unsupported("Axeron file service"); }
-        @Override public ParcelableListSlice<PackageInfo> getPackages(int flags) { throw unsupported("Axeron package list"); }
-        @Override public ParcelableListSlice<PluginInfo> getPlugins() { throw unsupported("Axeron plugin list"); }
-        @Override public PluginInfo getPluginById(String id) { throw unsupported("Axeron plugin lookup"); }
+        @Override public ParcelFileDescriptor openAxshChannel() {
+            if (!checkSelfPermission()) throw new SecurityException("Axeron capability is required");
+            try { return nativeShell.channel(identity); }
+            catch (Exception failure) { throw new IllegalStateException("Cannot open the axsh channel", failure); }
+        }
+        private void requireAccess() {
+            if (!host.allowed(identity, Capability.AXERON, true))
+                throw new SecurityException("Axeron capability is required");
+        }
+
+        @Override public synchronized IFileService getFileService() {
+            if (!checkSelfPermission()) throw new SecurityException("Axeron capability is required");
+            if (files == null) files = new AxFileService(host, identity);
+            return files;
+        }
+
+        @Override public ParcelableListSlice<PackageInfo> getPackages(int flags) {
+            requireAccess();
+            try {
+                return new ParcelableListSlice<>(host.platform.installedPackages(flags, identity.uid() / 100000));
+            } catch (Exception failure) {
+                throw new IllegalStateException("Cannot read installed packages", failure);
+            }
+        }
+
+        @Override public ParcelableListSlice<PluginInfo> getPlugins() {
+            requireAccess();
+            return new ParcelableListSlice<>(host.axeronPlugins());
+        }
+
+        @Override public PluginInfo getPluginById(String id) {
+            requireAccess();
+            return host.axeronPlugins().stream().filter(item -> {
+                try { return id.equals(new org.json.JSONObject(item.json()).getJSONObject("prop").getString("id")); }
+                catch (org.json.JSONException invalid) { return false; }
+            }).findFirst().orElse(null);
+        }
         @Override public boolean isFirstInit(boolean markAsFirstInit) { throw unsupported("Axeron server initialization"); }
         @Override public IShizukuService getShizukuService() { throw unsupported("Axeron Shizuku service"); }
         @Override public void enableShizukuService(boolean enable) { throw unsupported("Axeron Shizuku controls"); }

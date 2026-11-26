@@ -48,3 +48,21 @@ dependency is MIT. No AxManager BusyBox, resetprop, or artwork is included.
 The rish export includes the unmodified Shizuku v13.6.0 launcher and loader
 DEX (RikkaApps/Shizuku revision 2650830c5b099ae0dd34fedf614d4f592ca05d65).
 The export bundles the Apache-2.0 license and source notice.
+
+Terminal rendering and emulation includes Termux terminal-emulator and terminal-view
+Java/resources, revision 8629e632fcb95da272221be327db653fb24befe9,
+https://github.com/termux/termux-app. Copyright Termux contributors and the
+Android Terminal Emulator authors. These modules are Apache-2.0 exceptions
+under Termux's LICENSE.md. See TERMINAL-LICENSE.txt.
+Kizuku replaces TerminalSession with its Binder transport adapter and excludes
+the Termux app, JNI process launcher, and native libraries.
+
+Native axsh stream framing follows Axeron-API revision
+37eb6a3521828458394797e7166ff2e90946304e, MIT, Copyright (c) 2025-2026 FahrezRB.
+Kizuku implements that wire in its single host with verified peer credentials,
+per-client capability checks, limits and process cleanup.
+
+The bundled js/kernelsu.js and js/axeron.js WebUI helpers are unchanged AxManager source,
+revision 7ed7f508464076d2617a9172c9de5bca2e7bcf7a, Apache-2.0.
+Kizuku's WebUI bridge supplies its own authorization, origin isolation,
+streaming processes, package metadata and lifecycle cleanup.

@@ -282,6 +282,12 @@ private fun AppPermissionCard(
                         Icon(Icons.Outlined.MoreVert, contentDescription = "Access options for $label")
                     }
                     DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                        val context = LocalContext.current
+                        DropdownMenuItem(text = { Text("App details") }, onClick = {
+                            menuOpen = false
+                            context.startActivity(android.content.Intent(context, AppDetailsActivity::class.java)
+                                .putExtra("snapshot", app))
+                        })
                         permissions.forEach { permission ->
                             DropdownMenuItem(text = { Text("${permission.label} duration") }, enabled = editable, onClick = {
                                 menuOpen = false

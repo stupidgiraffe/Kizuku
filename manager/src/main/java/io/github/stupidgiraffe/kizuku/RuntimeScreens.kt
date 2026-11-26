@@ -42,7 +42,13 @@ internal fun RuntimeScreen(state: CoreState) {
             FilterChip(selected = choice == page, onClick = { page = choice }, label = { Text(choice) })
         }
     }
-    if (page == "Shell") ShellPanel(ready) else PluginsPanel(ready)
+    if (page == "Shell") {
+        val context = LocalContext.current
+        Button(enabled = ready, onClick = { context.startActivity(Intent(context, TerminalActivity::class.java)) }) {
+            Text("Open interactive terminal")
+        }
+        ShellPanel(ready)
+    } else PluginsPanel(ready)
 }
 
 @Composable
@@ -141,6 +147,7 @@ private fun PluginsPanel(ready: Boolean) {
                 if (result?.containsKey("exit") == true) output = result
                 result?.getString("module_log")?.let { log = it }
                 result?.getString("startup_error")?.let { message = "Installed and disabled after startup failed. $it" }
+                result?.getString("warning")?.let { message = it }
             } catch (failure: Exception) {
                 if (failure is CancellationException) throw failure
                 message = failure.message ?: "Plugin operation failed."
@@ -167,6 +174,7 @@ private fun PluginsPanel(ready: Boolean) {
                 Text(plugin.getString("name").orEmpty(), style = MaterialTheme.typography.titleMedium)
                 Text("${if (shevery) "Shevery" else "Axeron"} · ${plugin.getString("version").orEmpty()} · ${if (enabled) "Enabled" else "Disabled"}")
                 plugin.getString("description")?.takeIf(String::isNotBlank)?.let { Text(it) }
+                if (plugin.getBoolean("service_running")) Text("Service running", style = MaterialTheme.typography.bodySmall)
                 plugin.getString("error")?.let { Text(it, color = MaterialTheme.colorScheme.error) }
                 Row {
                     TextButton(enabled = !busy && !plugin.containsKey("error"), onClick = {
@@ -200,8 +208,15 @@ private fun PluginsPanel(ready: Boolean) {
                     }
                 }
                 Row {
+                    if (enabled && plugin.getBoolean("webui")) TextButton(enabled = !busy, onClick = {
+                        runCatching { pinPluginShortcut(context, plugin) }
+                            .onFailure { message = it.message ?: "Could not create the shortcut." }
+                    }) { Text("Add shortcut") }
                     if (enabled && !shevery) TextButton(enabled = !busy, onClick = { operate { runtime().controlRuntimePlugin(id, "restart") } }) { Text("Restart") }
-                    if (shevery && plugin.getBoolean("action")) TextButton(enabled = !busy, onClick = {
+                    if (!shevery && plugin.getBoolean("service")) TextButton(enabled = !busy, onClick = {
+                        operate { runtime().controlRuntimePlugin(id, "service-log") }
+                    }) { Text("Service log") }
+                    if (plugin.getBoolean("action")) TextButton(enabled = !busy, onClick = {
                         operate { runtime().controlRuntimePlugin(id, "action-log") }
                     }) { Text("Action log") }
                     TextButton(enabled = !busy, onClick = { remove = id }) { Text("Uninstall") }

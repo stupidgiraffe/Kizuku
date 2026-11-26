@@ -40,5 +40,11 @@
     "commit": "2a62cadcfa491c64003a6fb3f84b285a47ed0fca",
     "published_at": "2026-10-30T06:17:17Z",
     "paths": "/(aidl|java|kotlin)/"
+  },
+  "Youngupdatesource/fOxygen": {
+    "tag": "v1.4",
+    "commit": "243a9ed842afeb74a0a2180fc56df12c7ea246b4",
+    "published_at": "2026-11-20T11:12:31Z",
+    "paths": "terminal|Terminal|axsh|webui|plugin|reignite|/cpp/"
   }
 }

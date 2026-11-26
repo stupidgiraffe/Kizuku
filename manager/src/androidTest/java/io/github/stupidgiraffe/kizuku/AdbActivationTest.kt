@@ -221,7 +221,9 @@ class AdbActivationTest {
             }
             if (pair != null && tryClick(pair)) return@await true
             val switch = settingsNodes.firstOrNull { it.hasLabel("Use wireless debugging") }
-            val developerEntry = settingsNodes.firstOrNull { it.isEnabled && it.hasLabel("Wireless debugging") }
+            val developerEntry = settingsNodes.firstOrNull {
+                it.isEnabled && it.isVisibleToUser && it.hasLabel("Wireless debugging")
+            }
             when {
                 switch != null -> {
                     val toggle = settingsNodes.firstOrNull {

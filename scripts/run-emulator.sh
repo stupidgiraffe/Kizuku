@@ -23,7 +23,7 @@ cp "$ANDROID_AVD_HOME/kizuku-ci.ini" smoke-evidence/avd-target.ini
 grep -Fxq "target=$target" smoke-evidence/avd-target.ini
 test -f "$ANDROID_AVD_HOME/kizuku-ci.avd/config.ini"
 printf 'disk.dataPartition.size=6G\n' >>"$ANDROID_AVD_HOME/kizuku-ci.avd/config.ini"
-"$ANDROID_HOME/emulator/emulator" -port 5554 -avd kizuku-ci -no-window -gpu software -no-snapshot -noaudio -no-boot-anim -camera-back none -memory 2048 -partition-size 6144 >smoke-evidence/emulator.log 2>&1 &
+"$ANDROID_HOME/emulator/emulator" -port 5554 -avd kizuku-ci -no-window -gpu software -no-snapshot -noaudio -no-boot-anim -camera-back none -memory 4096 -partition-size 6144 >smoke-evidence/emulator.log 2>&1 &
 emulator_pid=$!
 cleanup() {
   set +e
@@ -63,7 +63,11 @@ for attempt in $(seq 1 60); do
 done
 adb shell am get-started-user-state 0 >smoke-evidence/user-state.txt
 grep -q RUNNING_UNLOCKED smoke-evidence/user-state.txt
-adb shell input keyevent 82
+# Sending MENU during cold first boot caused a launcher ANR and then a system
+# ANR before Kizuku was opened. Wait for Android's boot broadcasts, and dismiss
+# the keyguard directly instead of injecting an input event into that launcher.
+timeout 90 adb shell am wait-for-broadcast-idle --flush-broadcast-loopers >smoke-evidence/boot-broadcasts.txt
+timeout 15 adb shell wm dismiss-keyguard
 adb shell settings put global window_animation_scale 0
 adb shell settings put global transition_animation_scale 0
 adb shell settings put global animator_duration_scale 0
@@ -71,14 +75,12 @@ if [[ "${KIZUKU_TEST_SHEVERY_COMPARISON:-false}" == true ]]; then
   scripts/shevery-comparison.sh
   exit
 fi
-if [[ "${KIZUKU_TEST_SIGNED_UPDATE:-false}" == true ]]; then
-  scripts/signed-update-acceptance.sh "${1:-artifacts}"
-fi
 case "${KIZUKU_TEST_DEVICE_OWNER:-false}" in
   only) scripts/device-owner-acceptance.sh "${1:-artifacts}"; exit 0 ;;
   true) scripts/device-owner-acceptance.sh "${1:-artifacts}" ;;
 esac
 shell_status=0
+root_status=0
 KIZUKU_EVIDENCE_DIR=smoke-evidence/shell scripts/emulator-smoke.sh "${1:-artifacts}" || shell_status=$?
 if [[ "${KIZUKU_TEST_ROOT:-false}" == true ]]; then
   adb root
@@ -89,6 +91,20 @@ if [[ "${KIZUKU_TEST_ROOT:-false}" == true ]]; then
     adb uninstall io.github.stupidgiraffe.kizuku || true
     adb uninstall io.github.stupidgiraffe.kizuku.testclient || true
   fi
-  KIZUKU_EVIDENCE_DIR=smoke-evidence/root scripts/emulator-smoke.sh "${1:-artifacts}"
+  KIZUKU_EVIDENCE_DIR=smoke-evidence/root scripts/emulator-smoke.sh "${1:-artifacts}" || root_status=$?
 fi
-exit "$shell_status"
+update_status=0
+if [[ "${KIZUKU_TEST_SIGNED_UPDATE:-false}" == true ]]; then
+  # Finish the isolated upgrade scenario last: Android's replacement installer
+  # can leave its completion Activity over later installer confirmations.
+  adb shell pkill -x kizuku_server || true
+  adb unroot || true
+  timeout 30 adb wait-for-device
+  for package in io.github.stupidgiraffe.kizuku.test io.github.stupidgiraffe.kizuku.testclient io.github.stupidgiraffe.kizuku; do
+    adb uninstall "$package" || true
+  done
+  scripts/signed-update-acceptance.sh "${1:-artifacts}" || update_status=$?
+fi
+if (( shell_status != 0 )); then exit "$shell_status"; fi
+if (( root_status != 0 )); then exit "$root_status"; fi
+exit "$update_status"

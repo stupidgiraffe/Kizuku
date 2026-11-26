@@ -146,8 +146,13 @@ public final class RuntimeSmokeTest {
         File fixture = new File("/data/local/tmp/kizuku-axmanager-webui.zip");
         if (!fixture.isFile()) return;
         String plugin = "test_function";
-        assertEquals(plugin, install(host, fixture).getString("id"));
+        Bundle installed = install(host, fixture);
+        assertEquals(plugin, installed.getString("id"));
+        assertFalse(installed.getString("startup_error"), installed.containsKey("startup_error"));
         try {
+            Bundle action = host.controlRuntimePlugin(plugin, "action");
+            assertEquals(action.getString("stderr"), 0, action.getInt("exit"));
+            assertTrue(host.controlRuntimePlugin(plugin, "action-log").getString("module_log").contains("exit 0"));
             String verifyOriginalBridge = """
                 (() => {
                   if (document.title !== 'Test Function' || typeof axeronExecAsync !== 'function') return false;
@@ -160,9 +165,77 @@ public final class RuntimeSmokeTest {
                 })()
                 """.formatted(uid);
             verifyWebView(plugin, verifyOriginalBridge);
+            String verifyStreaming = """
+                (() => {
+                  if (!window.kizukuSpawnStarted) {
+                    window.kizukuSpawnStarted = true;
+                    const child = spawnDirect('sh', ['-c', 'rm -f run/stream-release; printf STREAM_ONE; while [ ! -f run/stream-release ]; do sleep 0.05; done; printf STREAM_TWO; exit 19'], {});
+                    window.kizukuChunks = [];
+                    child.stdout.on('data', value => {
+                      window.kizukuChunks.push(value);
+                      if (window.kizukuChunks.join('').includes('STREAM_ONE') && !window.kizukuReleased) {
+                        window.kizukuReleased = true;
+                        axeronExecAsync('touch run/stream-release', {});
+                      }
+                    });
+                    child.on('error', value => { window.kizukuSpawnError = String(value); });
+                    child.on('exit', code => { window.kizukuSpawnExit = code; });
+                  }
+                  return window.kizukuSpawnExit === 19 && window.kizukuChunks.length >= 2 &&
+                         window.kizukuChunks.join('').includes('STREAM_ONESTREAM_TWO');
+                })()
+                """;
+            verifyWebView(plugin, verifyStreaming);
+            // Run the original plugin's own helper tests without rewriting its JavaScript.
+            verifyWebView(plugin, """
+                (() => {
+                  if (typeof tests === 'undefined') return false;
+                  if (!window.kizukuHelperStarted) {
+                    window.kizukuHelperStarted = true;
+                    window.kizukuHelperLogs = [];
+                    Promise.all(['kernelsu-module', 'axeron-module'].map(id =>
+                      tests.find(test => test.id === id).run(text => window.kizukuHelperLogs.push(text))))
+                      .then(results => { window.kizukuHelpersPassed = results.every(Boolean); })
+                      .catch(error => { window.kizukuHelperLogs.push(String(error)); });
+                  }
+                  return window.kizukuHelpersPassed === true;
+                })()
+                """);
+            // Update the exact upstream plugin, exercise restart and validate the API's JSON query.
+            String previousPids = pluginDaemonPids(host, plugin);
+            assertTrue(install(host, fixture).getBoolean("updated"));
+            assertProcessesStopped(host, previousPids);
+            // The original service deliberately creates an env -i child with no marker.
+            String restartedPids = pluginDaemonPids(host, plugin);
+            host.controlRuntimePlugin(plugin, "disable");
+            assertProcessesStopped(host, restartedPids);
+            host.controlRuntimePlugin(plugin, "enable");
         } finally {
             host.controlRuntimePlugin(plugin, "remove");
         }
+    }
+
+    private static String pluginDaemonPids(IKizukuService host, String plugin) throws Exception {
+        String directory = findPlugin(host, plugin).getString("moduleDir");
+        long deadline = android.os.SystemClock.elapsedRealtime() + 5_000;
+        do {
+            Bundle output = host.runtimeCommand("cat " + directory + "/run/heartbeat.pid " + directory + "/run/clean-env.pid");
+            String pids = output.getString("stdout", "").trim().replace('\n', ' ');
+            if (output.getInt("exit") == 0 && pids.matches("[1-9][0-9]* [1-9][0-9]*")) return pids;
+            android.os.SystemClock.sleep(100);
+        } while (android.os.SystemClock.elapsedRealtime() < deadline);
+        throw new AssertionError("The original plugin service did not create its two real processes");
+    }
+
+    private static void assertProcessesStopped(IKizukuService host, String pids) throws Exception {
+        long deadline = android.os.SystemClock.elapsedRealtime() + 5_000;
+        do {
+            Bundle output = host.runtimeCommand("for pid in " + pids + "; do " +
+                "[ ! -e /proc/$pid/stat ] || [ \"$(cut -d' ' -f3 /proc/$pid/stat)\" = Z ] || exit 1; done");
+            if (output.getInt("exit") == 0) return;
+            android.os.SystemClock.sleep(100);
+        } while (android.os.SystemClock.elapsedRealtime() < deadline);
+        throw new AssertionError("Plugin update/disable left a daemon or its clean-environment child running");
     }
 
     private static void verifyWebView(String plugin, String expression) throws Exception {
@@ -191,7 +264,20 @@ public final class RuntimeSmokeTest {
                 if (completed.await(3, TimeUnit.SECONDS) && "true".equals(answer.get())) return;
                 android.os.SystemClock.sleep(250);
             }
-            fail(plugin + " did not render and execute through its original WebUI bridge");
+            var diagnostics = new AtomicReference<String>();
+            var ready = new CountDownLatch(1);
+            tests.runOnMainSync(() -> {
+                android.view.ViewGroup page = activity.findViewById(android.R.id.content);
+                if (page != null && page.getChildAt(0) instanceof WebView view) {
+                    view.evaluateJavascript("JSON.stringify({title:document.title,ready:document.readyState," +
+                        "exec:window.kizukuTestResult,spawnExit:window.kizukuSpawnExit,spawnError:window.kizukuSpawnError," +
+                        "chunks:window.kizukuChunks,helpers:window.kizukuHelperLogs})", value -> {
+                            diagnostics.set(value); ready.countDown();
+                        });
+                } else ready.countDown();
+            });
+            ready.await(3, TimeUnit.SECONDS);
+            fail(plugin + " did not render and execute through its original WebUI bridge: " + diagnostics.get());
         } finally {
             tests.runOnMainSync(activity::finish);
         }

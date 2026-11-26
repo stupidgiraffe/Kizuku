@@ -43,6 +43,11 @@ final class RuntimePlugins {
             chmod "$4" "$1" || return
             if [ -n "${5:-}" ]; then chcon "$5" "$1"; fi
         }
+        set_perm_recursive() {
+            chown -R "$2:$3" "$1" 2>/dev/null || :
+            find "$1" -type d -exec chmod "$4" {} \\;
+            find "$1" -type f -exec chmod "$5" {} \\;
+        }
         . "$MODPATH/customize.sh"
         """;
     private final AxRuntime runtime;
@@ -80,6 +85,7 @@ final class RuntimePlugins {
                 row.putString("moduleDir", file.getPath());
                 row.putBoolean("enabled", enabled(file));
                 row.putBoolean("background", isShevery(row) && new File(file, BACKGROUND).isFile());
+                row.putBoolean("service_running", runtime.pluginRunning(row.getString("id")));
                 rows.add(row);
             } catch (IOException | IllegalArgumentException failure) {
                 Bundle row = new Bundle();
@@ -130,6 +136,8 @@ final class RuntimePlugins {
                     env.put("BOOTMODE", "true"); env.put("MODPATH", module.getPath()); env.put("ZIPFILE", zip.getPath());
                     env.put("API", Integer.toString(android.os.Build.VERSION.SDK_INT));
                     env.put("ARCH", arch); env.put("IS64BIT", Boolean.toString(arch.endsWith("64")));
+                    env.put("ABI", abi); env.put("ABI32", android.os.Build.SUPPORTED_32_BIT_ABIS.length == 0 ? "" : android.os.Build.SUPPORTED_32_BIT_ABIS[0]);
+                    env.put("MODID", id); env.put("MODNAME", row.getString("name", id)); env.put("MODAUTH", row.getString("author", ""));
                     requireSuccess(runtime.run(id, new String[]{AxRuntime.SHELL, "-c", CUSTOMIZE}, module, env, 25));
                     if (!id.equals(info(module).getString("id"))) throw new IOException("Installer changed the module ID");
                 }
@@ -217,6 +225,7 @@ final class RuntimePlugins {
             }
             case "action-log" -> { return lastLog(directory, "action"); }
             case "service-log" -> { return lastLog(directory, "service"); }
+            case "post-fs-data-log" -> { return lastLog(directory, "post-fs-data"); }
             case "web-read", "web-shell" -> {
                 requireEnabled(directory);
                 if (!row.getBoolean("webui")) throw new IOException("This plugin has no WebUI");
@@ -237,9 +246,14 @@ final class RuntimePlugins {
                 invalidate(id);
                 runtime.stopPlugin(id);
                 Bundle result = isShevery(row) ? null : script(id, directory, "uninstall.sh");
-                if (result != null) requireSuccess(result);
                 delete(directory.toPath());
                 updatePath();
+                if (result != null) {
+                    result.putBoolean("removed", true);
+                    if (result.getInt("exit") != 0 || result.getBoolean("timed_out"))
+                        result.putString("warning", "Plugin removed. Its uninstall script failed with exit " + result.getInt("exit") + ". Review the script output.");
+                    return result;
+                }
             }
             default -> throw new IllegalArgumentException("Invalid plugin operation");
         }
@@ -297,6 +311,29 @@ final class RuntimePlugins {
 
     private synchronized java.util.concurrent.Callable<Bundle> prepareWebSessionCommand(
             String id, String token, String command, String rawOptions) throws Exception {
+        WebSpec spec = webSpec(id, token, rawOptions);
+        return runtime.prepare(id, new String[]{AxRuntime.SHELL, "-c", AxRuntime.validate(command)},
+            spec.directory(), spec.environment(), spec.timeout(), spec.stdin());
+    }
+
+    private record WebSpec(File directory, Map<String, String> environment, int timeout, byte[] stdin) {}
+
+    synchronized frb.axeron.server.IAxshProcess webSpawn(io.github.stupidgiraffe.kizuku.core.ClientIdentity owner,
+            String id, String token, String command, String arguments, String options,
+            ParcelFileDescriptor stdin, ParcelFileDescriptor stdout, ParcelFileDescriptor stderr,
+            ParcelFileDescriptor status) throws Exception {
+        WebSpec spec = webSpec(id, token, options);
+        org.json.JSONArray args = new org.json.JSONArray(arguments);
+        if (args.length() > 128) throw new IllegalArgumentException("Too many WebUI arguments");
+        String[] argv = new String[args.length() + 1];
+        argv[0] = AxRuntime.validate(command);
+        for (int i = 0; i < args.length(); i++) argv[i + 1] = args.getString(i);
+        String[] env = spec.environment().entrySet().stream()
+            .map(entry -> entry.getKey() + "=" + entry.getValue()).toArray(String[]::new);
+        return runtime.launch(owner, id, argv, env, spec.directory().getPath(), stdin, stdout, stderr, false, 0, status);
+    }
+
+    private WebSpec webSpec(String id, String token, String rawOptions) throws Exception {
         if (!requireSession(id, token).shell()) throw new SecurityException("This WebUI was opened without shell access");
         File directory = plugin(id);
         requireEnabled(directory);
@@ -311,9 +348,9 @@ final class RuntimePlugins {
         File work = cwd.isEmpty() ? directory
             : isShevery(row) || !new File(cwd).isAbsolute() ? child(directory, cwd)
             : new File(cwd).getCanonicalFile();
-        if (!work.toPath().startsWith(directory.toPath()) || !work.isDirectory())
-            throw new SecurityException("WebUI working directory must be inside the plugin");
-        Map<String, String> env = isShevery(row) ? moduleEnv(id, directory, work) : new HashMap<>();
+        if (!work.isDirectory() || isShevery(row) && !work.toPath().startsWith(directory.toPath()))
+            throw new SecurityException("Invalid WebUI working directory");
+        Map<String, String> env = moduleEnv(id, directory, work);
         JSONObject requested = options.optJSONObject("env");
         if (requested != null) {
             if (requested.length() > 32) throw new IllegalArgumentException("Too many WebUI environment values");
@@ -328,7 +365,7 @@ final class RuntimePlugins {
                 env.put(key, value);
             }
         }
-        return runtime.prepare(id, new String[]{AxRuntime.SHELL, "-c", AxRuntime.validate(command)}, work, env, timeout, stdin);
+        return new WebSpec(work, env, timeout, stdin);
     }
 
     private WebSession requireSession(String id, String token) {
@@ -364,15 +401,48 @@ final class RuntimePlugins {
             } catch (Exception failure) { serviceRuns.remove(id); throw failure; }
             return;
         }
-        Bundle result = script(id, directory, "post-fs-data.sh");
-        if (result != null) requireSuccess(result);
+        File properties = child(directory, "system.prop");
+        if (properties.isFile()) {
+            if (properties.length() > 8192) throw new IOException("system.prop is too large");
+            for (String line : Files.readAllLines(properties.toPath(), StandardCharsets.UTF_8)) {
+                String clean = line.trim();
+                if (clean.isEmpty() || clean.startsWith("#")) continue;
+                int separator = clean.indexOf('=');
+                if (separator < 1) throw new IOException("Invalid system property");
+                String key = clean.substring(0, separator).trim();
+                String value = clean.substring(separator + 1).trim();
+                if (!key.matches("[A-Za-z0-9_.-]{1,92}") || value.indexOf(0) >= 0)
+                    throw new IOException("Invalid system property");
+                requireSuccess(runtime.run(id, new String[]{"/system/bin/setprop", key, value},
+                    directory, moduleEnv(id, directory, directory), 8));
+            }
+        }
+        Bundle startup = script(id, directory, "post-fs-data.sh");
+        if (startup != null) requireSuccess(startup);
         File service = child(directory, "service.sh");
-        if (service.isFile()) runtime.service(id, service, directory);
+        if (service.isFile()) {
+            String run = UUID.randomUUID().toString();
+            serviceRuns.put(id, run);
+            runtime.moduleService(id, new String[]{AxRuntime.SHELL, service.getPath()}, directory,
+                moduleEnv(id, directory, directory), result -> {
+                    synchronized (this) {
+                        if (!run.equals(serviceRuns.get(id))) return;
+                        serviceRuns.remove(id);
+                        try { writeLog(directory, "service", result); }
+                        catch (IOException failure) { Log.w("KizukuRuntime", "Cannot write service log", failure); }
+                    }
+                });
+        }
     }
 
     private Bundle script(String id, File directory, String name) throws Exception {
         File script = child(directory, name);
-        return script.isFile() ? runtime.run(id, new String[]{AxRuntime.SHELL, script.getPath()}, directory, null, 20) : null;
+        if (!script.isFile()) return null;
+        String kind = name.replace(".sh", "");
+        Bundle result = runtime.run(id, new String[]{AxRuntime.SHELL, script.getPath()}, directory,
+            moduleEnv(id, directory, directory), 20);
+        writeLog(directory, kind, result);
+        return result;
     }
 
     private Bundle moduleScript(String id, File directory, Bundle row, String kind) throws Exception {
@@ -390,6 +460,7 @@ final class RuntimePlugins {
 
     private static Map<String, String> moduleEnv(String id, File directory, File working) {
         Map<String, String> env = new HashMap<>();
+        env.put("MODID", id);
         env.put("MODDIR", directory.getPath());
         env.put("MODPATH", directory.getPath());
         env.put("SHIZUKU_EXEC_CWD", working.getPath());

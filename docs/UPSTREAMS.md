@@ -146,3 +146,136 @@ host. The Shevery APK and test modules are used on disposable emulators.
 | Dhizuku binder relay and UserService | `dhizuku/DhizukuProvider.kt`, `DhizukuAuthManager.kt`, `DhizukuUserServiceHostService.kt` | **Unsuitable for direct port.** The reviewed relay dispatch accepts caller-supplied Binder transactions, the grant store relies on numeric UIDs, and donor UserService code runs with the owner app UID. External Dhizuku needs independently verified client identities and a constrained policy API. |
 | Stealth and foreground hiding | `stealth/StealthApkGenerator.kt`, `settings/UsbDebuggingHideService.kt`, `settings/DeveloperOptionsHideService.kt` | **Unsuitable.** Package rewriting would disrupt Kizuku's update identity. Per-second foreground polling modifies global debugging state that Kizuku needs for ADB recovery. |
 | Comput and native Rust rewrite | `comput/`, `commandium/`, `native/` | **Partial.** Kizuku has local commands and saved scripts. Cloud AI and a native toolchain replacement are outside this phase. The release fixes were reviewed for their IPC and lifecycle implications. |
+
+## Axora, AxManager and fOxygen comparison · November 24, 2026
+
+Source review baseline: Kizuku `244c92855e770365d1731a6f701669cace776ae1`.
+The gaps below describe that revision, before this integration candidate; they are
+not runtime acceptance claims. GitHub release collections, tag refs and `main`
+heads were checked on November 24. All three inspected application heads still
+match their remote `main` branches.
+
+| Source | Exact inspected revision | Latest actual release and license |
+| --- | --- | --- |
+| [Axora](https://github.com/corvexis/Axora/tree/c07aa503eb8bcfe32612b2320750a74f71819702) | `c07aa503eb8bcfe32612b2320750a74f71819702` | [26.10.21 / r380](https://github.com/corvexis/Axora/releases/tag/26.10.21), October 21, tag commit `9acb7f76816f6e8cbc6a651b17fe16b4fbf5b9bc`. Apache-2.0; LICENSE credits AxManager, copyright 2025 FahrezONE, and Shizuku/Rikka Apps. |
+| [AxManager](https://github.com/fahrez182/AxManager/tree/7ed7f508464076d2617a9172c9de5bca2e7bcf7a) | `7ed7f508464076d2617a9172c9de5bca2e7bcf7a` | [v3.0.0](https://github.com/fahrez182/AxManager/releases/tag/v3.0.0), October 29, tag commit `1b08f1c9987ecf79b28c555fbcc7b2689147cf62`. Same Apache-2.0 application license and attribution. Current main includes changes after that release. |
+| [fOxygen](https://github.com/Youngupdatesource/fOxygen/tree/243a9ed842afeb74a0a2180fc56df12c7ea246b4) | `243a9ed842afeb74a0a2180fc56df12c7ea246b4` | [v1.4](https://github.com/Youngupdatesource/fOxygen/releases/tag/v1.4), November 20, same commit. Same Apache-2.0 application license and attribution. |
+| [Axeron-API](https://github.com/fahrez182/Axeron-API/tree/37eb6a3521828458394797e7166ff2e90946304e) | `37eb6a3521828458394797e7166ff2e90946304e`, AxManager main's `api` gitlink | MIT, copyright 2025–2026 FahrezRB. Published AxManager v3.0.0 instead pins `bfceee9cecfb0451448b3453017b8326ee1f591e`, already used by Kizuku. Preserve that release comparison when reviewing newer main. |
+
+### Terminal behavior and reuse
+
+Application manager paths below are relative to
+`manager/src/main/java/frb/axeron/manager/` unless stated otherwise.
+Axora's `ui/viewmodel/QuickShellViewModel.kt` uses an unlimited
+event channel and a mutable Compose log. It offers command/input mode, saved
+commands and ANSI color, but treats chunks as line updates. Current AxManager's
+`ui/util/TerminalBuffer.kt` improves this with per-stream partial lines and split
+escape handling, a 20,000-line ring or disk spool, serial background parsing and
+32 ms snapshot publication. Its `ui/component/TerminalOutput.kt` reads visible
+lines on demand and provides selection, search and scroll controls. fOxygen's
+corresponding buffer drains in 8 ms main-thread slices instead. These are useful
+transcript patterns; their parsers deliberately drop most cursor controls and
+cannot provide a complete interactive terminal.
+
+fOxygen's `ui/util/QuickShellSession.kt` starts each command in its own `setsid`
+session, drains stdout/stderr concurrently, closes stdin on completion and handles
+Binder death. Its EXIT marker and inherited-output detection distinguish
+background work from a completed command; stopping targets the command's process
+group. Reuse the ownership and cleanup principles through Kizuku's existing
+process tracking, without adding another command engine. Its `RootlessShell.kt`
+and `server/src/main/cpp/axdrop.cpp` lower root to UID 2000, groups and capabilities;
+that does not establish equivalence to a real ADB launch or justify reusing shell
+grants for root sessions.
+
+Both newer donors use [AndroidANSI 1.2.1](https://github.com/Fox2Code/AndroidANSI/tree/f16c37b3f4440424a71193bc961c8caa7a2d3d06)
+(`library` and `library-ktx`): MIT, copyright 2022 Fox2Code. The latest release
+endpoint still reports May 3, 2023. It renders ANSI colors; it supplies neither
+PTY transport nor VT cursor/screen emulation.
+
+For a real terminal, prefer the pinned Java `terminal-emulator` and `terminal-view`
+modules from [Termux `8629e632fcb95da272221be327db653fb24befe9`](https://github.com/termux/termux-app/tree/8629e632fcb95da272221be327db653fb24befe9).
+Its root [LICENSE.md](https://github.com/termux/termux-app/blob/8629e632fcb95da272221be327db653fb24befe9/LICENSE.md)
+explicitly places these two modules under Apache-2.0 as exceptions to the app's
+GPLv3-only license. Preserve that exception and existing AOSP/Android Terminal
+Emulator notices. The stock emulator artifact builds JNI, and `TerminalView`
+depends on the final, JNI-backed `TerminalSession`; it cannot simply accept an
+external PTY. A narrow vendored adaptation should retain the emulator/view Java
+and selection resources, replace only `TerminalSession` transport with Kizuku's
+Binder pipes, and exclude `JNI.java`, native subprocess code, `app` and
+`termux-shared`. Feed raw UTF-8 bytes to `TerminalEmulator.append` on main through
+a bounded queue, route input back to the pipe, and resize both emulator and
+`IAxshProcess`. This retains mature IME, selection, cursor and screen behavior
+while keeping one privileged host.
+
+### Axeron interfaces and module expectations
+
+| Boundary | Primary evidence | Kizuku baseline and decision |
+| --- | --- | --- |
+| Interactive process | API `aidl/src/main/aidl/frb/axeron/server/IAxeronService.aidl`, `IAxshProcess.aidl`; `axsh/src/main/java/frb/axeron/shell/host/ShellProcess.kt` | Existing Axeron PTY, full argv, resize and exit-status pipe are the foundation. Kizuku `RuntimeScreens.kt` still uses a completed-command Bundle with bounded output, so it does not expose that interactive path to the manager. Add a manager adapter to the existing host. |
+| Native axsh | API `axsh/src/main/cpp/axsh_protocol.h`, `axsh/src/main/java/frb/axeron/shell/Sessions.kt`, `AxBroker.kt`; AxManager `server/src/main/java/frb/axeron/server/axsh/AxshServer.kt` | `openAxshChannel` throws and `getAxshSocketName` returns null. Null preserves ordinary Binder-backed broker fallback. Add native sessions only by dispatching to the existing authorized launcher; authenticate socket peers and recheck active role grants. |
+| File service | API `api/src/main/java/frb/axeron/api/AxeronFileService.kt`, `server-shared/src/main/java/frb/axeron/server/api/FileServiceHolder.kt` | `getFileService` is unsupported. Implement the existing AIDL, checking UID, current signer and AXERON authority on every call. Read through caller-owned pipes because regular privileged-file FDs can fail SELinux Binder transfer. Signal write completion only after EOF, flush and fsync; clients wait for that callback before chmod/exec. |
+| Packages and plugins | API `aidl/src/main/java/frb/axeron/server/PluginData.kt`, `server-shared/src/main/java/frb/axeron/server/Service.kt`; AxManager `data/PackageControl.kt` | `getPackages`, `getPlugins` and `getPluginById` are unsupported despite the local manager inventory. Adapt the same installed-package/module state, keeping Parcelables wire-compatible. PluginInfo JSON requires nested `prop`, plus `enabled`, `remove`, `action`, `web`, `size`, `dir_id` and update flags. |
+| Module lifecycle | AxManager `manager/src/main/assets/scripts/functions.sh`, `reignite/src/main/java/frb/axeron/reignite/Igniter.kt`, `website/docs/plugin/environment.md` | Kizuku already supplies separate root/shell storage, ZIP install, action, service, uninstall, plugin PATH and process ownership. Its installer rejects `SKIPUNZIP=1`; BusyBox standalone ash, full installer helpers, donor staging/re-ignite and every boot convention remain distinct compatibility work. Keep explicit failure for unsupported installers. |
+| WebUI | AxManager `ui/webui/interfaces/AxWebInterface.kt`, `KsuWebInterface.kt`, `website/docs/plugin/webui-api.md` | Kizuku supports local assets, consented command execution and async exec callbacks. Current main additionally exposes streamed `ksu.spawn`, package metadata/icons, file methods/output sessions, fullscreen/insets and shortcuts. Prioritize demonstrated module needs; preserve per-open consent and local origin/session checks when extending the bridge. |
+
+The native AXSH v1 handshake is little-endian: `AXSH`, version byte `1`, flags
+(PTY bit 0, login bit 1), argc and length-prefixed argv, envc and length-prefixed
+environment; PTY adds 16-bit rows/columns. SCM_RIGHTS on the first byte carries
+three non-PTY FDs (stdin read, stdout/stderr writes), or two PTY FDs (stdin read,
+merged output write). Reply status is one byte; nonzero status adds a
+length-prefixed error. Subsequent frames are client `0x03` with rows/columns and
+server `0x02` with signed 32-bit exit status. Disconnect must destroy the session.
+Only TERM, COLORTERM, LANG and LC_* client variables overlay the host environment
+for a PTY. The Binder size packs rows, columns, x pixels and y pixels into four
+16-bit fields; its separate exit pipe contains a little-endian int32.
+
+`openAxshChannel` uses a socketpair: every byte carries a connected client socket
+FD. Upstream verifies the forwarded socket's peer UID against the channel owner;
+the root fast path uses a random abstract socket name each host start. Neither
+transport may bypass Kizuku's installed-certificate checks, independent AXERON
+grant or root/shell role. Do not import AxManager's Shizuku control/permission
+stores, separate Reignite host, native BusyBox/resetprop binaries or artwork.
+Any copied application code needs its Apache attribution; copied API protocol
+code needs the separate MIT notice. This review performed no phone changes and
+establishes source compatibility requirements, not device acceptance.
+
+### Preview 5 integration candidate
+
+This candidate preserves Preview 4's working activation, immediate bulk/single
+Shizuku controls, hidden companion, scoped Dhizuku subset and SU wrapper.
+The user confirmed all personally tested Preview 4 features worked. New code
+below requires signed acceptance; implementation is not a full-compatibility claim.
+
+| Area | Decision | Candidate behavior and boundary |
+| --- | --- | --- |
+| Interactive terminal | **Adopt / improve** | Termux's Apache emulator and view render the existing host PTY. Live input/output, ANSI cursor and colors, resize, control keys, termination, actual exits, searchable/copyable transcript and persistent snippets. No second terminal engine or daemon. |
+| Native axsh | **Adopt** | AXSH v1, forwarded socket FDs, peer UID verification and role-specific AXERON grants dispatch to the existing process launcher. The unchanged AxManager DemoAxsh release is an acceptance fixture; arbitrary SDK/client combinations remain unproven. |
+| File, package and plugin queries | **Adopt** | Original release wire layouts; caller UID/current signer on each file transaction, directional pipes, completion after flush/fsync, bounded pagination and accurate installed package/plugin state. |
+| Module lifecycle | **Improve** | Original installer variables and permission helpers, real current-UID `setprop`, separate shell/root homes, install/update/remove, action/service/post-fs logs and owned process-group cleanup. Unsupported installer conventions fail or remain documented; no bundled BusyBox/resetprop. |
+| Local WebUI | **Improve** | Consent per open; streamed `ksu.spawn`, original local `kernelsu.js`, exec, package metadata, fullscreen/insets and shortcuts which request command access. Asset paths and session tokens are checked by the host. |
+| Apps details | **Adopt selectively** | Secondary permissions/AppOps screen, force-stop and Android battery settings. Snapshot signer and host role are checked before changes. Bulk Shizuku controls stay immediate. |
+| Update handling | **Improve** | Visible download progress; acceptance downloads the candidate through Preview 4, verifies its signer/hash and approves Android's installer before checking retained UID, grants and ADB identity. |
+| Donor manager controls and every native API | **Defer** | Axeron grant mutation, manager initialization, embedded Shizuku controls, environment mutation, wake locks and user-service attach are explicitly unavailable. Use Kizuku's own separately authorized APIs. |
+| Standalone axsh distribution | **Defer** | Kizuku serves the native AXSH wire for SDK clients with their own native binary. It does not bundle/export the donor's standalone `libaxsh.so` or its app-process bootstrap. External terminals can use the existing rish export. |
+| Network WebUI, catalog and full donor installer environment | **Defer** | Local pages only. BusyBox standalone/`SKIPUNZIP`, all boot-stage semantics and unrestricted network APIs require demonstrated clients and separate acceptance. |
+| Second host, shared root/shell grants, unrestricted relay | **Reject** | Preserve one privileged host and independent Kizuku authorization; Linux privilege failures remain failures. |
+
+The temporary CI fixtures are the original AxManager v3.0.0
+`DemoAxsh_v2.0.0_30000-release_2610291728.apk` (SHA-256
+`17219acd16c8ba56ab7801a6c082c43a0678368ba94c0f2eebd0b01b01d0eecd`)
+and `test_function-v2.0.0.zip` (SHA-256
+`b5c6328f17800c91bce2440de5cd947f25142bbb9ec85264d310517613e10e9f`).
+No competing manager is installed and neither binary is committed. Test Function
+includes donor-specific diagnostics such as BusyBox, direct log FDs and exact
+installer paths; a successful lifecycle test does not imply every diagnostic
+matches AxManager. Record verified operations and remaining differences in STATUS.
+
+Security review: manager calls require its installed signer and UID; client file
+and native channel calls validate the current client identity and AXERON grant;
+revocation closes streams/channels and stops owned jobs. Remembered shell/root
+grants use different stores. ZIP path, symlink and expansion checks remain in the
+existing installer. WebUI assets are local, subframes/network/file access are
+blocked, commands require a current module token, and closing a page terminates
+its streamed processes. Terminal OSC 52 clipboard writes are disabled. Physical
+phone/OEM behavior and hostile-module containment are not established by emulator
+tests: a user-approved shell-capable module has the host's actual authority.

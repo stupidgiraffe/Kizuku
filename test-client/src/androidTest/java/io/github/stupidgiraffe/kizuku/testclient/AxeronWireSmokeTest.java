@@ -101,15 +101,17 @@ public final class AxeronWireSmokeTest {
             assertEquals(30000L, p.readLong());
             return p.readInt();
         }));
-        assertNull(call(binder, SOCKET_NAME, null, Parcel::readString));
+        assertNotNull(call(binder, SOCKET_NAME, null, Parcel::readString));
         // The unmodified Axsh SDK reads TYPE_ENV before every default-environment launch.
         assertEquals(0, (int) call(binder, ENVIRONMENT, p -> p.writeInt(0), p -> {
             assertEquals(1, p.readInt());
             return p.readInt();
         }));
         assertThrows(UnsupportedOperationException.class, () -> call(binder, SHIZUKU_SERVICE, null, null));
-        assertThrows(UnsupportedOperationException.class, () -> call(binder, FILE_SERVICE, null, null));
-        assertThrows(UnsupportedOperationException.class, () -> call(binder, OPEN_CHANNEL, null, null));
+        IBinder cachedFiles = assertFileService(binder);
+        assertNativeChannel(binder, hostUid);
+        assertEquals(1, (int) call(binder, 6, p -> p.writeInt(0), Parcel::readInt));
+        assertEquals(1, (int) call(binder, 7, null, Parcel::readInt));
         assertStreams(binder, hostUid);
         assertInteractiveTerminal(binder, hostUid);
         assertRefusedAndClosed(binder, IllegalArgumentException.class, true);
@@ -117,6 +119,119 @@ public final class AxeronWireSmokeTest {
         if (stage.equals("held")) {
             assertRevokedProcessDies(binder);
             assertRefusedAndClosed(binder, SecurityException.class, false);
+            assertThrows(SecurityException.class, () -> fileCall(cachedFiles, 3,
+                p -> p.writeString("/data/local/tmp"), p -> p.readInt() != 0));
+            System.out.println("Waiting for manager regrant");
+            System.out.flush();
+            long deadline = android.os.SystemClock.elapsedRealtime() + 15_000;
+            while (!call(binder, CHECK_PERMISSION, null, p -> p.readInt() != 0)
+                    && android.os.SystemClock.elapsedRealtime() < deadline) android.os.SystemClock.sleep(75);
+            assertTrue("The same identity received a fresh grant", call(binder, CHECK_PERMISSION, null, p -> p.readInt() != 0));
+            assertFileHandle(cachedFiles);
+        }
+    }
+
+    private static IBinder assertFileService(IBinder service) throws Exception {
+        IBinder files = call(service, FILE_SERVICE, null, Parcel::readStrongBinder);
+        assertFileHandle(files);
+        return files;
+    }
+
+    private static void assertFileHandle(IBinder files) throws Exception {
+        assertEquals("frb.axeron.server.IFileService", files.getInterfaceDescriptor());
+        String path = "/data/local/tmp/kizuku-file-" + Process.myUid();
+        assertTrue(fileCall(files, 0, p -> p.writeString(path), p -> p.readInt() != 0));
+        assertTrue(fileCall(files, 1, p -> p.writeString(path + "/one"), p -> p.readInt() != 0));
+        assertTrue(fileCall(files, 3, p -> p.writeString(path + "/one"), p -> p.readInt() != 0));
+        ParcelFileDescriptor[] input = ParcelFileDescriptor.createPipe();
+        CountDownLatch written = new CountDownLatch(1);
+        java.util.concurrent.atomic.AtomicReference<String> problem = new java.util.concurrent.atomic.AtomicReference<>();
+        IBinder callback = new Binder() {
+            @Override protected boolean onTransact(int code, Parcel data, Parcel reply, int flags) {
+                data.enforceInterface("frb.axeron.server.IOutputStreamCallback");
+                if (code != IBinder.FIRST_CALL_TRANSACTION) problem.set("File write failed");
+                written.countDown();
+                reply.writeNoException();
+                return true;
+            }
+        };
+        fileCall(files, 12, p -> {
+            p.writeString(path + "/one"); p.writeTypedObject(input[0], 0); p.writeStrongBinder(callback); p.writeInt(0);
+        }, null);
+        input[0].close();
+        try (var target = new ParcelFileDescriptor.AutoCloseOutputStream(input[1])) {
+            target.write("original-file-wire".getBytes(StandardCharsets.UTF_8));
+        }
+        assertTrue(written.await(5, TimeUnit.SECONDS));
+        assertNull(problem.get());
+        ParcelFileDescriptor[] output = ParcelFileDescriptor.createPipe();
+        assertTrue(fileCall(files, 11, p -> {
+            p.writeString(path + "/one"); p.writeTypedObject(output[1], 0);
+        }, p -> p.readInt() != 0));
+        output[1].close();
+        assertEquals("original-file-wire", new String(readPipe(output[0]), StandardCharsets.UTF_8));
+
+        assertTrue(fileCall(files, 9, p -> {
+            p.writeString(path + "/one"); p.writeInt(0600);
+        }, p -> p.readInt() != 0));
+        assertEquals(1, (int) fileCall(files, 7, p -> {
+            p.writeString(path); p.writeInt(0); p.writeInt(0); p.writeInt(1); p.writeInt(0); p.writeInt(16);
+        }, Parcel::readInt)); // The returned typed list has one FileStat.
+        assertTrue(fileCall(files, 13, p -> {
+            p.writeString(path + "/one"); p.writeString(path + "/two"); p.writeInt(0);
+        }, p -> p.readInt() != 0));
+        assertTrue(fileCall(files, 2, p -> p.writeString(path + "/two"), p -> p.readInt() != 0));
+        assertTrue(fileCall(files, 2, p -> p.writeString(path), p -> p.readInt() != 0));
+    }
+
+    private static <T> T fileCall(IBinder binder, int id, ParcelWriter writer, ParcelReader<T> reader) throws Exception {
+        return transact(binder, "frb.axeron.server.IFileService", id, writer, reader);
+    }
+
+    private static void assertNativeChannel(IBinder binder, int hostUid) throws Exception {
+        org.lsposed.hiddenapibypass.HiddenApiBypass.addHiddenApiExemptions("Landroid/net/LocalSocket;");
+        ParcelFileDescriptor channelFd = call(binder, OPEN_CHANNEL, null, p -> p.readTypedObject(ParcelFileDescriptor.CREATOR));
+        assertNotNull(channelFd);
+        ParcelFileDescriptor[] connection = ParcelFileDescriptor.createSocketPair();
+        ParcelFileDescriptor[] stdin = ParcelFileDescriptor.createPipe();
+        ParcelFileDescriptor[] stdout = ParcelFileDescriptor.createPipe();
+        ParcelFileDescriptor[] stderr = ParcelFileDescriptor.createPipe();
+        var constructor = android.net.LocalSocket.class.getDeclaredConstructor(java.io.FileDescriptor.class);
+        constructor.setAccessible(true);
+        try (var channel = constructor.newInstance(channelFd.getFileDescriptor());
+             var client = constructor.newInstance(connection[1].getFileDescriptor())) {
+            channel.setFileDescriptorsForSend(new java.io.FileDescriptor[]{connection[0].getFileDescriptor()});
+            channel.getOutputStream().write(1);
+            channel.getOutputStream().flush();
+            connection[0].close();
+            client.setSoTimeout(5000);
+            var request = new ByteArrayOutputStream();
+            request.write(new byte[]{'A', 'X', 'S', 'H', 1, 0});
+            writeStrings(request, new String[]{"/system/bin/sh", "-c", "id -u; exit 29"});
+            writeStrings(request, new String[0]);
+            client.setFileDescriptorsForSend(new java.io.FileDescriptor[]{
+                stdin[0].getFileDescriptor(), stdout[1].getFileDescriptor(), stderr[1].getFileDescriptor()});
+            client.getOutputStream().write(request.toByteArray());
+            client.getOutputStream().flush();
+            assertEquals("The native axsh handshake was accepted", 0, client.getInputStream().read());
+            stdin[0].close(); stdin[1].close(); stdout[1].close(); stderr[1].close();
+            assertEquals(2, client.getInputStream().read());
+            byte[] status = new byte[4];
+            new java.io.DataInputStream(client.getInputStream()).readFully(status);
+            assertEquals(29, ByteBuffer.wrap(status).order(ByteOrder.LITTLE_ENDIAN).getInt());
+            assertEquals(Integer.toString(hostUid), new String(readPipe(stdout[0]), StandardCharsets.UTF_8).trim());
+        } finally {
+            channelFd.close();
+            closePipes(connection, stdin, stdout, stderr);
+        }
+    }
+
+    private static void writeStrings(ByteArrayOutputStream output, String[] values) throws Exception {
+        output.write(ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN).putInt(values.length).array());
+        for (String value : values) {
+            byte[] bytes = value.getBytes(StandardCharsets.UTF_8);
+            output.write(ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN).putInt(bytes.length).array());
+            output.write(bytes);
         }
     }
 
@@ -328,10 +443,14 @@ public final class AxeronWireSmokeTest {
     private interface ParcelReader<T> { T read(Parcel data); }
 
     private static <T> T call(IBinder binder, int id, ParcelWriter writer, ParcelReader<T> reader) throws Exception {
+        return transact(binder, DESCRIPTOR, id, writer, reader);
+    }
+
+    private static <T> T transact(IBinder binder, String descriptor, int id, ParcelWriter writer, ParcelReader<T> reader) throws Exception {
         Parcel data = Parcel.obtain();
         Parcel reply = Parcel.obtain();
         try {
-            data.writeInterfaceToken(DESCRIPTOR);
+            data.writeInterfaceToken(descriptor);
             if (writer != null) writer.write(data);
             assertTrue("Axeron wire transaction " + id + " is implemented",
                 binder.transact(IBinder.FIRST_CALL_TRANSACTION + id, data, reply, 0));

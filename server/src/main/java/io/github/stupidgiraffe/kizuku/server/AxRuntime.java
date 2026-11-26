@@ -33,10 +33,6 @@ final class AxRuntime {
     private static final String MARKER = "KIZUKU_AXERON_PROCESS";
     private static final int MAX_OUTPUT = 32 * 1024;
     private static final String ROLE = android.os.Process.myUid() == 0 ? "root-" : "shell-";
-    private static final OutputStream DISCARD = new OutputStream() {
-        @Override public void write(int unused) {}
-        @Override public void write(byte[] unused, int offset, int count) {}
-    };
     private final ExecutorService io = Executors.newCachedThreadPool();
     private final Set<Job> jobs = new HashSet<>();
     private final Set<AxTerminalSession> terminals = new HashSet<>();
@@ -52,7 +48,7 @@ final class AxRuntime {
         home = new File(android.os.Process.myUid() == 0 ? "/data/adb/kizuku" : "/data/user_de/0/com.android.shell/kizuku");
         cache = new File(home, "cache");
         bins = new File(home, "xbin");
-        for (File directory : new File[]{home, cache, bins, new File(home, "bin")}) secureDirectory(directory);
+        for (File directory : new File[]{home, cache, bins, new File(home, "bin"), new File(home, "logs")}) secureDirectory(directory);
         LegacyRemoteProcess.reapMarkedChildren(MARKER + "=" + ROLE, true);
         plugins = new RuntimePlugins(this);
     }
@@ -68,14 +64,30 @@ final class AxRuntime {
     private synchronized Job start(ClientIdentity owner, String plugin, String[] argv, File directory, Map<String, String> extra) throws IOException {
         if (paused) throw new IllegalStateException("Runtime is suspended");
         for (Job job : new ArrayList<>(jobs)) {
-            if (!job.child.isAlive() && !LegacyRemoteProcess.hasMarkedChildren(MARKER + "=" + job.tag)) jobs.remove(job);
+            if (!job.child.isAlive() && !job.groupAlive() && !LegacyRemoteProcess.hasMarkedChildren(MARKER + "=" + job.tag)) jobs.remove(job);
         }
         if (jobs.size() + terminals.size() >= 16) throw new IllegalStateException("Runtime process limit reached");
         validateArgv(argv);
-        ProcessBuilder builder = new ProcessBuilder(argv).directory(directory);
+        String[] isolated = new String[argv.length + 1];
+        isolated[0] = "/system/bin/setsid";
+        System.arraycopy(argv, 0, isolated, 1, argv.length);
+        ProcessBuilder builder = new ProcessBuilder(isolated).directory(directory);
         String tag = ROLE + UUID.randomUUID();
         configureEnvironment(builder.environment(), extra, plugin, tag);
-        Job job = new Job(owner, plugin, tag, builder.start());
+        java.lang.Process child = builder.start();
+        int pid;
+        try {
+            // Android's UNIXProcess has no SDK-visible pid() method. This host
+            // already runs outside the app hidden-API boundary.
+            var field = child.getClass().getDeclaredField("pid");
+            field.setAccessible(true);
+            pid = field.getInt(child);
+            if (pid <= 1) throw new IllegalStateException("Invalid child PID");
+        } catch (ReflectiveOperationException | RuntimeException failure) {
+            child.destroyForcibly();
+            throw new IOException("Cannot track the runtime process", failure);
+        }
+        Job job = new Job(owner, plugin, tag, child, pid);
         jobs.add(job);
         return job;
     }
@@ -102,8 +114,14 @@ final class AxRuntime {
         env.put(MARKER, tag);
     }
 
-    private record Job(ClientIdentity owner, String plugin, String tag, java.lang.Process child) {
+    private record Job(ClientIdentity owner, String plugin, String tag, java.lang.Process child, int pid) {
+        boolean groupAlive() {
+            try { Os.kill(-pid, 0); return true; }
+            catch (android.system.ErrnoException gone) { return false; }
+        }
         void stop() {
+            try { Os.kill(-pid, OsConstants.SIGKILL); }
+            catch (android.system.ErrnoException gone) {}
             if (child.isAlive()) child.destroyForcibly();
             LegacyRemoteProcess.reapMarkedChildren(MARKER + "=" + tag, false);
         }
@@ -134,12 +152,18 @@ final class AxRuntime {
     }
 
     private Bundle complete(Job job, int seconds, byte[] stdin) throws Exception {
+        return complete(job, seconds, stdin, false);
+    }
+
+    private Bundle complete(Job job, int seconds, byte[] stdin, boolean retainChildren) throws Exception {
         try {
             Future<byte[]> out = io.submit(() -> capture(job.child.getInputStream()));
             Future<byte[]> err = io.submit(() -> capture(job.child.getErrorStream()));
             if (stdin.length == 0) job.child.getOutputStream().close();
             else io.execute(() -> copy(new java.io.ByteArrayInputStream(stdin), job.child.getOutputStream()));
-            boolean completed = job.child.waitFor(seconds, TimeUnit.SECONDS);
+            boolean completed;
+            if (seconds <= 0) { job.child.waitFor(); completed = true; }
+            else completed = job.child.waitFor(seconds, TimeUnit.SECONDS);
             if (!completed) job.stop();
             byte[] stdout = collect(out);
             byte[] stderr = collect(err);
@@ -151,15 +175,12 @@ final class AxRuntime {
             result.putString("stderr", new String(stderr, 0, Math.min(stderr.length, MAX_OUTPUT), StandardCharsets.UTF_8));
             return result;
         } finally {
-            stop(job::equals);
+            if (!retainChildren) stop(job::equals);
         }
     }
 
-    void service(String id, File script, File directory) throws IOException {
-        Job job = start(null, id, new String[]{SHELL, script.getPath()}, directory, null);
-        job.child.getOutputStream().close();
-        io.execute(() -> copy(job.child.getInputStream(), DISCARD));
-        io.execute(() -> copy(job.child.getErrorStream(), DISCARD));
+    synchronized boolean pluginRunning(String id) {
+        return jobs.stream().anyMatch(job -> id.equals(job.plugin()) && (job.child().isAlive() || job.groupAlive()));
     }
 
     void moduleService(String id, String[] argv, File directory, Map<String, String> env,
@@ -167,8 +188,9 @@ final class AxRuntime {
         Job job = start(null, id, argv, directory, env);
         io.execute(() -> {
             Bundle completed;
-            try { completed = complete(job, 60, new byte[0]); }
+            try { completed = complete(job, 0, new byte[0], true); }
             catch (Exception failure) {
+                stop(job::equals);
                 if (failure instanceof InterruptedException) Thread.currentThread().interrupt();
                 completed = new Bundle();
                 completed.putInt("exit", -1);
@@ -181,6 +203,12 @@ final class AxRuntime {
     IAxshProcess launch(ClientIdentity owner, String[] argv, String[] env, String dir,
             ParcelFileDescriptor stdin, ParcelFileDescriptor stdout, ParcelFileDescriptor stderr,
             boolean pty, long size, ParcelFileDescriptor status) throws Exception {
+        return launch(owner, null, argv, env, dir, stdin, stdout, stderr, pty, size, status);
+    }
+
+    IAxshProcess launch(ClientIdentity owner, String plugin, String[] argv, String[] env, String dir,
+            ParcelFileDescriptor stdin, ParcelFileDescriptor stdout, ParcelFileDescriptor stderr,
+            boolean pty, long size, ParcelFileDescriptor status) throws Exception {
         File work = dir == null || dir.isEmpty() ? home : new File(dir);
         if (!work.isAbsolute() || !work.isDirectory()) throw new IllegalArgumentException("Invalid working directory");
         Map<String, String> extra = new HashMap<>();
@@ -191,7 +219,7 @@ final class AxRuntime {
             extra.put(variable.substring(0, separator), variable.substring(separator + 1));
         }
         if (pty) return startTerminal(owner, argv, work, extra, stdin, stdout, stderr, status, size);
-        Job job = start(owner, null, argv, work, extra);
+        Job job = start(owner, plugin, argv, work, extra);
         var input = new ParcelFileDescriptor.AutoCloseInputStream(stdin);
         io.execute(() -> copy(input, job.child.getOutputStream()));
         Future<?> out = io.submit(() -> copy(job.child.getInputStream(), new ParcelFileDescriptor.AutoCloseOutputStream(stdout)));
@@ -215,7 +243,7 @@ final class AxRuntime {
         });
         return new IAxshProcess.Stub() {
             private void enforceOwner() {
-                if (android.os.Binder.getCallingUid() != owner.uid()) throw new SecurityException("Shell session belongs to another UID");
+                if (android.os.Binder.getCallingUid() != owner.uid() && android.os.Binder.getCallingPid() != android.os.Process.myPid()) throw new SecurityException("Shell session belongs to another UID");
             }
             @Override public void setWindowSize(long size) { enforceOwner(); }
             @Override public int waitFor() {
@@ -323,7 +351,7 @@ final class AxRuntime {
         }
 
         private void enforceOwner() {
-            if (android.os.Binder.getCallingUid() != owner.uid())
+            if (android.os.Binder.getCallingUid() != owner.uid() && android.os.Binder.getCallingPid() != android.os.Process.myPid())
                 throw new SecurityException("Terminal belongs to another UID");
         }
 
