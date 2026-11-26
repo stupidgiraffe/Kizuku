@@ -66,8 +66,12 @@ class ThirdPartyAxshTest {
             while (control != null && !control.isClickable) control = control.parent
             assertTrue(control?.performAction(AccessibilityNodeInfo.ACTION_CLICK) == true)
             await("original native client's streams, host UID and exit code") {
-                val text = nodes().mapNotNull { it.text?.toString() }.joinToString("\n")
-                text.contains("NATIVE_REFERENCE:$uid") && text.contains("NATIVE_STDERR") && text.contains("exit=17")
+                val visible = nodes()
+                val text = visible.mapNotNull { it.text?.toString() }.joinToString("\n")
+                val passed = text.contains("NATIVE_REFERENCE:$uid") && text.contains("NATIVE_STDERR") && text.contains("exit=17")
+                if (!passed) visible.firstOrNull { it.isVisibleToUser && it.isScrollable }
+                    ?.performAction(AccessibilityNodeInfo.ACTION_SCROLL_FORWARD)
+                passed
             }
         } finally {
             shell("am force-stop $demo")

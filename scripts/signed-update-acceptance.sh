@@ -82,7 +82,10 @@ timeout 120 adb install "$preview"
 timeout 120 adb install -t "$probe_apk"
 timeout 120 adb install -t "$instrumentation"
 record_installation before "$preview_code" "$preview"
+adb shell "apk=\$(pm path $manager | head -n1 | cut -d: -f2-); CLASSPATH=\"\$apk\" app_process /system/bin --nice-name=kizuku_server $manager.server.ServerMain \"\$apk\" >/data/local/tmp/kizuku-update-host.log 2>&1 </dev/null &"
 instrument before
+adb shell pidof kizuku_server | tr -d '\r' >"$evidence/previous-host-pid.txt"
+grep -Exq '[1-9][0-9]*' "$evidence/previous-host-pid.txt"
 openssl req -x509 -newkey rsa:2048 -nodes -days 1 -subj "/CN=localhost" \
   -addext "subjectAltName=IP:127.0.0.1" -keyout "$temp/key.pem" -out "$temp/cert.pem" >/dev/null 2>&1
 python3 scripts/update-download-server.py "$candidate" "$temp/cert.pem" "$temp/key.pem" >"$evidence/download-server.txt" 2>&1 &
@@ -109,6 +112,13 @@ done
 grep -Fq 'GET /candidate.apk HTTP/1.1" 200' "$evidence/download-server.txt"
 record_installation after "$candidate_code" "$candidate"
 cmp "$evidence/uid-before.txt" "$evidence/uid-after.txt"
+for attempt in $(seq 1 30); do
+  if ! adb shell pidof kizuku_server >/dev/null; then break; fi
+  sleep 1
+done
+if adb shell pidof kizuku_server >"$evidence/obsolete-host.txt"; then
+  echo 'The previous APK host survived replacement of its manager'; exit 1
+fi
 instrument after
 cmp "$evidence/before-adb-identity.txt" "$evidence/after-adb-identity.txt"
 adb shell input keyevent KEYCODE_HOME
