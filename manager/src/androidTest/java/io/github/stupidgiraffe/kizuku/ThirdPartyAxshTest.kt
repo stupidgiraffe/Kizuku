@@ -33,9 +33,13 @@ class ThirdPartyAxshTest {
             shell("am start -W -n $demo/.MainActivity")
             await("original demo custom command") {
                 val visible = nodes()
-                val scrolled = visible.firstOrNull { it.isVisibleToUser && it.isScrollable }
-                    ?.performAction(AccessibilityNodeInfo.ACTION_SCROLL_FORWARD) == true
-                !scrolled && visible.any { it.text?.toString() == "Custom command" && it.isVisibleToUser }
+                if (visible.any { it.text?.toString() == "Custom command" && it.isVisibleToUser } &&
+                    visible.any { it.className?.toString() == "android.widget.EditText" && it.isVisibleToUser }) true
+                else {
+                    visible.firstOrNull { it.isVisibleToUser && it.isScrollable }
+                        ?.performAction(AccessibilityNodeInfo.ACTION_SCROLL_FORWARD)
+                    false
+                }
             }
             val input = nodes().last { it.className?.toString() == "android.widget.EditText" }
             assertTrue(input.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, Bundle().apply {
