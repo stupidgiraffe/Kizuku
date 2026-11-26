@@ -397,7 +397,18 @@ final class KizukuService extends IKizukuService.Stub {
                 }
                 default -> throw new IllegalArgumentException("Unsupported package action");
             }
-            return runtime.run(null, argv, runtime.home, null, 10);
+            Bundle result = runtime.run(null, argv, runtime.home, null, 10);
+            if ("appops-set".equals(action) && result.getInt("exit") == 0) {
+                result = runtime.run(null, new String[]{"/system/bin/cmd", "appops", "get", "--user", "0", pkg, name},
+                    runtime.home, null, 10);
+                String output = result.getString("stdout", "");
+                if (result.getInt("exit") == 0 && !"default".equals(value) &&
+                        !java.util.regex.Pattern.compile("(?i):\\s*" + java.util.regex.Pattern.quote(value) + "\\b").matcher(output).find()) {
+                    result.putInt("exit", 1);
+                    result.putString("stderr", "Android kept a different AppOps mode. Check the related runtime permission.\n" + output);
+                }
+            }
+            return result;
         });
     }
 

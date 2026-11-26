@@ -112,8 +112,6 @@ cmp "$evidence/uid-before.txt" "$evidence/uid-after.txt"
 instrument after
 cmp "$evidence/before-adb-identity.txt" "$evidence/after-adb-identity.txt"
 adb shell input keyevent KEYCODE_HOME
-adb shell am force-stop com.google.android.packageinstaller || true
-adb shell am force-stop com.android.packageinstaller || true
 
 # Run the separate fresh-install smoke suites with an empty app state.
 adb uninstall "$manager.test"

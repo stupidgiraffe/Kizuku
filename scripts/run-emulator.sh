@@ -71,21 +71,12 @@ if [[ "${KIZUKU_TEST_SHEVERY_COMPARISON:-false}" == true ]]; then
   scripts/shevery-comparison.sh
   exit
 fi
-update_status=0
-if [[ "${KIZUKU_TEST_SIGNED_UPDATE:-false}" == true ]]; then
-  scripts/signed-update-acceptance.sh "${1:-artifacts}" || update_status=$?
-  if (( update_status != 0 )); then
-    # Independent runtime evidence must still run on this disposable emulator.
-    for package in io.github.stupidgiraffe.kizuku.test io.github.stupidgiraffe.kizuku.testclient io.github.stupidgiraffe.kizuku; do
-      adb uninstall "$package" || true
-    done
-  fi
-fi
 case "${KIZUKU_TEST_DEVICE_OWNER:-false}" in
   only) scripts/device-owner-acceptance.sh "${1:-artifacts}"; exit 0 ;;
   true) scripts/device-owner-acceptance.sh "${1:-artifacts}" ;;
 esac
 shell_status=0
+root_status=0
 KIZUKU_EVIDENCE_DIR=smoke-evidence/shell scripts/emulator-smoke.sh "${1:-artifacts}" || shell_status=$?
 if [[ "${KIZUKU_TEST_ROOT:-false}" == true ]]; then
   adb root
@@ -96,7 +87,20 @@ if [[ "${KIZUKU_TEST_ROOT:-false}" == true ]]; then
     adb uninstall io.github.stupidgiraffe.kizuku || true
     adb uninstall io.github.stupidgiraffe.kizuku.testclient || true
   fi
-  KIZUKU_EVIDENCE_DIR=smoke-evidence/root scripts/emulator-smoke.sh "${1:-artifacts}"
+  KIZUKU_EVIDENCE_DIR=smoke-evidence/root scripts/emulator-smoke.sh "${1:-artifacts}" || root_status=$?
+fi
+update_status=0
+if [[ "${KIZUKU_TEST_SIGNED_UPDATE:-false}" == true ]]; then
+  # Finish the isolated upgrade scenario last: Android's replacement installer
+  # can leave its completion Activity over later installer confirmations.
+  adb shell pkill -x kizuku_server || true
+  adb unroot || true
+  timeout 30 adb wait-for-device
+  for package in io.github.stupidgiraffe.kizuku.test io.github.stupidgiraffe.kizuku.testclient io.github.stupidgiraffe.kizuku; do
+    adb uninstall "$package" || true
+  done
+  scripts/signed-update-acceptance.sh "${1:-artifacts}" || update_status=$?
 fi
 if (( shell_status != 0 )); then exit "$shell_status"; fi
+if (( root_status != 0 )); then exit "$root_status"; fi
 exit "$update_status"

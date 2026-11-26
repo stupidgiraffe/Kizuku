@@ -169,9 +169,15 @@ public final class RuntimeSmokeTest {
                 (() => {
                   if (!window.kizukuSpawnStarted) {
                     window.kizukuSpawnStarted = true;
-                    const child = spawnDirect('sh', ['-c', 'printf STREAM_ONE; sleep 1; printf STREAM_TWO; exit 19'], {});
+                    const child = spawnDirect('sh', ['-c', 'rm -f run/stream-release; printf STREAM_ONE; while [ ! -f run/stream-release ]; do sleep 0.05; done; printf STREAM_TWO; exit 19'], {});
                     window.kizukuChunks = [];
-                    child.stdout.on('data', value => window.kizukuChunks.push(value));
+                    child.stdout.on('data', value => {
+                      window.kizukuChunks.push(value);
+                      if (window.kizukuChunks.join('').includes('STREAM_ONE') && !window.kizukuReleased) {
+                        window.kizukuReleased = true;
+                        axeronExecAsync('touch run/stream-release', {});
+                      }
+                    });
                     child.on('error', value => { window.kizukuSpawnError = String(value); });
                     child.on('exit', code => { window.kizukuSpawnExit = code; });
                   }

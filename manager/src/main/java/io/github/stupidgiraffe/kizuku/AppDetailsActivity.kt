@@ -24,7 +24,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 class AppDetailsActivity : ComponentActivity() {
-    private data class AppPermission(val name: String, val label: String, val granted: Boolean, val op: String?)
+    private data class AppPermission(val name: String, val label: String, val granted: Boolean, val op: String?, val runtime: Boolean)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -52,11 +52,10 @@ class AppDetailsActivity : ComponentActivity() {
         val info = packageManager.getPackageInfo(pkg, PackageManager.GET_PERMISSIONS)
         return info.requestedPermissions.orEmpty().mapIndexedNotNull { index, permission ->
             val details = runCatching { packageManager.getPermissionInfo(permission, 0) }.getOrNull() ?: return@mapIndexedNotNull null
-            if ((details.protectionLevel and PermissionInfo.PROTECTION_MASK_BASE) != PermissionInfo.PROTECTION_DANGEROUS)
-                return@mapIndexedNotNull null
             AppPermission(permission, details.loadLabel(packageManager).toString(),
                 ((info.requestedPermissionsFlags?.getOrNull(index) ?: 0) and PackageInfo.REQUESTED_PERMISSION_GRANTED) != 0,
-                AppOpsManager.permissionToOp(permission))
+                AppOpsManager.permissionToOp(permission),
+                (details.protectionLevel and PermissionInfo.PROTECTION_MASK_BASE) == PermissionInfo.PROTECTION_DANGEROUS)
         }
     }
 
@@ -88,7 +87,7 @@ class AppDetailsActivity : ComponentActivity() {
                     val out = result.getString("stdout", "").trim()
                     val error = result.getString("stderr", "").trim()
                     feedback = if (result.getInt("exit") == 0) {
-                        if (operation == "appops-get") { appops = out; null } else "Applied."
+                        if (operation.startsWith("appops-")) { appops = out; null } else "Applied."
                     } else "Exit ${result.getInt("exit")} · ${error.ifBlank { out }}"
                     refresh++
                 } catch (failure: Exception) { feedback = failure.message ?: "Operation failed." }
@@ -111,8 +110,9 @@ class AppDetailsActivity : ComponentActivity() {
         if (working) LinearProgressIndicator(Modifier.fillMaxWidth())
         feedback?.let { SelectionContainer { Text(it) } }
         Text("Runtime permissions", style = MaterialTheme.typography.titleMedium)
-        if (permissions.isEmpty()) Text("No runtime permissions requested.")
-        permissions.forEach { permission ->
+        val runtimePermissions = permissions.filter { it.runtime }
+        if (runtimePermissions.isEmpty()) Text("No runtime permissions requested.")
+        runtimePermissions.forEach { permission ->
             Row(Modifier.fillMaxWidth()) {
                 Column(Modifier.weight(1f)) {
                     Text(permission.label)

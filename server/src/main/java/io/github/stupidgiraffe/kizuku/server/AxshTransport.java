@@ -115,8 +115,9 @@ final class AxshTransport implements AutoCloseable {
     }
 
     private void serve(LocalSocket socket, ClientIdentity owner) throws Exception {
-        socket.setSoTimeout(15_000);
-        InputStream input = socket.getInputStream();
+        InputStream control = socket.getInputStream();
+        // Shell can read forwarded app-owned sockets, but SELinux forbids setsockopt.
+        InputStream input = new DeadlineInput(control, socket.getFileDescriptor());
         OutputStream output = socket.getOutputStream();
         FileDescriptor[] incoming = null;
         List<ParcelFileDescriptor> descriptors = new ArrayList<>();
@@ -151,12 +152,11 @@ final class AxshTransport implements AutoCloseable {
                 incoming = null;
                 output.write(0);
                 output.flush();
-                socket.setSoTimeout(0);
                 IAxshProcess active = process;
                 java.util.concurrent.atomic.AtomicBoolean exited = new java.util.concurrent.atomic.AtomicBoolean();
                 io.execute(() -> {
                     try {
-                        while (input.read() == 3) active.setWindowSize(size(read(input, 4)));
+                        while (control.read() == 3) active.setWindowSize(size(read(control, 4)));
                     } catch (Exception ended) {
                         // EOF or invalid resize ends this client's process.
                     } finally {
@@ -187,6 +187,37 @@ final class AxshTransport implements AutoCloseable {
             if (process != null) try { process.destroy(); } catch (Exception ignored) {}
             descriptors.forEach(AxshTransport::close);
             closeRaw(incoming);
+        }
+    }
+
+    private static final class DeadlineInput extends java.io.FilterInputStream {
+        private final android.system.StructPollfd poll = new android.system.StructPollfd();
+        private final long deadline = android.os.SystemClock.elapsedRealtime() + 15_000;
+
+        DeadlineInput(InputStream input, FileDescriptor descriptor) {
+            super(input);
+            poll.fd = descriptor;
+            poll.events = (short) OsConstants.POLLIN;
+        }
+
+        private void ready() throws IOException {
+            for (;;) {
+                long remaining = deadline - android.os.SystemClock.elapsedRealtime();
+                if (remaining <= 0) throw new java.net.SocketTimeoutException("Axsh handshake timed out");
+                try {
+                    if (Os.poll(new android.system.StructPollfd[]{poll}, (int) remaining) == 0)
+                        throw new java.net.SocketTimeoutException("Axsh handshake timed out");
+                    return;
+                } catch (android.system.ErrnoException failure) {
+                    if (failure.errno != OsConstants.EINTR) throw new IOException("Cannot read axsh handshake", failure);
+                }
+            }
+        }
+
+        @Override public int read() throws IOException { ready(); return in.read(); }
+        @Override public int read(byte[] bytes, int offset, int length) throws IOException {
+            if (length == 0) return 0;
+            ready(); return in.read(bytes, offset, length);
         }
     }
 

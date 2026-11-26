@@ -33,19 +33,20 @@ class ThirdPartyAxshTest {
             shell("am start -W -n $demo/.MainActivity")
             await("original demo custom command") {
                 val visible = nodes()
-                if (visible.any { it.text?.toString() == "Custom command" && it.isVisibleToUser }) true
-                else {
-                    visible.firstOrNull { it.isVisibleToUser && it.isScrollable }
-                        ?.performAction(AccessibilityNodeInfo.ACTION_SCROLL_FORWARD)
-                    false
-                }
+                val scrolled = visible.firstOrNull { it.isVisibleToUser && it.isScrollable }
+                    ?.performAction(AccessibilityNodeInfo.ACTION_SCROLL_FORWARD) == true
+                !scrolled && visible.any { it.text?.toString() == "Custom command" && it.isVisibleToUser }
             }
             val input = nodes().last { it.className?.toString() == "android.widget.EditText" }
             assertTrue(input.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, Bundle().apply {
                 putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE,
                     "printf 'NATIVE_REFERENCE:'; id -u; printf 'NATIVE_STDERR' >&2; exit 17")
             }))
-            val run = nodes().last { it.text?.toString() == "Run" && it.isVisibleToUser && it.isEnabled }
+            val inputBounds = android.graphics.Rect().also { input.getBoundsInScreen(it) }
+            val run = nodes().first {
+                it.text?.toString() == "Run" && it.isVisibleToUser && it.isEnabled &&
+                    android.graphics.Rect().also(it::getBoundsInScreen).top >= inputBounds.bottom
+            }
             var control: AccessibilityNodeInfo? = run
             while (control != null && !control.isClickable) control = control.parent
             assertTrue(control?.performAction(AccessibilityNodeInfo.ACTION_CLICK) == true)

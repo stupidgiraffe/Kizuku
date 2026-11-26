@@ -36,9 +36,10 @@ class AppDetailsTest {
         try {
             action("permission", permission, "grant")
             assertEquals(PackageManager.PERMISSION_GRANTED, app.packageManager.checkPermission(permission, pkg))
-            action("appops-set", "android:camera", "ignore")
-            assertTrue(action("appops-get").getString("stdout", "").contains("CAMERA: ignore"))
-            action("appops-set", "android:camera", "allow")
+            action("appops-set", "android:system_alert_window", "ignore")
+            val operations = action("appops-get").getString("stdout", "")
+            assertTrue(operations, operations.contains("SYSTEM_ALERT_WINDOW: ignore", ignoreCase = true))
+            action("appops-set", "android:system_alert_window", "allow")
             android.os.ParcelFileDescriptor.AutoCloseInputStream(instrumentation.uiAutomation.executeShellCommand(
                 "am start -W -n $pkg/.ProbeActivity")).use { it.readBytes() }
             assertTrue(app.packageManager.getApplicationInfo(pkg, 0).flags and ApplicationInfo.FLAG_STOPPED == 0)
@@ -51,7 +52,7 @@ class AppDetailsTest {
             val stale = Bundle(snapshot).apply { putInt(AuthorizationStore.HOST_UID, if (hostUid == 0) 2000 else 0) }
             assertThrows(SecurityException::class.java) { host.runtimePackageAction(stale, "force-stop", "", "") }
         } finally {
-            action("appops-set", "android:camera", "default")
+            action("appops-set", "android:system_alert_window", "default")
             action("permission", permission, "revoke")
         }
         assertEquals(PackageManager.PERMISSION_DENIED, app.packageManager.checkPermission(permission, pkg))
