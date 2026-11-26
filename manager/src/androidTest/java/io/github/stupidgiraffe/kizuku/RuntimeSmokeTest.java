@@ -167,6 +167,8 @@ public final class RuntimeSmokeTest {
             verifyWebView(plugin, verifyOriginalBridge);
             String verifyStreaming = """
                 (() => {
+                  if (document.readyState !== 'complete' || typeof spawnDirect !== 'function' ||
+                      typeof axeronExecAsync !== 'function') return false;
                   if (!window.kizukuSpawnStarted) {
                     window.kizukuSpawnStarted = true;
                     const child = spawnDirect('sh', ['-c', 'rm -f run/stream-release; printf STREAM_ONE; while [ ! -f run/stream-release ]; do sleep 0.05; done; printf STREAM_TWO; exit 19'], {});
@@ -271,7 +273,8 @@ public final class RuntimeSmokeTest {
                 if (page != null && page.getChildAt(0) instanceof WebView view) {
                     view.evaluateJavascript("JSON.stringify({title:document.title,ready:document.readyState," +
                         "exec:window.kizukuTestResult,spawnExit:window.kizukuSpawnExit,spawnError:window.kizukuSpawnError," +
-                        "chunks:window.kizukuChunks,helpers:window.kizukuHelperLogs})", value -> {
+                        "chunks:window.kizukuChunks,spawnStarted:window.kizukuSpawnStarted," +
+                        "spawnReady:typeof spawnDirect,helpers:window.kizukuHelperLogs})", value -> {
                             diagnostics.set(value); ready.countDown();
                         });
                 } else ready.countDown();

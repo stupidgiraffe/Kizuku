@@ -121,8 +121,9 @@ public final class AxeronWireSmokeTest {
             assertRefusedAndClosed(binder, SecurityException.class, false);
             assertThrows(SecurityException.class, () -> fileCall(cachedFiles, 3,
                 p -> p.writeString("/data/local/tmp"), p -> p.readInt() != 0));
-            System.out.println("Waiting for manager regrant");
-            System.out.flush();
+            Bundle progress = new Bundle();
+            progress.putString("stream", "\nWaiting for manager regrant\n");
+            InstrumentationRegistry.getInstrumentation().sendStatus(2, progress);
             long deadline = android.os.SystemClock.elapsedRealtime() + 15_000;
             while (!call(binder, CHECK_PERMISSION, null, p -> p.readInt() != 0)
                     && android.os.SystemClock.elapsedRealtime() < deadline) android.os.SystemClock.sleep(75);
