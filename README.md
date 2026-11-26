@@ -24,8 +24,9 @@
 | Feature | What it gives you |
 | --- | --- |
 | **Shizuku compatibility** | Connect compatible apps using the bundled companion. Supports stock SDK discovery, UserService, process streams, and the stock `rish` launcher. |
+| **Interactive terminal** | Use a live ANSI terminal over the existing privileged host, with control keys, resizing, search/copy, saved commands and real exit codes. |
 | **Scripts and modules** | Save commands and install compatible Axeron and Shevery ZIPs with actions, service scripts, and local WebUIs. Axeron access has its own permission. |
-| **App controls** | Search and filter clients, remember or revoke individual grants, and see which apps will change before using **All ON** or **All OFF**. Enable or disable installed apps for the primary Android user with the runtime active. |
+| **App controls** | Apply individual grants or **All ON / All OFF** immediately. Open an app's details for Android permissions, AppOps, force-stop and battery settings. Enable or disable installed apps for the primary Android user with the runtime active. |
 | **Startup and recovery** | Start with Wireless ADB, a saved pairing key, local TCP, computer ADB, or root. Use Service Doctor, pause client access with Safe Mode, or trigger startup and shutdown from an automation app. |
 | **System tools** | Edit system settings, manage installed accessibility services, and require device authentication for sensitive actions. With Device Owner enrolled, suspend apps or block their removal. |
 
@@ -44,7 +45,7 @@
 1. **Install the signed APK.** Open [Releases](https://github.com/stupidgiraffe/Kizuku/releases) in Chrome, select the newest signed release, and download the APK under **Assets**.
 2. **Start Kizuku.** For wireless startup without root, open **Home → Wireless ADB / TCP → Pair with code**, then choose **Pair device with pairing code** in Android’s Wireless debugging settings. Enter the code through Kizuku’s notification while Settings stays open. Use **Start paired device** next time. Wireless debugging requires Android 11 or later. Home also has **Start with root** and **Start from a computer**.
 3. **Connect your apps.** Install or update the companion in **Settings → Compatibility companion**. If stock Shizuku or a fork already owns the companion package, remove that conflicting app before installing the companion. Approve access in Kizuku when your client asks, or manage grants in **Apps**.
-4. **Run your tools.** Open **Runtime** for commands and modules. To use a terminal, choose **Export rish ZIP** in **Settings** and approve Shizuku access for the terminal app.
+4. **Run your tools.** Choose **Runtime → Open interactive terminal** for a live session, or use saved commands and compatible modules. For an external terminal, choose **Export rish ZIP** in **Settings** and approve Shizuku access for that terminal app. The [compatibility matrix](docs/UPSTREAMS.md#preview-5-integration) records the supported Axeron interfaces and remaining limits.
 
 ## Release verification
 

@@ -1,28 +1,50 @@
 # Implementation state
 
-Updated 2026-11-24. Canonical Plane mainline #3:
+Updated 2026-11-25. Canonical Plane mainline #3:
 `68ff91b5-1e6c-4a37-b755-8d284b4fffb4`.
 
-## Preview 5 integration candidate — not published
+## Published 0.2.0 Preview 5
 
-[Implementation PR #6](https://github.com/stupidgiraffe/Kizuku/pull/6) continues
-from current main. The user confirmed every personally tested Preview 4 feature
-worked. Preserve that release's identities, data, immediate toggles and activation.
+[Download the signed APK](https://github.com/stupidgiraffe/Kizuku/releases/download/v0.2.0-preview.5/Kizuku-v0.2.0-preview.5.apk) · [Release notes and checksum](https://github.com/stupidgiraffe/Kizuku/releases/tag/v0.2.0-preview.5) · [Signed Android 16/17 acceptance](https://github.com/stupidgiraffe/Kizuku/actions/runs/45746966514) · [Compatibility matrix](UPSTREAMS.md#preview-5-integration)
 
-- Added an interactive ANSI terminal over the existing host PTY, Axeron native
-  channels and file/package/plugin queries, streamed local WebUI processes and
-  helpers, module logs/cleanup, secondary app details and full updater acceptance.
-- The [first signed candidate](https://github.com/stupidgiraffe/Kizuku/actions/runs/45502543786)
-  passed compilation, unit tests, lint, permanent signer and bundled companion
-  verification. Both Android 16/17 device-policy suites passed, including Amarok
-  and profile cleanup. Android 17 downloaded and installed the update through
-  Preview 4, preserving its app UID, grants and ADB identity.
-- That candidate failed the runtime gates: Android 16 fixture DNS, stale installer
-  state, cold instrumentation host reattachment, shell native channel and plugin
-  cleanup/reporting. Fixes and diagnostic evidence are being tested. No new APK
-  has been published and no physical phone was changed.
-- Full AxManager compatibility and 0.3 Beta are not established. The precise
-  implemented/deferred boundaries and pinned sources are in UPSTREAMS.md.
+- Source `608c92482c5bb45995ee791e74c6ed6c72733016`, version code 8. The public
+  18,454,940 byte APK matches the tested artifact byte-for-byte and SHA-256
+  `59d8928c8507f4767652cb44a0dcec8f5b966b3b74ea5a5ae5dba46bec75bf85`.
+  Its public update-feed URL, size and digest match the downloaded APK.
+- The build verified signatures, non-debuggable manifests, native ABIs, companion
+  payloads and license notices. The downloaded manager and both embedded companions
+  independently match the existing certificate
+  `83c9b70c57b2666f8eb48f0cfe74013053c804fd0b452addfdeed451629d2bce`.
+- All four signed acceptance jobs passed, followed by successful publication and
+  public checksum verification. The Android 17 runtime job needed one retry: the
+  injected streaming test could set its started flag before the original helper
+  JavaScript loaded. That race was reproduced independently. Test-only commit
+  `46ede480ac934b735fe72f5c3db167e1930c35f6` adds a readiness guard and visible
+  regrant progress, and passed compilation, unit tests and lint. The retried job
+  used the exact original signed APK; application code was unchanged.
+
+| Verified path | Actual acceptance |
+| --- | --- |
+| Interactive terminal | Android activity over the existing PTY: live input, ANSI red rendering, actual root/shell UID, resize and exit 23 on Android 16/17. Search/copy, control keys, termination and persistent snippets are implemented. |
+| Original AxManager client | Unmodified DemoAxsh v2 APK with its own native binary/default ProcessBuilder runner: custom command output, stderr, exit 17 and actual host UID in shell and root on both versions. Other runners and arbitrary SDK/client combinations are not claimed. |
+| Axeron wire and files | Independent cross-UID provider/Parcel tests, package/plugin queries, native channels, pipe transfer and fsync completion, revoked process cleanup, and the same cached file Binder denied after revocation then usable after explicit reapproval. |
+| Plugins and local WebUI | Original Test Function v2 ZIP install/update/action/remove; original JavaScript helpers; live streamed output before exit; update/disable stops both heartbeat and clean-environment child processes. Original Shevery Sys Info action/WebUI also passed. Donor-specific diagnostics are not all equivalent. |
+| App details | Android dangerous permission grant/revoke, AppOps readback, force-stop and rejection of stale host-role snapshots. Battery management opens Android's own settings. |
+| Existing compatibility | Hail Shizuku calls, stock rish, custom SU path with truthful shell/root UID, immediate grant controls, hidden companion lifecycle, automatic/manual pairing and reconnect. |
+| Android Device Policy | Both Android versions passed genuine Device Owner and managed-profile Profile Owner, Amarok package-access delegation, policy reversal and profile cleanup on emulators. |
+| Preview 4 update | Production download/verification and Android installer flow on both versions. App UID, ADB key and separately remembered root/shell scopes survived; the previous running host exited after APK replacement. |
+
+Install in place, then start the host again to load the new runtime. The user
+confirmed every personally tested Preview 4 feature worked; those paths, identities
+and existing data are preserved. No physical phone was changed.
+
+This remains 0.2.0 Preview 5. Full AxManager compatibility and 0.3 Beta are not
+established. Standalone axsh export, Axeron UserService/manager-control APIs,
+BusyBox-specific installers, complete donor boot/log-FD conventions, network
+WebUIs and broader client/OEM root-manager acceptance remain incomplete. Dhizuku
+remains limited to explicitly authorized Android package delegation. The original
+Test Function uninstall helper can return nonzero; removal still cleans up and
+reports the script's actual exit and output.
 
 ## Published 0.2.0 Preview 4
 
@@ -32,7 +54,7 @@ worked. Preserve that release's identities, data, immediate toggles and activati
 - All four signed runtime and device-policy jobs passed. Updating from Preview 3 preserved the app UID, ADB identity and remembered shell grants under the permanent signing certificate.
 - All ON, All OFF and individual app switches apply changes immediately. Each app’s access menu offers grant duration, and root and ADB-shell approvals remain separate.
 - The Shizuku companion has no launcher activity. Existing companion installs can use Settings → Compatibility companion → Update. The installed package remains the Shizuku discovery identity.
-- Settings includes GitHub, Buy Me a Coffee, manual checks, optional daily checks and automatic APK downloads. Emulator coverage exercised release selection, scheduling and APK identity checks. Android asks for approval to install. The full in-app download-and-install flow awaits a newer release.
+- Settings includes GitHub, Buy Me a Coffee, manual checks, optional daily checks and automatic APK downloads. Emulator coverage exercised release selection, scheduling and APK identity checks. Android asks for approval to install. The full in-app download-and-install flow was accepted in Preview 5 above.
 - Automatic pairing reads the current address and code from the same Android Settings dialog, avoiding stale discovery endpoints. Manual notification pairing passed on both emulators.
 
 ## Published 0.2.0 Preview 3

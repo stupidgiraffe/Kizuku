@@ -239,18 +239,22 @@ Any copied application code needs its Apache attribution; copied API protocol
 code needs the separate MIT notice. This review performed no phone changes and
 establishes source compatibility requirements, not device acceptance.
 
-### Preview 5 integration candidate
+### Preview 5 integration
 
-This candidate preserves Preview 4's working activation, immediate bulk/single
+This integration preserves Preview 4's working activation, immediate bulk/single
 Shizuku controls, hidden companion, scoped Dhizuku subset and SU wrapper.
-The user confirmed all personally tested Preview 4 features worked. New code
-below requires signed acceptance; implementation is not a full-compatibility claim.
+The user confirmed all personally tested Preview 4 features worked. All four
+signed Android 16/17 suites passed for released source `608c924`, including cached
+file-handle reapproval and a live-host Preview 4 upgrade. The public APK matches
+the accepted artifact. [Acceptance and precise tested operations](STATUS.md#published-020-preview-5)
+record the original-client coverage and the single test-harness retry. These
+specific client tests do not establish full AxManager compatibility.
 
-| Area | Decision | Candidate behavior and boundary |
+| Area | Decision | Implemented behavior and boundary |
 | --- | --- | --- |
 | Interactive terminal | **Adopt / improve** | Termux's Apache emulator and view render the existing host PTY. Live input/output, ANSI cursor and colors, resize, control keys, termination, actual exits, searchable/copyable transcript and persistent snippets. No second terminal engine or daemon. |
 | Native axsh | **Adopt** | AXSH v1, forwarded socket FDs, peer UID verification and role-specific AXERON grants dispatch to the existing process launcher. The unchanged AxManager DemoAxsh release is an acceptance fixture; arbitrary SDK/client combinations remain unproven. |
-| File, package and plugin queries | **Adopt** | Original release wire layouts; caller UID/current signer on each file transaction, directional pipes, completion after flush/fsync, bounded pagination and accurate installed package/plugin state. |
+| File, package and plugin queries | **Adopt** | Original release wire layouts; caller UID/current signer on each file transaction, directional pipes, completion after flush/fsync, bounded pagination and accurate installed package/plugin state. Cached file handles reject revoked access and resume after explicit reapproval of the same identity. |
 | Module lifecycle | **Improve** | Original installer variables and permission helpers, real current-UID `setprop`, separate shell/root homes, install/update/remove, action/service/post-fs logs and owned process-group cleanup. Unsupported installer conventions fail or remain documented; no bundled BusyBox/resetprop. |
 | Local WebUI | **Improve** | Consent per open; streamed `ksu.spawn`, original local `kernelsu.js`, exec, package metadata, fullscreen/insets and shortcuts which request command access. Asset paths and session tokens are checked by the host. |
 | Apps details | **Adopt selectively** | Secondary permissions/AppOps screen, force-stop and Android battery settings. Snapshot signer and host role are checked before changes. Bulk Shizuku controls stay immediate. |
