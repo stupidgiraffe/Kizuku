@@ -1,25 +1,18 @@
 # Kizuku upstream radar
 
-Last changed: 2026-11-25 02:30 UTC. Automated metadata check; **not** a source-code, security, or compatibility audit.
+Last changed: 2026-11-26 02:29 UTC. Automated metadata check; **not** a source-code, security, or compatibility audit.
 
 Source discovery is best-effort and not exhaustive. No upstream code, APKs, or dependencies are copied or upgraded.
 
 ## Recent signals
 
-- **[rushiranpise/Shizuku-Next](https://github.com/rushiranpise/Shizuku-Next/releases/tag/v14.0.40-next)** — Release v14.0.38-next → v14.0.40-next
-  - adb:** keep the software fallback key out of exported settings
-  - pairing:** drive Settings when the accessibility service is already on
-  - Full Changelog**: https://github.com/rushiranpise/Shizuku-Next/compare/v14.0.39-next...v14.0.40-next
+- **[rushiranpise/Shizuku-Next](https://github.com/rushiranpise/Shizuku-Next)** — New HEAD fix: read redacted debug switches through the shell
+  - fix: read redacted debug switches through the shell
 - **[cr1437/Shizako](https://github.com/cr1437/Shizako)** — New HEAD docs: 刷新徽章计数
-- **[thejaustin/ShizukuPlus](https://github.com/thejaustin/ShizukuPlus)** — New HEAD Devlog: Task Manager Plus API
-  - fix: Settings status banner check icon uses the banner's on-colour so it stays visible in high-contrast schemes (#687); note the status card/banner/AMOLED treat
-  - fix: stability pass - temporary root counts (server uid 0) and the su check refreshes instead of caching forever; switches that only pretend or can't work yet a
-  - fix: long-press row stays visible without swipe, Support row tolerates unknown value, Home recreates on look changes; feat: language list and Translation row sh
 
 ## Feature opportunities to evaluate
 
-- **Capability security and grants** — [thejaustin/ShizukuPlus](https://github.com/thejaustin/ShizukuPlus): fix: Settings status banner check icon uses the banner's on-colour so it stays visible in high-contrast schemes (#687); note the status card
-- **Capability security and grants** — [rushiranpise/Shizuku-Next](https://github.com/rushiranpise/Shizuku-Next/releases/tag/v14.0.40-next): adb:** keep the software fallback key out of exported settings
+- **ADB activation and service recovery** — [rushiranpise/Shizuku-Next](https://github.com/rushiranpise/Shizuku-Next): fix: read redacted debug switches through the shell
 - **Android 16/17 and stock Shizuku compatibility** — [cr1437/Shizako](https://github.com/cr1437/Shizako): docs: 刷新徽章计数
 
 ## Tracked projects
@@ -28,10 +21,10 @@ Source discovery is best-effort and not exhaustive. No upstream code, APKs, or d
 |---|---|---|---|---|
 | [AMINODa/aMiNo-App](https://github.com/AMINODa/aMiNo-App) | ADB workflows and client compatibility | v1.4.2 | 2026-11-10 | Apache-2.0 |
 | [corvexis/Axora](https://github.com/corvexis/Axora) | Axeron family alternative | 26.10.21 | 2026-10-21 | Apache-2.0 |
-| [cr1437/Shizako](https://github.com/cr1437/Shizako) | compatibility and manager UX | zako4 | 2026-11-24 | Apache-2.0 |
+| [cr1437/Shizako](https://github.com/cr1437/Shizako) | compatibility and manager UX | zako4 | 2026-11-26 | Apache-2.0 |
 | [d4rken-org/porter](https://github.com/d4rken-org/porter) | compatibility, companion, authorization | v0.8.2-rc0 | 2026-11-13 | Apache-2.0 |
 | [fahrez182/AxManager](https://github.com/fahrez182/AxManager) | Axeron, plugins, WebUI and security | v3.0.0 | 2026-11-01 | Apache-2.0 |
-| [HmnDev-Tech/shevery](https://github.com/HmnDev-Tech/shevery) | UX, permissions, Dhizuku, modules | 14.6.5 | 2026-11-24 | Apache-2.0 |
+| [HmnDev-Tech/shevery](https://github.com/HmnDev-Tech/shevery) | UX, permissions, Dhizuku, modules | 14.6.5 | 2026-11-25 | Apache-2.0 |
 | [HSSkyBoy/Shizuku](https://github.com/HSSkyBoy/Shizuku) | device and wireless fixes | v13.6.2 | 2026-11-08 | Apache-2.0 |
 | [iamr0s/Dhizuku](https://github.com/iamr0s/Dhizuku) | Device Owner protocol reference | v2.13.0 | 2026-11-23 | GPL-3.0 |
 | [kerneldroid/Nightzuku](https://github.com/kerneldroid/Nightzuku) | Android platform fixes; paused project | v13.7.1-r63 | 2026-11-22 | Apache-2.0 |
@@ -40,7 +33,7 @@ Source discovery is best-effort and not exhaustive. No upstream code, APKs, or d
 | [revBlackCore/RevCoreManager](https://github.com/revBlackCore/RevCoreManager) | Axora-derived plugin runtime compatibility and UI reference | v26.10.21.r1 | 2026-11-17 | Apache-2.0 |
 | [RikkaApps/Shizuku](https://github.com/RikkaApps/Shizuku) | baseline protocol | v13.6.0 | 2025-06-18 | Apache-2.0 |
 | [roro2239/Stellar](https://github.com/roro2239/Stellar) | boot recovery and script execution | v1.1(101000) | 2026-10-18 | MPL-2.0 |
-| [rushiranpise/Shizuku-Next](https://github.com/rushiranpise/Shizuku-Next) | ADB and diagnostics | v14.0.40-next | 2026-11-24 | Apache-2.0 |
+| [rushiranpise/Shizuku-Next](https://github.com/rushiranpise/Shizuku-Next) | ADB and diagnostics | v14.0.40-next | 2026-11-25 | Apache-2.0 |
 | [Sharif-bot-cmd/ShizuPosed](https://github.com/Sharif-bot-cmd/ShizuPosed) | optional Labs inspiration | 1.5.1 | 2026-11-22 | Apache-2.0 |
 | [thedjchi/Shizuku](https://github.com/thedjchi/Shizuku) | legacy startup and automation | v13.7.0-thedjchi | 2026-07-15 | Apache-2.0 |
 | [thejaustin/ShizukuPlus](https://github.com/thejaustin/ShizukuPlus) | extended compatibility and SU bridge | 13.7.0.r3445 | 2026-11-24 | Apache-2.0 |
@@ -66,6 +59,10 @@ Source discovery is best-effort and not exhaustive. No upstream code, APKs, or d
 - https://shizustore.com/apps/shizuku-next
 - https://f-droid.org/en/packages/adb.captain/
 - https://shizukux.xyz/
+
+## Discovery warnings
+
+- GitHub request failed (409): https://api.github.com/repos/scoppetuoloa/English-Debloat-Manager/commits?per_page=1
 
 ## Decision rule
 
