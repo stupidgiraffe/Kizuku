@@ -42,10 +42,21 @@ class ThirdPartyAxshTest {
                 putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE,
                     "printf 'NATIVE_REFERENCE:'; id -u; printf 'NATIVE_STDERR' >&2; exit 17")
             }))
-            val inputBounds = android.graphics.Rect().also { input.getBoundsInScreen(it) }
-            val run = nodes().first {
-                it.text?.toString() == "Run" && it.isVisibleToUser && it.isEnabled &&
-                    android.graphics.Rect().also(it::getBoundsInScreen).top >= inputBounds.bottom
+            var run: AccessibilityNodeInfo? = null
+            await("the custom command's own Run button") {
+                val visible = nodes()
+                val currentInput = visible.lastOrNull { it.className?.toString() == "android.widget.EditText" }
+                val bounds = android.graphics.Rect()
+                currentInput?.getBoundsInScreen(bounds)
+                run = visible.firstOrNull {
+                    currentInput != null && it.text?.toString() == "Run" && it.isVisibleToUser && it.isEnabled &&
+                        android.graphics.Rect().also(it::getBoundsInScreen).top >= bounds.bottom
+                }
+                if (run != null) true else {
+                    visible.firstOrNull { it.isVisibleToUser && it.isScrollable }
+                        ?.performAction(AccessibilityNodeInfo.ACTION_SCROLL_FORWARD)
+                    false
+                }
             }
             var control: AccessibilityNodeInfo? = run
             while (control != null && !control.isClickable) control = control.parent
