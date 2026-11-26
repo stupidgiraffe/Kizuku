@@ -85,7 +85,14 @@ for attempt in $(seq 1 100); do
   sleep 0.25
 done
 instrument "$manager" action axeron_revoke
+for attempt in $(seq 1 100); do
+  if grep -q 'Waiting for manager regrant' "$evidence/axeron-held.txt" 2>/dev/null; then break; fi
+  if ! kill -0 "$axeron_probe_pid" 2>/dev/null; then break; fi
+  sleep 0.1
+done
+instrument "$manager" action axeron_allow
 wait "$axeron_probe_pid"
+instrument "$manager" action axeron_revoke
 axeron_probe revoked
 instrument "$manager" action axeron_allow
 instrument "$manager" action persist

@@ -49,6 +49,11 @@ public class SignedUpdateTest {
                 android.os.SystemClock.sleep(100);
             assertTrue("The previous signed version has a real running host", CoreConnection.INSTANCE.getService() != null);
             assertEquals("The previous host runs as ADB shell", 2000, CoreConnection.INSTANCE.getService().status().getInt("uid"));
+            CoreConnection.INSTANCE.getService().grant(CLIENT, uid, SCOPES, 2, identity.fingerprint());
+            boolean activeGrant = false;
+            for (Bundle row : CoreConnection.INSTANCE.getService().applications())
+                if (CLIENT.equals(row.getString("package"))) activeGrant = row.getLong("granted") == SCOPES;
+            assertTrue("The old host is serving the remembered client approvals", activeGrant);
         } else if (stage.equals("after")) {
             assertTrue("Pairing preference survives the update", adb.getBoolean("paired", false));
             JSONArray root = new JSONArray(AuthorizationStore.INSTANCE.load(app, 0));

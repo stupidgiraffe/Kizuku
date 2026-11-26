@@ -7,3 +7,5 @@
 - Update downloads show progress. Android continues to require approval before installation. The signing identity, companion package and existing user data are preserved.
 
 This remains a preview. It does not promise every AxManager API or installer convention. Manager-control APIs, BusyBox-specific installers, network WebUIs, broader third-party/OEM coverage and physical-phone acceptance remain incomplete. See the compatibility matrix and signed acceptance evidence before treating a specific client as supported.
+
+Install in place, then start the host again to load the new runtime.

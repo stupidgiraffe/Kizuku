@@ -256,6 +256,7 @@ below requires signed acceptance; implementation is not a full-compatibility cla
 | Apps details | **Adopt selectively** | Secondary permissions/AppOps screen, force-stop and Android battery settings. Snapshot signer and host role are checked before changes. Bulk Shizuku controls stay immediate. |
 | Update handling | **Improve** | Visible download progress; acceptance downloads the candidate through Preview 4, verifies its signer/hash and approves Android's installer before checking retained UID, grants and ADB identity. |
 | Donor manager controls and every native API | **Defer** | Axeron grant mutation, manager initialization, embedded Shizuku controls, environment mutation, wake locks and user-service attach are explicitly unavailable. Use Kizuku's own separately authorized APIs. |
+| Standalone axsh distribution | **Defer** | Kizuku serves the native AXSH wire for SDK clients with their own native binary. It does not bundle/export the donor's standalone `libaxsh.so` or its app-process bootstrap. External terminals can use the existing rish export. |
 | Network WebUI, catalog and full donor installer environment | **Defer** | Local pages only. BusyBox standalone/`SKIPUNZIP`, all boot-stage semantics and unrestricted network APIs require demonstrated clients and separate acceptance. |
 | Second host, shared root/shell grants, unrestricted relay | **Reject** | Preserve one privileged host and independent Kizuku authorization; Linux privilege failures remain failures. |
 

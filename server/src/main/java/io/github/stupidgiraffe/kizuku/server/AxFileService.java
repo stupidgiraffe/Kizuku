@@ -221,9 +221,13 @@ final class AxFileService extends IFileService.Stub {
         catch (RemoteException gone) { /* The client closed its callback. */ }
     }
 
-    void close() {
+    void cancelTransfers() {
         active.forEach(AxFileService::close);
         active.clear();
+    }
+
+    void close() {
+        cancelTransfers();
         streams.shutdownNow();
     }
 

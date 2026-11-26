@@ -197,6 +197,7 @@ final class AxeronEndpoint {
 
     void close() {
         suspendClients();
+        capabilities.values().forEach(ClientCapability::disposeFiles);
         nativeShell.close();
         delivery.shutdownNow();
     }
@@ -207,8 +208,14 @@ final class AxeronEndpoint {
     }
 
     private ClientCapability capabilityFor(ClientIdentity identity) {
-        return capabilities.compute(principal(identity), (key, current) ->
-            current != null && current.identity.equals(identity) ? current : new ClientCapability(identity));
+        return capabilities.compute(principal(identity), (key, current) -> {
+            if (current != null && current.identity.equals(identity)) return current;
+            if (current != null) {
+                current.disposeFiles();
+                nativeShell.revoke(current.identity);
+            }
+            return new ClientCapability(identity);
+        });
     }
 
     private static Principal principal(ClientIdentity identity) {
@@ -249,6 +256,12 @@ final class AxeronEndpoint {
         }
 
         synchronized void closeFiles() {
+            // The upstream SDK caches IFileService until Binder death. Keep that
+            // identity-bound handle usable after a fresh approval of the same app.
+            if (files != null) files.cancelTransfers();
+        }
+
+        synchronized void disposeFiles() {
             if (files != null) files.close();
             files = null;
         }

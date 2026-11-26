@@ -108,7 +108,7 @@ public final class AxeronWireSmokeTest {
             return p.readInt();
         }));
         assertThrows(UnsupportedOperationException.class, () -> call(binder, SHIZUKU_SERVICE, null, null));
-        assertFileService(binder);
+        IBinder cachedFiles = assertFileService(binder);
         assertNativeChannel(binder, hostUid);
         assertEquals(1, (int) call(binder, 6, p -> p.writeInt(0), Parcel::readInt));
         assertEquals(1, (int) call(binder, 7, null, Parcel::readInt));
@@ -119,11 +119,25 @@ public final class AxeronWireSmokeTest {
         if (stage.equals("held")) {
             assertRevokedProcessDies(binder);
             assertRefusedAndClosed(binder, SecurityException.class, false);
+            assertThrows(SecurityException.class, () -> fileCall(cachedFiles, 3,
+                p -> p.writeString("/data/local/tmp"), p -> p.readInt() != 0));
+            System.out.println("Waiting for manager regrant");
+            System.out.flush();
+            long deadline = android.os.SystemClock.elapsedRealtime() + 15_000;
+            while (!call(binder, CHECK_PERMISSION, null, p -> p.readInt() != 0)
+                    && android.os.SystemClock.elapsedRealtime() < deadline) android.os.SystemClock.sleep(75);
+            assertTrue("The same identity received a fresh grant", call(binder, CHECK_PERMISSION, null, p -> p.readInt() != 0));
+            assertFileHandle(cachedFiles);
         }
     }
 
-    private static void assertFileService(IBinder service) throws Exception {
+    private static IBinder assertFileService(IBinder service) throws Exception {
         IBinder files = call(service, FILE_SERVICE, null, Parcel::readStrongBinder);
+        assertFileHandle(files);
+        return files;
+    }
+
+    private static void assertFileHandle(IBinder files) throws Exception {
         assertEquals("frb.axeron.server.IFileService", files.getInterfaceDescriptor());
         String path = "/data/local/tmp/kizuku-file-" + Process.myUid();
         assertTrue(fileCall(files, 0, p -> p.writeString(path), p -> p.readInt() != 0));
