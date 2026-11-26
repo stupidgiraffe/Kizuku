@@ -92,7 +92,13 @@ final class AxshTransport implements AutoCloseable {
     }
 
     private void take(LocalSocket socket, ClientIdentity expected) throws IOException {
-        if (closed || !slots.tryAcquire()) { socket.close(); return; }
+        // LocalSocket(FileDescriptor) borrows its fd; close() does not own SCM_RIGHTS fds.
+        FileDescriptor forwarded = expected == null ? null : socket.getFileDescriptor();
+        if (closed || !slots.tryAcquire()) {
+            socket.close();
+            if (forwarded != null) closeRaw(new FileDescriptor[]{forwarded});
+            return;
+        }
         sockets.add(socket);
         io.execute(() -> {
             try (socket) {
@@ -110,6 +116,7 @@ final class AxshTransport implements AutoCloseable {
                 sockets.remove(socket);
                 owners.remove(socket);
                 slots.release();
+                if (forwarded != null) closeRaw(new FileDescriptor[]{forwarded});
             }
         });
     }
@@ -156,7 +163,14 @@ final class AxshTransport implements AutoCloseable {
                 java.util.concurrent.atomic.AtomicBoolean exited = new java.util.concurrent.atomic.AtomicBoolean();
                 io.execute(() -> {
                     try {
-                        while (control.read() == 3) active.setWindowSize(size(read(control, 4)));
+                        var event = new android.system.StructPollfd();
+                        event.fd = socket.getFileDescriptor();
+                        event.events = (short) OsConstants.POLLIN;
+                        while (!exited.get()) {
+                            if (Os.poll(new android.system.StructPollfd[]{event}, 500) == 0) continue;
+                            if (exited.get() || control.read() != 3) break;
+                            active.setWindowSize(size(read(new DeadlineInput(control, event.fd), 4)));
+                        }
                     } catch (Exception ended) {
                         // EOF or invalid resize ends this client's process.
                     } finally {
