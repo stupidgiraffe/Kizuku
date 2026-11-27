@@ -73,12 +73,41 @@ public final class RuntimeSmokeTest {
             assertEquals(0, service.controlRuntimePlugin(id, "action").getInt("exit"));
             service.controlRuntimePlugin(id, "remove");
             for (Bundle plugin : service.runtimePlugins()) assertNotEquals(id, plugin.getString("id"));
+            exerciseSkipUnzip(service, file, id + "_skip");
             exerciseShevery(service, file, id + "_sv", status.getInt("uid"));
             exerciseAxManagerWebUi(service, status.getInt("uid"));
         } finally {
             for (Bundle plugin : service.runtimePlugins())
                 if (id.equals(plugin.getString("id"))) service.controlRuntimePlugin(id, "remove");
             Files.deleteIfExists(file.toPath());
+        }
+    }
+
+    /** Reproduces AxManager's SKIPUNZIP contract: customize.sh extracts its own ZIP. */
+    private static void exerciseSkipUnzip(IKizukuService host, File file, String id) throws Exception {
+        try (var zip = new ZipOutputStream(Files.newOutputStream(file.toPath()))) {
+            write(zip, "module.prop", "id=" + id + "\nname=Skip unzip fixture\nversionCode=1\naxeronPlugin=30000\n");
+            write(zip, "customize.sh",
+                "SKIPUNZIP=1\n" +
+                "[ ! -e \"$MODPATH/action.sh\" ] || abort 'Payload extracted before customize.sh'\n" +
+                "unzip -oq \"$ZIPFILE\" 'action.sh' 'webroot/*' -d \"$MODPATH\" || abort 'Extraction failed'\n");
+            write(zip, "action.sh", "printf '%s' skipped-zip-ok\n");
+            write(zip, "webroot/index.html", "<!doctype html><title>Skip Unzip fixture</title>");
+        }
+        boolean installed = false;
+        try {
+            Bundle module = install(host, file);
+            installed = true;
+            assertEquals(id, module.getString("id"));
+            assertEquals("axeron", module.getString("format"));
+            assertTrue("Installed WebUI must be discovered after customize.sh", module.getBoolean("webui"));
+            assertEquals("skipped-zip-ok", host.controlRuntimePlugin(id, "action").getString("stdout"));
+            assertTrue(findPlugin(host, id).getBoolean("webui"));
+            try (var in = new ParcelFileDescriptor.AutoCloseInputStream(host.openRuntimeWebAsset(id, "index.html"))) {
+                assertTrue(new String(in.readAllBytes(), StandardCharsets.UTF_8).contains("Skip Unzip fixture"));
+            }
+        } finally {
+            if (installed) host.controlRuntimePlugin(id, "remove");
         }
     }
 
