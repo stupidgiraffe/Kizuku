@@ -125,8 +125,17 @@ final class RuntimePlugins {
                 } else if (setup.isFile()) {
                     if (setup.length() > 128 * 1024) throw new IOException("Plugin installer is too large");
                     String script = new String(Files.readAllBytes(setup.toPath()), StandardCharsets.UTF_8);
-                    if (java.util.regex.Pattern.compile("(?m)^\\s*(?:export\\s+)?SKIPUNZIP\\s*=\\s*1\\b").matcher(script).find())
-                        throw new IOException("This plugin requires SKIPUNZIP");
+                    // AxManager SKIPUNZIP=1: only module.prop and customize.sh are
+                    // available before the installer sources customize.sh. The script
+                    // then owns extraction via ZIPFILE. We prevalidate the full ZIP with
+                    // bounded, traversal-safe unpack() before clearing the payload.
+                    boolean skipUnzip = java.util.regex.Pattern.compile("(?m)^\\s*(?:export\\s+)?SKIPUNZIP\\s*=\\s*1\\b").matcher(script).find();
+                    if (skipUnzip) {
+                        for (File file : entries(module)) {
+                            String name = file.getName();
+                            if (!"module.prop".equals(name) && !"customize.sh".equals(name)) delete(file.toPath());
+                        }
+                    }
                     Map<String, String> env = new HashMap<>();
                     String abi = android.os.Build.SUPPORTED_ABIS[0];
                     String arch = switch (abi) {
@@ -139,7 +148,12 @@ final class RuntimePlugins {
                     env.put("ABI", abi); env.put("ABI32", android.os.Build.SUPPORTED_32_BIT_ABIS.length == 0 ? "" : android.os.Build.SUPPORTED_32_BIT_ABIS[0]);
                     env.put("MODID", id); env.put("MODNAME", row.getString("name", id)); env.put("MODAUTH", row.getString("author", ""));
                     requireSuccess(runtime.run(id, new String[]{AxRuntime.SHELL, "-c", CUSTOMIZE}, module, env, 25));
-                    if (!id.equals(info(module).getString("id"))) throw new IOException("Installer changed the module ID");
+                    // SKIPUNZIP installers create payload files after initial metadata
+                    // discovery; refresh flags such as action, service and WebUI.
+                    Bundle installed = info(module);
+                    if (!id.equals(installed.getString("id")) || isShevery(installed))
+                        throw new IOException("Installer changed the Axeron module identity");
+                    row = installed;
                 }
                 if (update && !enabled(target)) new File(module, "disable").createNewFile();
                 File previous = new File(root, ".previous-" + id);
