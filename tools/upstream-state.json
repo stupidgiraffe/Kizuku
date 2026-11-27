@@ -18,7 +18,7 @@
       ],
       "pushed_at": "2025-06-18T04:21:02Z",
       "license": "Apache-2.0",
-      "stars": 34679,
+      "stars": 34772,
       "archived": false,
       "fork": false
     },
@@ -27,9 +27,11 @@
       "origin": "curated",
       "url": "https://github.com/d4rken-org/porter",
       "description": "ADB access for your apps. A minimal, maintained Shizuku fork.",
-      "head": "03dfd568b7eba581b05cf3050053805e946ece26",
-      "head_changes": [],
-      "commit_subject": "fix(manager): end a waiting boot start once a server runs",
+      "head": "d6fb5372528f029005899507d42fd9efb8088ccf",
+      "head_changes": [
+        "fix(build): use the stable NDK r29 (29.0.14206865)"
+      ],
+      "commit_subject": "fix(build): use the stable NDK r29 (29.0.14206865)",
       "release": "v0.8.2-rc0",
       "release_url": "https://github.com/d4rken-org/porter/releases/tag/v0.8.2-rc0",
       "release_published": "2026-11-09T05:40:05Z",
@@ -38,9 +40,9 @@
         "fix(manager): ask before the Play build turns on TV pairing by @d4rken in https://github.com/d4rken-org/porter/pull/164",
         "fix(manager): open Android's battery list from the Play build by @d4rken in https://github.com/d4rken-org/porter/pull/165"
       ],
-      "pushed_at": "2026-11-13T09:02:54Z",
+      "pushed_at": "2026-11-26T16:45:40Z",
       "license": "Apache-2.0",
-      "stars": 343,
+      "stars": 345,
       "archived": false,
       "fork": false
     },
@@ -60,9 +62,9 @@
         "Rewrote the legacy C/C++ native layer (`starter`, `rish`, `adb_pairing`) in **Rust**, removing BoringSSL and `libc++` native build dependencies:",
         "`rish`: PTY management, raw `termios`, `SIGWINCH` self-pipe handling, and JNI bridges."
       ],
-      "pushed_at": "2026-11-25T18:17:39Z",
+      "pushed_at": "2026-11-26T17:34:01Z",
       "license": "Apache-2.0",
-      "stars": 1781,
+      "stars": 1785,
       "archived": false,
       "fork": false
     },
@@ -84,7 +86,7 @@
       ],
       "pushed_at": "2026-11-24T07:35:55Z",
       "license": "Apache-2.0",
-      "stars": 1897,
+      "stars": 1907,
       "archived": false,
       "fork": false
     },
@@ -106,7 +108,7 @@
       ],
       "pushed_at": "2026-11-22T21:04:48Z",
       "license": "Apache-2.0",
-      "stars": 237,
+      "stars": 238,
       "archived": false,
       "fork": false
     },
@@ -115,11 +117,9 @@
       "origin": "curated",
       "url": "https://github.com/rushiranpise/Shizuku-Next",
       "description": "A feature-rich Shizuku fork with improved setup, reliability, UI, and additional start methods.",
-      "head": "ecdc6deb6ffbb41abb011c25526460f043e77d51",
-      "head_changes": [
-        "fix: read redacted debug switches through the shell"
-      ],
-      "commit_subject": "fix: read redacted debug switches through the shell",
+      "head": "5fc3e3eb1eb29c2d7ea7bf6afcc089fa207106b3",
+      "head_changes": [],
+      "commit_subject": "chore(i18n): new translations from Crowdin",
       "release": "v14.0.40-next",
       "release_url": "https://github.com/rushiranpise/Shizuku-Next/releases/tag/v14.0.40-next",
       "release_published": "2026-11-24T21:45:19Z",
@@ -128,9 +128,9 @@
         "pairing:** drive Settings when the accessibility service is already on",
         "Full Changelog**: https://github.com/rushiranpise/Shizuku-Next/compare/v14.0.39-next...v14.0.40-next"
       ],
-      "pushed_at": "2026-11-25T15:20:45Z",
+      "pushed_at": "2026-11-26T12:49:21Z",
       "license": "Apache-2.0",
-      "stars": 2341,
+      "stars": 2409,
       "archived": false,
       "fork": false
     },
@@ -150,9 +150,9 @@
         "User isolation for Knox and secondary profiles; Security & Access settings tab.",
         "Wireless ADB boot autostart via Wi-Fi JobScheduler: mDNS ServiceInfoCallback with MulticastLock, ADB Wi-Fi 2.0, TCP port and lockscreen handling, Root/Wireless selector, fallback notifications."
       ],
-      "pushed_at": "2026-11-22T06:47:08Z",
+      "pushed_at": "2026-11-26T17:36:42Z",
       "license": "Apache-2.0",
-      "stars": 364,
+      "stars": 366,
       "archived": false,
       "fork": false
     },
@@ -203,7 +203,7 @@
       "origin": "curated",
       "url": "https://github.com/cr1437/Shizako",
       "description": "猫耳看板娘的系统权限助手：不 Root 也能用特权 API，兼容 Shizuku-API 生态（官方 SDK 应用零改动直连） A catgirl-mascot privileged-API assistant for Android. Shizuku-API compatible — apps built on the official SDK conne",
-      "head": "04a85f09ee7517d790b7a33236692edd9b98d512",
+      "head": "2922e6c7c9de16a676fe439bd02542297ded07af",
       "head_changes": [],
       "commit_subject": "docs: 刷新徽章计数",
       "release": "zako4",
@@ -214,9 +214,9 @@
         "首页状态只探活一次**：单次 binder 探活失败不再把整页判成「服务未运行」，`onResume` 再校准，减少无效重载与状态闪烁",
         "特权存储代理 `IStorageProxy`**：shell/root 服务进程提供的受限文件接口（列目录 / 开文件 / tar 打包 / 安全解压 / 复制 / 删除 / 建目录 / 存在性），四层访问降级（直连 → shell 管道 → run-as（仅 debuggable）→ content://），所有路径先过白名单与注入校验；第三方应用需在「第三方调用」页单独授权，每次调用写审计"
       ],
-      "pushed_at": "2026-11-26T00:25:37Z",
+      "pushed_at": "2026-11-26T19:39:37Z",
       "license": "Apache-2.0",
-      "stars": 145,
+      "stars": 147,
       "archived": false,
       "fork": false
     },
@@ -238,7 +238,7 @@
       ],
       "pushed_at": "2026-10-18T11:38:12Z",
       "license": "MPL-2.0",
-      "stars": 1955,
+      "stars": 1963,
       "archived": false,
       "fork": false
     },
@@ -260,7 +260,7 @@
       ],
       "pushed_at": "2026-11-01T15:16:29Z",
       "license": "Apache-2.0",
-      "stars": 1595,
+      "stars": 1596,
       "archived": false,
       "fork": false
     },
@@ -342,7 +342,7 @@
       ],
       "pushed_at": "2026-07-15T03:12:10Z",
       "license": "Apache-2.0",
-      "stars": 7094,
+      "stars": 7113,
       "archived": false,
       "fork": true
     },
@@ -351,20 +351,23 @@
       "origin": "curated",
       "url": "https://github.com/iamr0s/Dhizuku",
       "description": "A tool that can share DeviceOwner permissions to other application.",
-      "head": "f16275dce36f8247720ed494fb652b818c11cc6c",
-      "head_changes": [],
-      "commit_subject": "Bump the maven-dependencies group with 3 updates (#360)",
-      "release": "v2.13.0",
-      "release_url": "https://github.com/iamr0s/Dhizuku/releases/tag/v2.13.0",
-      "release_published": "2026-10-30T07:34:33Z",
-      "release_notes": [
-        "Fix crash on Android 8.x",
-        "Fix error when battery optimization settings screen is unavailable",
-        "Fix a startup race condition that could prevent the service from starting on some devices"
+      "head": "568a166fd17314011facb83b78d12f4454e88be4",
+      "head_changes": [
+        "Fix artifact name",
+        "Fix artifact name"
       ],
-      "pushed_at": "2026-11-23T05:17:31Z",
+      "commit_subject": "Fix artifact name",
+      "release": "v2.13.1",
+      "release_url": "https://github.com/iamr0s/Dhizuku/releases/tag/v2.13.1",
+      "release_published": "2026-11-27T00:00:48Z",
+      "release_notes": [
+        "Fix the user service failing to start on Android 8.x",
+        "Report why a user service failed to start instead of waiting forever",
+        "Full Changelog**: https://github.com/iamr0s/Dhizuku/compare/v2.13.0...v2.13.1"
+      ],
+      "pushed_at": "2026-11-27T00:02:29Z",
       "license": "GPL-3.0",
-      "stars": 4249,
+      "stars": 4276,
       "archived": false,
       "fork": false
     },
@@ -471,6 +474,28 @@
       "pushed_at": "2026-09-05T13:41:25Z",
       "license": "Apache-2.0",
       "stars": 45,
+      "archived": false,
+      "fork": false
+    },
+    "anxkhn/QuietBridge": {
+      "name": "anxkhn/QuietBridge",
+      "origin": "GitHub search",
+      "url": "https://github.com/anxkhn/QuietBridge",
+      "description": "Shizuku-Next fork with work-profile protection, reversible app presets and safer debugging-state recovery.",
+      "head": "d33087df8ef3584e7011e0981fc703f37ffd2c9c",
+      "head_changes": [],
+      "commit_subject": "feat: publish QuietBridge 0.1.0 preview",
+      "release": "v0.1.0",
+      "release_url": "https://github.com/anxkhn/QuietBridge/releases/tag/v0.1.0",
+      "release_published": "2026-11-26T20:33:38Z",
+      "release_notes": [
+        "QuietBridge 0.1.0",
+        "First experimental release of QuietBridge, an independent Shizuku-Next fork with integrated work-profile protection and reversible settings automation.",
+        "Batched debug baselines, wireless-first launch preparation, privileged wireless-off readback and refusal to continue a failed managed launch."
+      ],
+      "pushed_at": "2026-11-26T20:33:37Z",
+      "license": "Apache-2.0",
+      "stars": 0,
       "archived": false,
       "fork": false
     },
@@ -638,7 +663,7 @@
       ],
       "pushed_at": "2026-10-10T00:23:10Z",
       "license": "Apache-2.0",
-      "stars": 9,
+      "stars": 10,
       "archived": false,
       "fork": false
     },
