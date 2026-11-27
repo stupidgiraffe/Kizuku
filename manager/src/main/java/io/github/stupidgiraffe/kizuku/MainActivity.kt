@@ -58,8 +58,9 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         handleUpdateNotification(intent)
         enableEdgeToEdge(statusBarStyle = SystemBarStyle.auto(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT), navigationBarStyle = SystemBarStyle.auto(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT))
+        // Ordinary app navigation must not suppress user overlays (side panels, etc.).
+        // Permission approval activities/dialogs opt into overlay suppression separately.
         window.decorView.filterTouchesWhenObscured = true
-        if (Build.VERSION.SDK_INT >= 31) window.setHideOverlayWindows(true)
         setContent {
             val scheme = if (isSystemInDarkTheme()) darkColorScheme(
                 primary = Color(0xFFAEC5FF), primaryContainer = Color(0xFF233D77),
