@@ -18,7 +18,7 @@
       ],
       "pushed_at": "2025-06-18T04:21:02Z",
       "license": "Apache-2.0",
-      "stars": 34772,
+      "stars": 34889,
       "archived": false,
       "fork": false
     },
@@ -28,9 +28,7 @@
       "url": "https://github.com/d4rken-org/porter",
       "description": "ADB access for your apps. A minimal, maintained Shizuku fork.",
       "head": "d6fb5372528f029005899507d42fd9efb8088ccf",
-      "head_changes": [
-        "fix(build): use the stable NDK r29 (29.0.14206865)"
-      ],
+      "head_changes": [],
       "commit_subject": "fix(build): use the stable NDK r29 (29.0.14206865)",
       "release": "v0.8.2-rc0",
       "release_url": "https://github.com/d4rken-org/porter/releases/tag/v0.8.2-rc0",
@@ -42,7 +40,7 @@
       ],
       "pushed_at": "2026-11-26T16:45:40Z",
       "license": "Apache-2.0",
-      "stars": 345,
+      "stars": 346,
       "archived": false,
       "fork": false
     },
@@ -51,20 +49,29 @@
       "origin": "curated",
       "url": "https://github.com/HmnDev-Tech/shevery",
       "description": "Shevery - Modernized Android manager with Jetpack Compose, Material 3, and compatibility enhancements.",
-      "head": "ea7b84dc31dc2a7cf6c93aa62a6e9cd7eb673d4b",
-      "head_changes": [],
-      "commit_subject": "Merge pull request #406 from HmnDev-Tech/Add-Sponsorship-Button",
-      "release": "14.6.5",
-      "release_url": "https://github.com/HmnDev-Tech/shevery/releases/tag/14.6.5",
-      "release_published": "2026-11-15T11:36:17Z",
-      "release_notes": [
-        "Shevery **14.6.5** (`versionCode` `1068`) brings a full Rust rewrite of the native layer, stronger IPC and binder security enforcement, expanded Dhizuku UserService support, new manager usability and ",
-        "Rewrote the legacy C/C++ native layer (`starter`, `rish`, `adb_pairing`) in **Rust**, removing BoringSSL and `libc++` native build dependencies:",
-        "`rish`: PTY management, raw `termios`, `SIGWINCH` self-pipe handling, and JNI bridges."
+      "head": "b9a2a1f6535c716841f289e13737a6b6f4ba9b61",
+      "head_changes": [
+        "fix(android): register boot and update receivers on older releases",
+        "fix(tasker): set restart result before detaching broadcast",
+        "fix(rish): preserve working directory and block idle resize polling",
+        "fix(server): revalidate package ownership before reusing grants",
+        "fix(firewall): show only active verified blocking rules",
+        "fix(stealth): rebuild dex string tables after package rename",
+        "fix(settings): remove the obsolete stealth warning from the title",
+        "feat(manager): add Lab and refresh the expressive UI",
+        "fix(manager): restore floating home navigation and module banner backgrounds",
+        "fix(guide): inline animation specs for Kotlin type inference"
       ],
-      "pushed_at": "2026-11-26T17:34:01Z",
+      "commit_subject": "Merge pull request #410 from HmnDev-Tech/dev",
+      "release": "15.0.r1102",
+      "release_url": "https://github.com/HmnDev-Tech/shevery/releases/tag/15.0.r1102",
+      "release_published": "2026-11-27T09:36:01Z",
+      "release_notes": [
+        "fix(adb): include NUL terminator in SPAKE2 names to match AOSP/BoringSSL by @LandonMoran in https://github.com/HmnDev-Tech/shevery/pull/400"
+      ],
+      "pushed_at": "2026-11-27T17:47:43Z",
       "license": "Apache-2.0",
-      "stars": 1785,
+      "stars": 1788,
       "archived": false,
       "fork": false
     },
@@ -73,9 +80,15 @@
       "origin": "curated",
       "url": "https://github.com/thejaustin/ShizukuPlus",
       "description": "Shizuku+ brings Root/ADB/Dhizuku unification, a Plus API suite, OneUI/Android 16+ support, M3E theming, TCP connectivity, improved customization, & more.",
-      "head": "71cc956d8bfc0d223827c30a66fd7c462c9854fc",
-      "head_changes": [],
-      "commit_subject": "Devlog: Task Manager Plus API",
+      "head": "d61ca0e3776c5d583710cf02a2d571fda2c36bd0",
+      "head_changes": [
+        "fix(nav): keep labels whole at larger font sizes; drop dead Telegram links",
+        "perf(server): hand the manager its binder before the third-party pass",
+        "feat(start): let a Device Owner bring wireless debugging back after a reboot",
+        "style: match CI's ktlint layout in AdbPairDialogFragment",
+        "fix(start): only auto-enable ADB for a Device Owner when ADB was the chosen mode"
+      ],
+      "commit_subject": "fix(start): only auto-enable ADB for a Device Owner when ADB was the chosen mode",
       "release": "13.7.0.r3445",
       "release_url": "https://github.com/thejaustin/ShizukuPlus/releases/tag/13.7.0.r3445",
       "release_published": "2026-11-24T01:35:04Z",
@@ -84,9 +97,9 @@
         "Pairing code dialog stays open on a missing port or a code that isn't 6 digits and says which - a typo closed the dialog with nothing sent (e7e811d6)",
         "Pairing screen shows what's in the way and the one thing to do next - Developer options, Wi-Fi, Wireless debugging, local network and notification problems used to surface only as a failed pairing (7e"
       ],
-      "pushed_at": "2026-11-24T07:35:55Z",
+      "pushed_at": "2026-11-28T02:23:17Z",
       "license": "Apache-2.0",
-      "stars": 1907,
+      "stars": 1917,
       "archived": false,
       "fork": false
     },
@@ -108,7 +121,7 @@
       ],
       "pushed_at": "2026-11-22T21:04:48Z",
       "license": "Apache-2.0",
-      "stars": 238,
+      "stars": 241,
       "archived": false,
       "fork": false
     },
@@ -117,7 +130,7 @@
       "origin": "curated",
       "url": "https://github.com/rushiranpise/Shizuku-Next",
       "description": "A feature-rich Shizuku fork with improved setup, reliability, UI, and additional start methods.",
-      "head": "5fc3e3eb1eb29c2d7ea7bf6afcc089fa207106b3",
+      "head": "1a8c5baa2942b2a5b7f18a79c60766ba17c544ef",
       "head_changes": [],
       "commit_subject": "chore(i18n): new translations from Crowdin",
       "release": "v14.0.40-next",
@@ -128,9 +141,9 @@
         "pairing:** drive Settings when the accessibility service is already on",
         "Full Changelog**: https://github.com/rushiranpise/Shizuku-Next/compare/v14.0.39-next...v14.0.40-next"
       ],
-      "pushed_at": "2026-11-26T12:49:21Z",
+      "pushed_at": "2026-11-27T12:42:42Z",
       "license": "Apache-2.0",
-      "stars": 2409,
+      "stars": 2456,
       "archived": false,
       "fork": false
     },
@@ -150,7 +163,7 @@
         "User isolation for Knox and secondary profiles; Security & Access settings tab.",
         "Wireless ADB boot autostart via Wi-Fi JobScheduler: mDNS ServiceInfoCallback with MulticastLock, ADB Wi-Fi 2.0, TCP port and lockscreen handling, Root/Wireless selector, fallback notifications."
       ],
-      "pushed_at": "2026-11-26T17:36:42Z",
+      "pushed_at": "2026-11-27T07:00:54Z",
       "license": "Apache-2.0",
       "stars": 366,
       "archived": false,
@@ -161,18 +174,25 @@
       "origin": "curated",
       "url": "https://github.com/krishna3163/OmniShizuku",
       "description": "An open-source Android utility for Shizuku, ADB, and Dhizuku workflows, with tools for Android phones, Android TV, and Wear OS.",
-      "head": "81a2ac727da3bb1cacc7bdfcc87c461aacd5e022",
-      "head_changes": [],
-      "commit_subject": "Merge pull request #76 from krishna3163/dependabot/github_actions/actions/setup-java-6.2.0",
+      "head": "b971353b8a60bd954a3f47de3580eb200f98d64c",
+      "head_changes": [
+        "chore(deps): bump androidx.security:security-crypto",
+        "chore(deps): bump blackduck-inc/black-duck-security-scan",
+        "Rename OmniShizuku Hindi README.md to README.hi.md",
+        "Merge pull request #83 from krishna3163/dependabot/github_actions/blackduck-inc/black-duck-security-scan-2.12.0",
+        "Merge branch 'main' into dependabot/gradle/androidx.security-security-crypto-1.1.0",
+        "Merge pull request #78 from krishna3163/dependabot/gradle/androidx.security-security-crypto-1.1.0"
+      ],
+      "commit_subject": "Merge pull request #78 from krishna3163/dependabot/gradle/androidx.security-security-crypto-1.1.0",
       "release": "latest",
       "release_url": "https://github.com/krishna3163/OmniShizuku/releases/tag/latest",
       "release_published": "2026-11-08T04:08:07Z",
       "release_notes": [
-        "Automated build from commit 81a2ac727da3bb1cacc7bdfcc87c461aacd5e022 (v1.0.0). Debug APK: [omnishizuku-latest-debug.apk](https://github.com/krishna3163/OmniShizuku/releases/download/latest/omnishizuku"
+        "Automated build from commit b971353b8a60bd954a3f47de3580eb200f98d64c (v1.0.0). Debug APK: [omnishizuku-latest-debug.apk](https://github.com/krishna3163/OmniShizuku/releases/download/latest/omnishizuku"
       ],
-      "pushed_at": "2026-11-21T10:23:24Z",
+      "pushed_at": "2026-11-27T09:08:52Z",
       "license": "Apache-2.0",
-      "stars": 33,
+      "stars": 45,
       "archived": false,
       "fork": false
     },
@@ -203,7 +223,7 @@
       "origin": "curated",
       "url": "https://github.com/cr1437/Shizako",
       "description": "猫耳看板娘的系统权限助手：不 Root 也能用特权 API，兼容 Shizuku-API 生态（官方 SDK 应用零改动直连） A catgirl-mascot privileged-API assistant for Android. Shizuku-API compatible — apps built on the official SDK conne",
-      "head": "2922e6c7c9de16a676fe439bd02542297ded07af",
+      "head": "81fc9806b80e11f791d48a0649f70f0156657f2c",
       "head_changes": [],
       "commit_subject": "docs: 刷新徽章计数",
       "release": "zako4",
@@ -214,9 +234,9 @@
         "首页状态只探活一次**：单次 binder 探活失败不再把整页判成「服务未运行」，`onResume` 再校准，减少无效重载与状态闪烁",
         "特权存储代理 `IStorageProxy`**：shell/root 服务进程提供的受限文件接口（列目录 / 开文件 / tar 打包 / 安全解压 / 复制 / 删除 / 建目录 / 存在性），四层访问降级（直连 → shell 管道 → run-as（仅 debuggable）→ content://），所有路径先过白名单与注入校验；第三方应用需在「第三方调用」页单独授权，每次调用写审计"
       ],
-      "pushed_at": "2026-11-26T19:39:37Z",
+      "pushed_at": "2026-11-27T22:00:16Z",
       "license": "Apache-2.0",
-      "stars": 147,
+      "stars": 148,
       "archived": false,
       "fork": false
     },
@@ -238,7 +258,7 @@
       ],
       "pushed_at": "2026-10-18T11:38:12Z",
       "license": "MPL-2.0",
-      "stars": 1963,
+      "stars": 1971,
       "archived": false,
       "fork": false
     },
@@ -300,7 +320,7 @@
       "release_notes": [],
       "pushed_at": "2026-11-22T09:08:48Z",
       "license": "Apache-2.0",
-      "stars": 125,
+      "stars": 128,
       "archived": false,
       "fork": false
     },
@@ -342,7 +362,7 @@
       ],
       "pushed_at": "2026-07-15T03:12:10Z",
       "license": "Apache-2.0",
-      "stars": 7113,
+      "stars": 7123,
       "archived": false,
       "fork": true
     },
@@ -352,10 +372,7 @@
       "url": "https://github.com/iamr0s/Dhizuku",
       "description": "A tool that can share DeviceOwner permissions to other application.",
       "head": "568a166fd17314011facb83b78d12f4454e88be4",
-      "head_changes": [
-        "Fix artifact name",
-        "Fix artifact name"
-      ],
+      "head_changes": [],
       "commit_subject": "Fix artifact name",
       "release": "v2.13.1",
       "release_url": "https://github.com/iamr0s/Dhizuku/releases/tag/v2.13.1",
@@ -367,7 +384,7 @@
       ],
       "pushed_at": "2026-11-27T00:02:29Z",
       "license": "GPL-3.0",
-      "stars": 4276,
+      "stars": 4326,
       "archived": false,
       "fork": false
     },
@@ -433,7 +450,7 @@
       ],
       "pushed_at": "2026-11-20T11:12:31Z",
       "license": "Apache-2.0",
-      "stars": 21,
+      "stars": 22,
       "archived": false,
       "fork": true
     },

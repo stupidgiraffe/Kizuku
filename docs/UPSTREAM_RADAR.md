@@ -1,27 +1,31 @@
 # Kizuku upstream radar
 
-Last changed: 2026-11-27 02:30 UTC. Automated metadata check; **not** a source-code, security, or compatibility audit.
+Last changed: 2026-11-28 02:28 UTC. Automated metadata check; **not** a source-code, security, or compatibility audit.
 
 Source discovery is best-effort and not exhaustive. No upstream code, APKs, or dependencies are copied or upgraded.
 
 ## Recent signals
 
-- **[iamr0s/Dhizuku](https://github.com/iamr0s/Dhizuku/releases/tag/v2.13.1)** — Release v2.13.0 → v2.13.1
-  - Fix the user service failing to start on Android 8.x
-  - Report why a user service failed to start instead of waiting forever
-  - Full Changelog**: https://github.com/iamr0s/Dhizuku/compare/v2.13.0...v2.13.1
-- **[anxkhn/QuietBridge](https://github.com/anxkhn/QuietBridge)** — New tracked source
-- **[d4rken-org/porter](https://github.com/d4rken-org/porter)** — New HEAD fix(build): use the stable NDK r29 (29.0.14206865)
-  - fix(build): use the stable NDK r29 (29.0.14206865)
+- **[HmnDev-Tech/shevery](https://github.com/HmnDev-Tech/shevery/releases/tag/15.0.r1102)** — Release 14.6.5 → 15.0.r1102
+  - fix(adb): include NUL terminator in SPAKE2 names to match AOSP/BoringSSL by @LandonMoran in https://github.com/HmnDev-Tech/shevery/pull/400
 - **[rushiranpise/Shizuku-Next](https://github.com/rushiranpise/Shizuku-Next)** — New HEAD chore(i18n): new translations from Crowdin
 - **[cr1437/Shizako](https://github.com/cr1437/Shizako)** — New HEAD docs: 刷新徽章计数
+- **[krishna3163/OmniShizuku](https://github.com/krishna3163/OmniShizuku)** — New HEAD Merge pull request #78 from krishna3163/dependabot/gradle/androidx.security-security-crypto-1.1.0
+  - chore(deps): bump androidx.security:security-crypto
+  - chore(deps): bump blackduck-inc/black-duck-security-scan
+  - Rename OmniShizuku Hindi README.md to README.hi.md
+- **[thejaustin/ShizukuPlus](https://github.com/thejaustin/ShizukuPlus)** — New HEAD fix(start): only auto-enable ADB for a Device Owner when ADB was the chosen mode
+  - fix(nav): keep labels whole at larger font sizes; drop dead Telegram links
+  - perf(server): hand the manager its binder before the third-party pass
+  - feat(start): let a Device Owner bring wireless debugging back after a reboot
 
 ## Feature opportunities to evaluate
 
-- **ADB activation and service recovery** — [d4rken-org/porter](https://github.com/d4rken-org/porter): fix(build): use the stable NDK r29 (29.0.14206865)
+- **Capability security and grants** — [HmnDev-Tech/shevery](https://github.com/HmnDev-Tech/shevery/releases/tag/15.0.r1102): fix(adb): include NUL terminator in SPAKE2 names to match AOSP/BoringSSL by @LandonMoran in https://github.com/HmnDev-Tech/shevery/pull/400
+- **Device Owner / Dhizuku interoperability** — [thejaustin/ShizukuPlus](https://github.com/thejaustin/ShizukuPlus): fix(nav): keep labels whole at larger font sizes; drop dead Telegram links
 - **ADB activation and service recovery** — [rushiranpise/Shizuku-Next](https://github.com/rushiranpise/Shizuku-Next): chore(i18n): new translations from Crowdin
+- **Capability security and grants** — [krishna3163/OmniShizuku](https://github.com/krishna3163/OmniShizuku): chore(deps): bump androidx.security:security-crypto
 - **Android 16/17 and stock Shizuku compatibility** — [cr1437/Shizako](https://github.com/cr1437/Shizako): docs: 刷新徽章计数
-- **Device Owner / Dhizuku interoperability** — [iamr0s/Dhizuku](https://github.com/iamr0s/Dhizuku/releases/tag/v2.13.1): Fix the user service failing to start on Android 8.x
 
 ## Tracked projects
 
@@ -29,22 +33,22 @@ Source discovery is best-effort and not exhaustive. No upstream code, APKs, or d
 |---|---|---|---|---|
 | [AMINODa/aMiNo-App](https://github.com/AMINODa/aMiNo-App) | ADB workflows and client compatibility | v1.4.2 | 2026-11-10 | Apache-2.0 |
 | [corvexis/Axora](https://github.com/corvexis/Axora) | Axeron family alternative | 26.10.21 | 2026-10-21 | Apache-2.0 |
-| [cr1437/Shizako](https://github.com/cr1437/Shizako) | compatibility and manager UX | zako4 | 2026-11-26 | Apache-2.0 |
+| [cr1437/Shizako](https://github.com/cr1437/Shizako) | compatibility and manager UX | zako4 | 2026-11-27 | Apache-2.0 |
 | [d4rken-org/porter](https://github.com/d4rken-org/porter) | compatibility, companion, authorization | v0.8.2-rc0 | 2026-11-26 | Apache-2.0 |
 | [fahrez182/AxManager](https://github.com/fahrez182/AxManager) | Axeron, plugins, WebUI and security | v3.0.0 | 2026-11-01 | Apache-2.0 |
-| [HmnDev-Tech/shevery](https://github.com/HmnDev-Tech/shevery) | UX, permissions, Dhizuku, modules | 14.6.5 | 2026-11-26 | Apache-2.0 |
+| [HmnDev-Tech/shevery](https://github.com/HmnDev-Tech/shevery) | UX, permissions, Dhizuku, modules | 15.0.r1102 | 2026-11-27 | Apache-2.0 |
 | [HSSkyBoy/Shizuku](https://github.com/HSSkyBoy/Shizuku) | device and wireless fixes | v13.6.2 | 2026-11-08 | Apache-2.0 |
 | [iamr0s/Dhizuku](https://github.com/iamr0s/Dhizuku) | Device Owner protocol reference | v2.13.1 | 2026-11-27 | GPL-3.0 |
-| [kerneldroid/Nightzuku](https://github.com/kerneldroid/Nightzuku) | Android platform fixes; paused project | v13.7.1-r63 | 2026-11-26 | Apache-2.0 |
-| [krishna3163/OmniShizuku](https://github.com/krishna3163/OmniShizuku) | app management and utilities | latest | 2026-11-21 | Apache-2.0 |
+| [kerneldroid/Nightzuku](https://github.com/kerneldroid/Nightzuku) | Android platform fixes; paused project | v13.7.1-r63 | 2026-11-27 | Apache-2.0 |
+| [krishna3163/OmniShizuku](https://github.com/krishna3163/OmniShizuku) | app management and utilities | latest | 2026-11-27 | Apache-2.0 |
 | [qianyumeng0228/ShizukuX](https://github.com/qianyumeng0228/ShizukuX) | compatibility features | v13.7.0.k2018 | 2026-11-22 | Apache-2.0 |
 | [revBlackCore/RevCoreManager](https://github.com/revBlackCore/RevCoreManager) | Axora-derived plugin runtime compatibility and UI reference | v26.10.21.r1 | 2026-11-17 | Apache-2.0 |
 | [RikkaApps/Shizuku](https://github.com/RikkaApps/Shizuku) | baseline protocol | v13.6.0 | 2025-06-18 | Apache-2.0 |
 | [roro2239/Stellar](https://github.com/roro2239/Stellar) | boot recovery and script execution | v1.1(101000) | 2026-10-18 | MPL-2.0 |
-| [rushiranpise/Shizuku-Next](https://github.com/rushiranpise/Shizuku-Next) | ADB and diagnostics | v14.0.40-next | 2026-11-26 | Apache-2.0 |
+| [rushiranpise/Shizuku-Next](https://github.com/rushiranpise/Shizuku-Next) | ADB and diagnostics | v14.0.40-next | 2026-11-27 | Apache-2.0 |
 | [Sharif-bot-cmd/ShizuPosed](https://github.com/Sharif-bot-cmd/ShizuPosed) | optional Labs inspiration | 1.5.1 | 2026-11-22 | Apache-2.0 |
 | [thedjchi/Shizuku](https://github.com/thedjchi/Shizuku) | legacy startup and automation | v13.7.0-thedjchi | 2026-07-15 | Apache-2.0 |
-| [thejaustin/ShizukuPlus](https://github.com/thejaustin/ShizukuPlus) | extended compatibility and SU bridge | 13.7.0.r3445 | 2026-11-24 | Apache-2.0 |
+| [thejaustin/ShizukuPlus](https://github.com/thejaustin/ShizukuPlus) | extended compatibility and SU bridge | 13.7.0.r3445 | 2026-11-28 | Apache-2.0 |
 | [xeonleonreal/Xhizuku](https://github.com/xeonleonreal/Xhizuku) | module lifecycle and diagnostics | v4.0.0 | 2026-11-21 | Apache-2.0 |
 | [Youngupdatesource/fOxygen](https://github.com/Youngupdatesource/fOxygen) | AxManager-derived terminal PTY, axsh, WebUI, plugin lifecycle, low-power recovery and UI performance | v1.4 | 2026-11-20 | Apache-2.0 |
 | [anxkhn/QuietBridge](https://github.com/anxkhn/QuietBridge) | discovered — review before adoption | v0.1.0 | 2026-11-26 | Apache-2.0 |
